@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMTC Quotation & LPO Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-deep:#0b1524;
+    --navy-panel:#101f34;
+    --navy-panel2:#132741;
+    --grid-line:#1e3a5f;
+    --amber:#f2a53c;
+    --amber-dim:#8a6626;
+    --ink:#e7edf5;
+    --ink-dim:#8ea0b8;
+    --ink-faint:#5c7189;
+    --green:#3fb88e;
+    --red:#e5555c;
+    --red-bg:rgba(229,85,92,0.12);
+    --blue:#4f8ff0;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--navy-deep),var(--navy-deep)),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(30,58,95,0.35) 39px, rgba(30,58,95,0.35) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(30,58,95,0.35) 39px, rgba(30,58,95,0.35) 40px);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .app{max-width:1500px;margin:0 auto;padding:20px 24px 60px;}
+
+  /* Header */
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--grid-line);margin-bottom:18px;}
+  .brandmark{display:flex;align-items:center;gap:12px;}
+  .brandmark .plug{width:34px;height:34px;border:2px solid var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .brandmark .plug svg{width:18px;height:18px;}
+  .brandmark h1{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;margin:0;letter-spacing:0.2px;}
+  .brandmark .sub{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:1.4px;margin-top:2px;}
+  .session-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .field-inline{display:flex;flex-direction:column;gap:3px;}
+  .field-inline label{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-faint);}
+  select, input, textarea{
+    background:var(--navy-panel2);border:1px solid var(--grid-line);color:var(--ink);
+    padding:7px 10px;border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:13px;outline:none;
+  }
+  select:focus, input:focus, textarea:focus{border-color:var(--amber);}
+  .save-indicator{font-size:10.5px;color:var(--ink-faint);display:flex;align-items:center;gap:6px;}
+  .save-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
+
+  /* Nav */
+  .tabs{display:flex;gap:4px;margin-bottom:22px;flex-wrap:wrap;background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:6px;padding:4px;}
+  .tab{
+    padding:9px 16px;font-size:12.5px;font-weight:600;letter-spacing:0.3px;color:var(--ink-dim);
+    background:transparent;border:none;border-radius:4px;cursor:pointer;position:relative;
+    display:flex;align-items:center;gap:7px;transition:background .15s,color .15s;
+  }
+  .tab:hover{color:var(--ink);}
+  .tab.active{background:var(--navy-panel2);color:var(--amber);box-shadow:inset 0 0 0 1px var(--grid-line);}
+  .tab .badge{background:var(--amber);color:var(--navy-deep);font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* KPI strip */
+  .kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:22px;}
+  .kpi-card{
+    background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:6px;padding:16px 18px;
+    position:relative;overflow:hidden;
+  }
+  .kpi-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--amber);}
+  .kpi-card .label{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-faint);margin-bottom:8px;}
+  .kpi-card .value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;line-height:1;}
+  .kpi-card .value.green{color:var(--green);}
+  .kpi-card .value.amber{color:var(--amber);}
+  .kpi-card .value.red{color:var(--red);}
+  .kpi-card .subtext{font-size:11px;color:var(--ink-dim);margin-top:6px;}
+  .gauge-track{height:5px;background:var(--grid-line);border-radius:3px;margin-top:10px;overflow:hidden;}
+  .gauge-fill{height:100%;background:linear-gradient(90deg,var(--amber-dim),var(--amber));border-radius:3px;transition:width .5s;}
+
+  .section-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;letter-spacing:0.3px;margin:0 0 12px;display:flex;align-items:center;gap:8px;color:var(--ink);}
+  .section-title .tick{width:3px;height:14px;background:var(--amber);display:inline-block;}
+  .panel{background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:6px;padding:18px;margin-bottom:20px;}
+
+  /* top movers */
+  .movers-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .mover-chip{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:20px;padding:6px 14px;font-size:12px;display:flex;align-items:center;gap:8px;}
+  .mover-chip .n{font-family:'IBM Plex Mono',monospace;color:var(--amber);font-weight:600;}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  thead th{
+    text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.9px;color:var(--ink-faint);
+    padding:8px 10px;border-bottom:1px solid var(--grid-line);font-weight:600;white-space:nowrap;
+  }
+  tbody td{padding:9px 10px;border-bottom:1px solid rgba(30,58,95,0.5);vertical-align:middle;}
+  tbody tr{transition:background .15s;}
+  tbody tr:hover{background:rgba(79,143,240,0.05);}
+  tbody tr.overdue{background:var(--red-bg);}
+  tbody tr.overdue:hover{background:rgba(229,85,92,0.2);}
+  .status-pill{padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:600;letter-spacing:0.3px;white-space:nowrap;display:inline-block;}
+  .status-Draft{background:rgba(142,160,184,0.15);color:var(--ink-dim);}
+  .status-Quoted{background:rgba(79,143,240,0.15);color:var(--blue);}
+  .status-Under-Negotiation{background:rgba(242,165,60,0.15);color:var(--amber);}
+  .status-Lost{background:rgba(229,85,92,0.15);color:var(--red);}
+  .status-Converted-to-LPO{background:rgba(63,184,142,0.15);color:var(--green);}
+  .overdue-flag{color:var(--red);font-size:10px;font-weight:700;letter-spacing:0.4px;margin-left:6px;}
+  .gap-pos{color:var(--amber);font-weight:600;}
+  .gap-neg{color:var(--ink-dim);}
+  .movement-legend{display:flex;gap:16px;align-items:center;font-size:10.5px;color:var(--ink-dim);margin-bottom:12px;}
+  .movement-legend .dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px;}
+
+  .btn{
+    background:var(--navy-panel2);border:1px solid var(--grid-line);color:var(--ink);
+    padding:6px 12px;border-radius:var(--radius);font-size:11.5px;font-weight:600;cursor:pointer;
+    transition:all .15s;white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--amber);color:var(--amber);}
+  .btn-primary{background:var(--amber);border-color:var(--amber);color:#1a1206;}
+  .btn-primary:hover{background:#ffb956;color:#1a1206;}
+  .btn-danger{border-color:var(--red);color:var(--red);}
+  .btn-danger:hover{background:var(--red-bg);}
+  .btn-green{border-color:var(--green);color:var(--green);}
+  .btn-green:hover{background:rgba(63,184,142,0.12);}
+  .btn-sm{padding:4px 9px;font-size:10.5px;}
+  .btn:disabled{opacity:0.35;cursor:not-allowed;}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;}
+
+  .empty-state{padding:40px 20px;text-align:center;color:var(--ink-faint);font-size:12.5px;}
+
+  .table-wrap{overflow-x:auto;}
+
+  /* Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,10,18,0.72);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:8px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;}
+  .modal-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+  .modal-header h3{font-family:'Space Grotesk',sans-serif;font-size:16px;margin:0;}
+  .modal-close{background:none;border:none;color:var(--ink-faint);font-size:20px;cursor:pointer;line-height:1;padding:0 4px;}
+  .modal-close:hover{color:var(--ink);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+  .form-grid .full{grid-column:1/-1;}
+  .form-field label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-faint);margin-bottom:5px;}
+  .form-field select, .form-field input, .form-field textarea{width:100%;}
+  .audit-log{max-height:140px;overflow-y:auto;font-size:11px;color:var(--ink-dim);border-top:1px solid var(--grid-line);padding-top:10px;margin-top:10px;}
+  .audit-log div{padding:3px 0;}
+  .audit-log .who{color:var(--amber);}
+
+  /* Builder */
+  .builder-grid{display:grid;grid-template-columns:1fr;gap:18px;}
+  .header-fields-panel{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:6px;padding:14px 16px;margin-bottom:16px;}
+  .pricing-ctl-panel{background:var(--navy-panel2);border:1px dashed var(--grid-line);border-radius:6px;padding:12px 16px;margin:14px 0;}
+  .pricing-ctl-panel .pc-title{font-size:10.5px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-faint);margin-bottom:10px;}
+  .pc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
+  .pc-grid .form-field input{width:100%;}
+  .li-table input, .li-table select{width:100%;font-size:11.5px;padding:5px 7px;}
+  .li-table td{padding:5px 6px;}
+  .li-table .code-cell{min-width:140px;}
+  .li-table .desc-cell{min-width:220px;}
+  .li-table .num-cell{width:70px;}
+  .li-badge{font-size:9.5px;color:var(--ink-faint);margin-top:2px;}
+  .remove-line{background:none;border:1px solid var(--grid-line);color:var(--ink-faint);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:14px;flex-shrink:0;}
+  .remove-line:hover{color:var(--red);border-color:var(--red);}
+  .totals-box{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:6px;padding:14px 16px;margin-top:10px;max-width:380px;margin-left:auto;}
+  .totals-box .line{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;}
+  .totals-box .line.total{border-top:1px solid var(--grid-line);margin-top:6px;padding-top:8px;font-weight:700;font-size:14px;color:var(--amber);}
+  .terms-panel{margin-top:14px;}
+  .terms-panel .form-grid{margin-bottom:0;}
+
+  .permission-note{font-size:11px;color:var(--ink-faint);background:var(--navy-panel2);border:1px dashed var(--grid-line);border-radius:6px;padding:10px 14px;margin-bottom:16px;}
+
+  .brand-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .brand-tab{padding:6px 13px;border-radius:20px;font-size:11.5px;font-weight:600;background:var(--navy-panel2);border:1px solid var(--grid-line);color:var(--ink-dim);cursor:pointer;}
+  .brand-tab.active{background:var(--amber);color:#1a1206;border-color:var(--amber);}
+  .brand-tab .cnt{opacity:0.7;font-weight:400;}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-track{background:var(--navy-panel);}
+  ::-webkit-scrollbar-thumb{background:var(--grid-line);border-radius:4px;}
+
+  #printArea{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{display:block;position:absolute;top:0;left:0;width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brandmark">
+      <div class="plug"><svg viewBox="0 0 24 24" fill="none" stroke="#f2a53c" stroke-width="2"><path d="M7 2v5M17 2v5M6 9h12l-1 5a5 5 0 0 1-10 0L6 9Z"/><path d="M12 16v6"/></svg></div>
+      <div>
+        <h1>BMTC Quotation & LPO Control</h1>
+        <div class="sub">Al Bahri & Al Mazroei Trading Co. · Electrical Solutions · Abu Dhabi</div>
+      </div>
+    </div>
+    <div class="session-controls">
+      <div class="field-inline">
+        <label>Role</label>
+        <select id="roleSelect"></select>
+      </div>
+      <div class="field-inline" id="identityWrap">
+        <label>Signed in as</label>
+        <select id="identitySelect"></select>
+      </div>
+      <div class="save-indicator"><span class="save-dot" id="saveDot"></span><span id="saveText">Synced</span></div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabsNav"></div>
+
+  <!-- DASHBOARD -->
+  <div class="view" id="view-dashboard">
+    <div class="permission-note" id="dashNote"></div>
+    <div class="section-title"><span class="tick"></span>Performance — trailing <span id="dashPeriodLabel">6 months</span>
+      <span style="margin-left:auto;display:flex;gap:6px;">
+        <button class="btn btn-sm" onclick="setDashPeriod(3)">3M</button>
+        <button class="btn btn-sm" onclick="setDashPeriod(6)">6M</button>
+        <button class="btn btn-sm" onclick="setDashPeriod(0)">All time</button>
+      </span>
+    </div>
+    <div class="kpi-strip" id="kpiStrip"></div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Top-moving items</div>
+      <div class="movers-row" id="topMovers"></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Attention required — overdue quotations (7+ days untouched)</div>
+      <div class="table-wrap"><table id="overdueTable"><thead><tr><th>Ref.</th><th>Brand(s)</th><th>Salesman</th><th>Value</th><th>Status</th><th>Idle</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- QUOTATION TRACKER -->
+  <div class="view" id="view-quotations">
+    <div class="permission-note" id="quoteNote"></div>
+    <div class="kpi-strip" id="quoteKpiStrip"></div>
+    <div class="panel">
+      <div class="toolbar">
+        <div class="section-title" style="margin:0;"><span class="tick"></span>Quotation Tracker</div>
+        <div class="filters">
+          <select id="qFilterStatus"><option value="">All statuses</option></select>
+          <select id="qFilterBrand"><option value="">All brands</option></select>
+          <select id="qFilterSalesman"><option value="">All salesmen</option></select>
+          <button class="btn btn-primary" id="newQuoteBtn" onclick="goBuilder()">+ New Quotation</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table id="quoteTable">
+        <thead><tr><th>Ref.</th><th>To</th><th>Brand(s)</th><th>Value</th><th>GP%</th><th>Status</th><th>Salesman</th><th>Last edited by</th><th>Last edited</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- MATERIAL TRACKER -->
+  <div class="view" id="view-materials">
+    <div class="section-title"><span class="tick"></span>Material Tracker — quoted vs. converted, by item
+      <span style="margin-left:auto;display:flex;gap:6px;">
+        <button class="btn btn-sm" onclick="setMatPeriod(3)">3M</button>
+        <button class="btn btn-sm" onclick="setMatPeriod(6)">6M</button>
+        <button class="btn btn-sm" onclick="setMatPeriod(0)">All time</button>
+      </span>
+    </div>
+    <div class="panel">
+      <div class="movement-legend" id="movementLegend"></div>
+      <div class="table-wrap"><table id="materialTable">
+        <thead><tr><th>Code</th><th>Item</th><th>Brand</th><th>Qty quoted</th><th>Qty converted (LPO)</th><th>Gap</th><th>Conversion rate</th><th>Run-rate</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- BUILDER -->
+  <div class="view" id="view-builder">
+    <div class="permission-note" id="builderNote"></div>
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Quotation Builder</div>
+
+      <div class="header-fields-panel">
+        <div class="form-grid">
+          <div class="form-field"><label>To (Customer / Company)</label><input id="hTo" placeholder="e.g. MTEC ELECTROMECHANICAL"></div>
+          <div class="form-field"><label>Our Ref.</label><input id="bQuoteNo" class="mono" readonly></div>
+          <div class="form-field"><label>Attention</label><input id="hAttention" placeholder="e.g. MR. ..."></div>
+          <div class="form-field"><label>Date</label><input id="bDate" class="mono" readonly></div>
+          <div class="form-field"><label>Reference</label><input id="hReference" placeholder="Enquiry reference"></div>
+          <div class="form-field"><label>Tel No.</label><input id="hTel"></div>
+          <div class="form-field"><label>Project</label><input id="hProject" placeholder="e.g. Reem Island Tower B — MEP Package 2"></div>
+          <div class="form-field"><label>Fax No.</label><input id="hFax"></div>
+          <div class="form-field"><label>Consultant</label><input id="hConsultant"></div>
+          <div class="form-field"><label>Mob No.</label><input id="hMob"></div>
+          <div class="form-field"><label>Client</label><input id="hClient"></div>
+          <div class="form-field"><label>Salesman (internal)</label><select id="bSalesman"></select></div>
+          <div class="form-field full"><label>Subject</label><input id="hSubject" placeholder="e.g. FLOOR BOX"></div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="li-table" id="lineItemsTable">
+          <thead><tr>
+            <th>#</th><th>Cat. Ref.</th><th>Description</th><th>Brand</th><th>UOM</th><th>Qty</th>
+            <th>Spe.Disc%</th><th>Margin%</th><th>U.Price AED</th><th>Total AED</th><th></th>
+          </tr></thead>
+          <tbody id="lineItemsBody"></tbody>
+        </table>
+      </div>
+      <button class="btn" onclick="addLineItem()">+ Add item</button>
+
+      <div class="pricing-ctl-panel">
+        <div class="pc-title">Global pricing overrides (usually left at defaults — only for project-wide special terms)</div>
+        <div class="pc-grid">
+          <div class="form-field"><label>Spe. Disc % (global)</label><input type="number" step="0.01" id="ctlSpeDisc" value="0" onchange="onCtlChange()"></div>
+          <div class="form-field"><label>EX-GBP factor</label><input type="number" step="0.01" id="ctlExGbp" value="1" onchange="onCtlChange()"></div>
+          <div class="form-field"><label>Freight % (global)</label><input type="number" step="0.01" id="ctlFreight" value="0" onchange="onCtlChange()"></div>
+          <div class="form-field"><label>Duty % (global)</label><input type="number" step="0.01" id="ctlDuty" value="0" onchange="onCtlChange()"></div>
+          <div class="form-field"><label>Margin % (global)</label><input type="number" step="0.01" id="ctlMargin" value="0" onchange="onCtlChange()"></div>
+        </div>
+      </div>
+
+      <div class="totals-box">
+        <div class="line"><span>Quote Value AED</span><span class="mono" id="bQuoteValue">AED 0.00</span></div>
+        <div class="line"><span>VAT 5%</span><span class="mono" id="bVat">AED 0.00</span></div>
+        <div class="line total"><span>Total Value AED</span><span class="mono" id="bTotalValue">AED 0.00</span></div>
+        <div class="line" style="margin-top:8px;border-top:1px dashed var(--grid-line);padding-top:8px;"><span>Internal margin (approval routing)</span><span class="mono" id="bGP">0.0%</span></div>
+      </div>
+
+      <div class="terms-panel">
+        <div class="form-grid">
+          <div class="form-field"><label>Delivery</label><input id="hDelivery" value="To be confirmed"></div>
+          <div class="form-field"><label>Payment Terms</label><input id="hPayment" value="To be confirmed"></div>
+          <div class="form-field full"><label>Delivery Place</label><input id="hDeliveryPlace" value="DDP - Customer project site in UAE (Offloading of Materials shall be on Client's Account)."></div>
+          <div class="form-field full"><label>Validity</label><input id="hValidity" value="This offer is valid for 2 Days and for the complete package only."></div>
+          <div class="form-field"><label>Prepared by — Name</label><input id="hPrepName"></div>
+          <div class="form-field"><label>Prepared by — Title</label><input id="hPrepTitle" placeholder="e.g. SALES ENGINEER"></div>
+          <div class="form-field"><label>Prepared by — Mobile</label><input id="hPrepMobile" placeholder="05X-XXXXXXX"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="saveQuotation('Quoted')">Save & Mark Quoted</button>
+        <button class="btn" onclick="saveQuotation('Draft')">Save as Draft</button>
+        <button class="btn btn-green" onclick="generatePdf()">Generate PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="view" id="view-admin">
+    <div class="permission-note" id="adminNote"></div>
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Admin Panel — price & cost master, by brand</div>
+      <div class="brand-tabs" id="adminBrandTabs"></div>
+      <div class="toolbar">
+        <div style="font-size:11.5px;color:var(--ink-dim);" id="adminBrandSummary"></div>
+        <button class="btn btn-primary btn-sm" id="adminAddItemBtn" onclick="adminAddItem()">+ Add item to this brand</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Code</th><th>Description</th><th>UOM</th><th>List Price</th><th>Ccy</th><th>Disc%</th><th>Ex.Rate</th><th>Freight%</th><th>Duty%</th><th>AD%</th><th>After Disc.</th><th></th></tr></thead>
+        <tbody id="adminTable"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- APPROVALS -->
+  <div class="view" id="view-approvals">
+    <div class="permission-note" id="approvalsNote"></div>
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>GP Approval Queue</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Ref.</th><th>Brand(s)</th><th>Value</th><th>GP%</th><th>Routed to</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="approvalsTable"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- SYNERGY -->
+  <div class="view" id="view-synergy">
+    <div class="permission-note">Synergy Management — how work is balanced across the team, and where one customer's activity across multiple brands signals a cross-sell opportunity.</div>
+    <div class="kpi-strip" id="synergyKpiStrip"></div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Team workload — Quotation Officers</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Officer</th><th>Active quotations</th><th>Pipeline value</th><th>Overdue owned</th><th>Converted (all time)</th></tr></thead>
+        <tbody id="synergyOfficerTable"></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Team workload — Salesmen</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Salesman</th><th>Active quotations</th><th>Pipeline value</th><th>Win rate</th><th>Flagged Lost</th></tr></thead>
+        <tbody id="synergySalesmanTable"></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Cross-brand synergy — same customer, multiple brands</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Customer (To)</th><th>Brands quoted</th><th>Quotations</th><th>Combined value</th><th>Signal</th></tr></thead>
+        <tbody id="synergyCrossBrandTable"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<datalist id="catalogDatalist"></datalist>
+
+<div id="printArea"></div>
+
+<script id="bmtc-state" type="application/json">__STATE_PLACEHOLDER__</script>
+<script>window.BMTC_CATALOG = __CATALOG_PLACEHOLDER__;</script>
+<script>
+/* ============================= STATE ============================= */
+let DATA = null;
+let currentTab = 'dashboard';
+let dashPeriod = 6;
+let matPeriod = 6;
+const SALESMEN = ['Salesman A','Salesman B','Salesman C'];
+const OFFICERS = ['Ahmed (Officer)','Fatima (Officer)'];
+const DEFAULT_MARGIN_PCT = 35;
+
+let role = 'Quotation Officer';
+let identity = OFFICERS[0];
+
+let builderLines = [];
+let adminBrand = null;
+
+/* ============================= PRICING ENGINE =============================
+   Mirrors the company's Excel costing sheet exactly:
+   Std Disc Price -> Spe Disc Price -> Landed Dubai (AED) -> Selling Price (AED)
+*/
+function round2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
+function afterDiscount(cat){ return cat.listPrice * (1 - (cat.disPct||0)/100); }
+function defaultPricingControls(){
+  return { speDiscGlobalPct:0, exGbp:1, freightGlobalPct:0, dutyGlobalPct:0, marginGlobalPct:0 };
+}
+function computeLinePricing(cat, opts){
+  const ctl = opts.ctl || defaultPricingControls();
+  const speDiscPct = opts.speDiscPct || 0;
+  const marginPct = (opts.marginPct===undefined || opts.marginPct===null) ? DEFAULT_MARGIN_PCT : opts.marginPct;
+  const std = afterDiscount(cat);
+  const spe = round2(std * (1 - speDiscPct/100) * (1 - ctl.speDiscGlobalPct/100));
+  const landedUnit = round2(spe * (cat.exRate||1) * (ctl.exGbp||1)
+    * (1 + (cat.freightPct||0)/100) * (1 + ctl.freightGlobalPct/100)
+    * (1 + ctl.dutyGlobalPct/100) * (1 + (cat.dutyPct||0)/100)
+    * (1 + (cat.adPct||0)/100));
+  const denom = (1 - marginPct/100) * (1 - ctl.marginGlobalPct/100);
+  const sellUnit = denom > 0 ? round2(landedUnit / denom) : landedUnit;
+  return { std, spe, landedUnit, sellUnit };
+}
+function readGlobalCtl(){
+  return {
+    speDiscGlobalPct: parseFloat(document.getElementById('ctlSpeDisc').value)||0,
+    exGbp: parseFloat(document.getElementById('ctlExGbp').value)||1,
+    freightGlobalPct: parseFloat(document.getElementById('ctlFreight').value)||0,
+    dutyGlobalPct: parseFloat(document.getElementById('ctlDuty').value)||0,
+    marginGlobalPct: parseFloat(document.getElementById('ctlMargin').value)||0
+  };
+}
+
+/* ============================= CATALOG HELPERS ============================= */
+function findCatalogItem(code){
+  if(!code) return null;
+  const c = String(code).trim().toUpperCase();
+  return DATA.catalog.find(it=>it.code.toUpperCase()===c) || null;
+}
+function catalogBrands(){
+  return [...new Set(DATA.catalog.map(it=>it.brand))].sort();
+}
+function itemsForBrand(brand){
+  return DATA.catalog.filter(it=>it.brand===brand);
+}
+function refreshCatalogDatalist(){
+  const dl = document.getElementById('catalogDatalist');
+  dl.innerHTML = DATA.catalog.slice(0,4000).map(it=>`<option value="${it.code}">${it.code} — ${it.description} (${it.brand})</option>`).join('');
+}
+
+/* ============================= STORAGE =============================
+   Persistence uses the real Claude Artifact "artifact" capability
+   (claude.use('artifact') -> artifact.publish(html)). The page's own
+   canonical source is kept as a JS template (PAGE_SHELL, see below) and
+   re-rendered with the current DATA embedded — never the live DOM.
+   Outside the Artifact runtime (e.g. viewed as a plain static file),
+   getArtifactCap() resolves null and the app runs in-memory only.
+*/
+const PAGE_SHELL = "__SHELL_PLACEHOLDER__";
+function renderDocument(dataObj){
+  const stateJson = JSON.stringify(dataObj).replace(/</g,'\\u003c');
+  const shellJson = JSON.stringify(PAGE_SHELL).replace(/</g,'\\u003c');
+  return PAGE_SHELL
+    .replace('__STATE_PLACEHOLDER__', stateJson)
+    .replace('const PAGE_SHELL = "__SHELL_PLACEHOLDER__";', 'const PAGE_SHELL = ' + shellJson + ';');
+}
+let artifactCapPromise = null;
+function getArtifactCap(){
+  if(!window.claude || !window.claude.use) return Promise.resolve(null);
+  if(!artifactCapPromise) artifactCapPromise = window.claude.use('artifact').catch(()=>null);
+  return artifactCapPromise;
+}
+
+async function loadData(){
+  let embedded = null;
+  try{ embedded = JSON.parse(document.getElementById('bmtc-state').textContent); }catch(e){ embedded = null; }
+  DATA = (embedded && embedded.catalog && embedded.catalog.length) ? embedded : seedData();
+  refreshCatalogDatalist();
+  render();
+}
+async function persist(){
+  document.getElementById('saveDot').style.background = '#f2a53c';
+  document.getElementById('saveText').textContent = 'Saving...';
+  const cap = await getArtifactCap();
+  if(!cap){
+    document.getElementById('saveDot').style.background = '#8ea0b8';
+    document.getElementById('saveText').textContent = 'Local only — open as a published Artifact to sync & share';
+    return;
+  }
+  try{
+    await cap.publish(renderDocument(DATA));
+    document.getElementById('saveDot').style.background = '#3fb88e';
+    document.getElementById('saveText').textContent = 'Synced · shared across all users';
+  }catch(e){
+    if(e && e.code==='conflict'){
+      document.getElementById('saveText').textContent = 'Updated elsewhere — refreshing…';
+      return;
+    }
+    document.getElementById('saveDot').style.background = '#e5555c';
+    document.getElementById('saveText').textContent = 'Save failed — retry';
+  }
+}
+
+function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString(); }
+
+function seedData(){
+  const catalog = JSON.parse(JSON.stringify(window.BMTC_CATALOG||[]));
+  const ctl = defaultPricingControls();
+
+  function mkLine(cat, qty, speDiscPct, marginPct){
+    const p = computeLinePricing(cat, {speDiscPct, marginPct, ctl});
+    return {
+      code:cat.code, description:cat.description, brand:cat.brand, uom:cat.uom, qty,
+      speDiscPct: speDiscPct||0, marginPct: (marginPct===undefined?DEFAULT_MARGIN_PCT:marginPct),
+      unitLanded:p.landedUnit, unitSell:p.sellUnit, lineTotal: round2(qty*p.sellUnit), manual:false
+    };
+  }
+  function quoteTotals(items){
+    const quoteValue = round2(items.reduce((s,l)=>s+l.lineTotal,0));
+    const landedTotal = items.reduce((s,l)=>s+l.unitLanded*l.qty,0);
+    const gp = quoteValue ? (quoteValue-landedTotal)/quoteValue*100 : 0;
+    return { quoteValue, vat: round2(quoteValue*0.05), totalValue: round2(quoteValue*1.05), gp };
+  }
+  function itemsFor(brand, count){ return catalog.filter(it=>it.brand===brand).slice(0,count); }
+
+  const brandCycle = ['MK','CRABTREE','BARTON','KATKO','BG','Elsewedy','EVOTEC','REXTON','MESC','STERLING','BAHRA','LEWDEN'];
+  const statusCycle = ['Quoted','Quoted','Converted to LPO','Under Negotiation','Lost','Quoted','Converted to LPO','Draft','Converted to LPO','Quoted','Quoted','Converted to LPO'];
+  const editedCycle = [2,9,15,3,20,10,40,1,60,4,8,25];
+  const editorCycle = ['Ahmed (Officer)','Fatima (Officer)'];
+  const salesmanCycle = SALESMEN;
+  const toNames = ['MTEC ELECTROMECHANICAL','Reem Contracting LLC','Al Futtaim MEP','Ghantoot Electromechanical','Trans Gulf Electromechanical','Depa Interiors','Al Naboodah MEP','ETA Ascon','National Projects & Const.','Metito Utilities','Arabtec MEP','Target Engineering'];
+
+  const quotations = brandCycle.map((brand,i)=>{
+    const catItems = itemsFor(brand, 2);
+    if(catItems.length===0) return null;
+    const qtys = [40 + i*7, 15 + i*3].slice(0,catItems.length);
+    const items = catItems.map((c,idx)=>mkLine(c, qtys[idx]||10, 0, DEFAULT_MARGIN_PCT));
+    const t = quoteTotals(items);
+    const status = statusCycle[i];
+    const edited = editedCycle[i];
+    const editor = editorCycle[i%2];
+    const rev = (i===1||i===9) ? 1 : 0;
+    const auditLog = [{who:editor, action:'Quotation created ('+status+')', at:daysAgo(edited+5)}];
+    if(rev) auditLog.push({who:editor, action:'Revised to R'+rev, at:daysAgo(edited+3)});
+    if(status==='Converted to LPO') auditLog.push({who:editor, action:'Converted to LPO', at:daysAgo(edited)});
+    else auditLog.push({who:editor, action:'Status set to '+status, at:daysAgo(edited)});
+    return {
+      id:'q'+(i+1),
+      quoteNo:'BMTC-JIH-202608-'+(1200+i*13),
+      revision: rev,
+      status,
+      to: toNames[i % toNames.length],
+      attention:'MR.', reference:'', project:'', consultant:'', client:'',
+      subject: brand+' MATERIALS', telNo:'', faxNo:'', mobNo:'',
+      salesman: salesmanCycle[i % salesmanCycle.length],
+      pricingControls: ctl,
+      items,
+      quoteValue: t.quoteValue, vat: t.vat, totalValue: t.totalValue, gp: t.gp,
+      delivery:'To be confirmed', deliveryPlace:"DDP - Customer project site in UAE (Offloading of Materials shall be on Client's Account).",
+      validity:'This offer is valid for 2 Days and for the complete package only.', paymentTerms:'To be confirmed',
+      prepName:'', prepTitle:'', prepMobile:'',
+      createdAt: daysAgo(edited + Math.floor(Math.random()*20)),
+      lastEditedAt: daysAgo(edited),
+      lastEditedBy: editor,
+      revisionHistory: rev ? [{revision:0, value: t.quoteValue*0.92, at:daysAgo(edited+6)}] : [],
+      auditLog
+    };
+  }).filter(Boolean);
+
+  const approvals = [];
+  quotations.filter(q=>q.status==='Converted to LPO').forEach((q,idx)=>{
+    const tier = gpTier(q.gp);
+    approvals.push({
+      id:'a'+q.id, quoteId:q.id, quoteNo:q.quoteNo, brand:quoteDisplayBrand(q), value:q.quoteValue, gp:q.gp,
+      tier, status: idx%3===0 ? 'Pending' : 'Approved', requestedAt:q.lastEditedAt
+    });
+  });
+
+  return { catalog, quotations, approvals, quoteSeq: 1391 };
+}
+
+/* ============================= HELPERS ============================= */
+function fmtMoney(n){ return 'AED ' + (n||0).toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function statusClass(s){ return 'status-' + s.replace(/ /g,'-'); }
+function daysSince(iso){ return Math.floor((Date.now()-new Date(iso).getTime())/(1000*60*60*24)); }
+function isOverdue(q){ return !['Converted to LPO','Lost'].includes(q.status) && daysSince(q.lastEditedAt) >= 7; }
+function quoteRef(q){ return q.quoteNo + (q.revision && q.revision>0 ? '-R'+q.revision : ''); }
+function withinPeriod(iso, months){ if(!months) return true; const cutoff=new Date(); cutoff.setMonth(cutoff.getMonth()-months); return new Date(iso) >= cutoff; }
+function getConvertedAt(q){ const entry = (q.auditLog||[]).slice().reverse().find(a=>a.action==='Converted to LPO'); return entry ? entry.at : q.lastEditedAt; }
+function quoteDisplayBrand(q){
+  const brands = [...new Set((q.items||[]).map(it=>it.brand).filter(Boolean))];
+  if(brands.length===0) return '—';
+  if(brands.length===1) return brands[0];
+  return brands.length+' brands';
+}
+function gpTier(gp){ return gp>=10?'Line Manager':(gp>=5?'GM':'CEO'); }
+function canEditQuotes(){ return role==='Admin' || role==='Quotation Officer'; }
+function canAdmin(){ return role==='Admin'; }
+function canApprove(){ return ['Line Manager','GM','CEO'].includes(role); }
+function isSalesmanRole(){ return role==='Salesman'; }
+
+function logAudit(q, action){
+  q.auditLog.push({who: currentActor(), action, at: new Date().toISOString()});
+  q.lastEditedAt = new Date().toISOString();
+  q.lastEditedBy = currentActor();
+}
+function currentActor(){
+  if(role==='Admin') return 'Admin';
+  if(role==='Quotation Officer') return identity;
+  if(role==='Salesman') return identity;
+  return role;
+}
+
+/* ============================= ROLE / IDENTITY UI ============================= */
+function populateRoleUI(){
+  const roleSel = document.getElementById('roleSelect');
+  const roles = ['Admin','Quotation Officer','Salesman','Line Manager','GM','CEO'];
+  roleSel.innerHTML = roles.map(r=>`<option value="${r}">${r}</option>`).join('');
+  roleSel.value = role;
+  roleSel.onchange = ()=>{ role = roleSel.value; refreshIdentityOptions(); routeTabsForRole(); render(); };
+  refreshIdentityOptions();
+}
+function refreshIdentityOptions(){
+  const idSel = document.getElementById('identitySelect');
+  const wrap = document.getElementById('identityWrap');
+  let opts = [];
+  if(role==='Quotation Officer') opts = OFFICERS;
+  else if(role==='Salesman') opts = SALESMEN;
+  if(opts.length===0){ wrap.style.display='none'; identity = role; return; }
+  wrap.style.display='flex';
+  idSel.innerHTML = opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+  identity = opts[0];
+  idSel.value = identity;
+  idSel.onchange = ()=>{ identity = idSel.value; render(); };
+}
+
+const TAB_DEFS = [
+  {id:'dashboard', label:'Dashboard'},
+  {id:'quotations', label:'Quotation Tracker'},
+  {id:'materials', label:'Material Tracker'},
+  {id:'synergy', label:'Synergy'},
+  {id:'builder', label:'Quotation Builder', roles:['Admin','Quotation Officer']},
+  {id:'admin', label:'Admin Panel', roles:['Admin']},
+  {id:'approvals', label:'Approvals', roles:['Line Manager','GM','CEO','Admin']}
+];
+function routeTabsForRole(){
+  const nav = document.getElementById('tabsNav');
+  const visible = TAB_DEFS.filter(t=> !t.roles || t.roles.includes(role));
+  if(!visible.find(t=>t.id===currentTab)) currentTab = 'dashboard';
+  nav.innerHTML = visible.map(t=>{
+    let badge='';
+    if(t.id==='approvals' && DATA){
+      const pending = DATA.approvals.filter(a=>a.status==='Pending' && (role==='Admin' || a.tier===role)).length;
+      if(pending>0) badge = `<span class="badge">${pending}</span>`;
+    }
+    return `<button class="tab ${t.id===currentTab?'active':''}" onclick="switchTab('${t.id}')">${t.label}${badge}</button>`;
+  }).join('');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+currentTab).classList.add('active');
+}
+function switchTab(id){ currentTab = id; routeTabsForRole(); render(); }
+
+/* ============================= RENDER: DASHBOARD ============================= */
+function setDashPeriod(p){ dashPeriod = p; render(); }
+function setMatPeriod(p){ matPeriod = p; render(); }
+
+function renderDashboard(){
+  document.getElementById('dashPeriodLabel').textContent = dashPeriod ? dashPeriod+' months' : 'all time';
+  document.getElementById('dashNote').textContent = `Viewing as ${role}${identity!==role?' — '+identity:''}. This bar aggregates across every quotation and LPO in the system.`;
+
+  const inRange = DATA.quotations.filter(q=>withinPeriod(q.createdAt, dashPeriod));
+  const won = inRange.filter(q=>q.status==='Converted to LPO');
+  const lost = inRange.filter(q=>q.status==='Lost');
+  const decided = won.length + lost.length;
+  const winRate = decided ? (won.length/decided*100) : 0;
+  const quotedValue = inRange.reduce((s,q)=>s+q.quoteValue,0);
+  const soldValue = won.reduce((s,q)=>s+q.quoteValue,0);
+  const conversion = quotedValue ? (soldValue/quotedValue*100) : 0;
+  const overdueCount = DATA.quotations.filter(isOverdue).length;
+
+  const kpis = [
+    {label:'Win rate', value:winRate.toFixed(1)+'%', sub:`${won.length} won / ${lost.length} lost`, cls: winRate>=50?'green':'amber', gauge:winRate},
+    {label:'Quoted value', value:fmtMoney(quotedValue), sub:`${inRange.length} quotations`, cls:''},
+    {label:'Converted value (LPO)', value:fmtMoney(soldValue), sub:`${won.length} orders`, cls:'green'},
+    {label:'Quoted → sold conversion', value:conversion.toFixed(1)+'%', sub:'value-weighted', cls: conversion>=40?'green':'amber', gauge:conversion},
+    {label:'Overdue quotations', value:overdueCount, sub:'untouched 7+ days', cls: overdueCount>0?'red':'green'}
+  ];
+  document.getElementById('kpiStrip').innerHTML = kpis.map(k=>`
+    <div class="kpi-card">
+      <div class="label">${k.label}</div>
+      <div class="value ${k.cls}">${k.value}</div>
+      <div class="subtext">${k.sub}</div>
+      ${k.gauge!==undefined?`<div class="gauge-track"><div class="gauge-fill" style="width:${Math.min(100,k.gauge)}%"></div></div>`:''}
+    </div>`).join('');
+
+  const qtyMap = {};
+  inRange.forEach(q=>q.items.forEach(it=>{ const key=it.code||it.description; qtyMap[key] = qtyMap[key]||{label:(it.code?it.code+' — ':'')+it.description, qty:0}; qtyMap[key].qty += it.qty; }));
+  const top = Object.values(qtyMap).sort((a,b)=>b.qty-a.qty).slice(0,6);
+  document.getElementById('topMovers').innerHTML = top.length ? top.map(t=>
+    `<div class="mover-chip">${t.label} <span class="n">${t.qty.toLocaleString()}</span></div>`
+  ).join('') : `<div class="empty-state">No item activity in this period.</div>`;
+
+  const overdueRows = DATA.quotations.filter(isOverdue).sort((a,b)=>daysSince(b.lastEditedAt)-daysSince(a.lastEditedAt));
+  document.getElementById('overdueTable').querySelector('tbody').innerHTML = overdueRows.length ? overdueRows.map(q=>`
+    <tr class="overdue">
+      <td class="mono">${quoteRef(q)}</td><td>${quoteDisplayBrand(q)}</td><td>${q.salesman}</td>
+      <td class="mono">${fmtMoney(q.quoteValue)}</td>
+      <td><span class="status-pill ${statusClass(q.status)}">${q.status}</span></td>
+      <td class="mono">${daysSince(q.lastEditedAt)}d</td>
+    </tr>`).join('') : `<tr><td colspan="6" class="empty-state">Nothing overdue — every active quotation was touched within 7 days.</td></tr>`;
+}
+
+/* ============================= RENDER: QUOTATION TRACKER ============================= */
+function renderQuotations(){
+  const note = isSalesmanRole()
+    ? `View-only. As a salesman you can flag your own quotations as Under Negotiation or Lost — all other fields are managed by Quotation Officers.`
+    : canEditQuotes()
+      ? `Full access — create, edit, and convert quotations. Every change is logged with your name and timestamp.`
+      : `View-only access.`;
+  document.getElementById('quoteNote').textContent = note;
+
+  const statusSel = document.getElementById('qFilterStatus');
+  if(statusSel.options.length<=1){
+    ['Draft','Quoted','Under Negotiation','Lost','Converted to LPO'].forEach(s=>statusSel.add(new Option(s,s)));
+    const brandSel = document.getElementById('qFilterBrand');
+    catalogBrands().forEach(b=>brandSel.add(new Option(b,b)));
+    document.getElementById('qFilterSalesman').append(...SALESMEN.map(s=>new Option(s,s)));
+    [statusSel, brandSel, document.getElementById('qFilterSalesman')].forEach(el=>el.onchange=renderQuotations);
+  }
+  document.getElementById('newQuoteBtn').style.display = canEditQuotes() ? '' : 'none';
+
+  const fs = statusSel.value, fb = document.getElementById('qFilterBrand').value, fsm = document.getElementById('qFilterSalesman').value;
+  let rows = DATA.quotations.filter(q => (!fs||q.status===fs) && (!fb||q.items.some(it=>it.brand===fb)) && (!fsm||q.salesman===fsm));
+  rows = rows.slice().sort((a,b)=> new Date(b.lastEditedAt)-new Date(a.lastEditedAt));
+
+  document.getElementById('quoteTable').querySelector('tbody').innerHTML = rows.length ? rows.map(q=>{
+    const overdue = isOverdue(q);
+    const isOwn = q.salesman === identity;
+    let actions = `<button class="btn btn-sm" onclick="openDetail('${q.id}')">View</button>`;
+    if(canEditQuotes() && ['Quoted','Under Negotiation'].includes(q.status)){
+      actions += ` <button class="btn btn-sm" onclick="openRevise('${q.id}')">Revise</button>`;
+    }
+    if(canEditQuotes() && !['Converted to LPO','Lost'].includes(q.status)){
+      actions += ` <button class="btn btn-sm btn-primary" onclick="convertToLpo('${q.id}')">Convert to LPO</button>`;
+    }
+    if(isSalesmanRole() && isOwn && !['Converted to LPO','Lost'].includes(q.status)){
+      actions += ` <button class="btn btn-sm" onclick="flagStatus('${q.id}','Under Negotiation')">Negotiating</button>`;
+      actions += ` <button class="btn btn-sm btn-danger" onclick="flagStatus('${q.id}','Lost')">Lost</button>`;
+    }
+    return `<tr class="${overdue?'overdue':''}">
+      <td class="mono">${quoteRef(q)}</td>
+      <td>${q.to||'—'}</td>
+      <td>${quoteDisplayBrand(q)}</td>
+      <td class="mono">${fmtMoney(q.quoteValue)}</td>
+      <td class="mono">${q.gp.toFixed(1)}%</td>
+      <td><span class="status-pill ${statusClass(q.status)}">${q.status}</span>${overdue?'<span class="overdue-flag">● OVERDUE</span>':''}</td>
+      <td>${q.salesman}</td>
+      <td>${q.lastEditedBy}</td>
+      <td class="mono">${daysSince(q.lastEditedAt)}d ago</td>
+      <td><div class="row-actions">${actions}</div></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="10" class="empty-state">No quotations match these filters.</td></tr>`;
+
+  const won = rows.filter(q=>q.status==='Converted to LPO').length;
+  const lost = rows.filter(q=>q.status==='Lost').length;
+  const decided = won+lost;
+  const wr = decided? (won/decided*100):0;
+  document.getElementById('quoteKpiStrip').innerHTML = [
+    {label:'Filtered results', value:rows.length},
+    {label:'Combined value', value:fmtMoney(rows.reduce((s,q)=>s+q.quoteValue,0))},
+    {label:'Win rate (filtered)', value:wr.toFixed(1)+'%'},
+    {label:'Overdue in view', value:rows.filter(isOverdue).length}
+  ].map(k=>`<div class="kpi-card"><div class="label">${k.label}</div><div class="value">${k.value}</div></div>`).join('');
+}
+
+function flagStatus(id, status){
+  const q = DATA.quotations.find(x=>x.id===id);
+  if(!q) return;
+  q.status = status;
+  logAudit(q, `Salesman flagged status as ${status}`);
+  persist().then(render);
+}
+
+function convertToLpo(id){
+  const q = DATA.quotations.find(x=>x.id===id);
+  if(!q || !canEditQuotes()) return;
+  q.status = 'Converted to LPO';
+  logAudit(q, 'Converted to LPO');
+  const tier = gpTier(q.gp);
+  DATA.approvals.push({
+    id:'a'+q.id+'-'+Date.now(), quoteId:q.id, quoteNo:q.quoteNo, brand:quoteDisplayBrand(q),
+    value:q.quoteValue, gp:q.gp, tier, status:'Pending', requestedAt:new Date().toISOString()
+  });
+  persist().then(()=>{ routeTabsForRole(); render(); openDetail(id, true); });
+}
+
+/* ============================= DETAIL MODAL ============================= */
+function openDetail(id, justConverted){
+  const q = DATA.quotations.find(x=>x.id===id);
+  const rows = q.items.map(it=>`<tr><td class="mono">${it.code||'—'}</td><td>${it.description}</td><td>${it.brand||'—'}</td><td class="mono">${it.qty.toLocaleString()}</td><td class="mono">${fmtMoney(it.unitSell)}</td><td class="mono">${fmtMoney(it.lineTotal)}</td></tr>`).join('');
+  const revRows = (q.revisionHistory||[]).slice().reverse().map(r=>`<div>Revision <span class="who">${r.revision===0?'original':'R'+r.revision}</span> — ${fmtMoney(r.value)} <span style="color:var(--ink-faint);">(superseded ${new Date(r.at).toLocaleDateString('en-AE')})</span></div>`).join('');
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-header">
+      <div><h3 class="mono">${quoteRef(q)}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${quoteDisplayBrand(q)} · ${q.to||'—'} · ${q.salesman}</div></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    ${justConverted?`<div class="permission-note" style="border-color:var(--green);color:var(--green);">Converted to LPO. Routed to <b>${gpTier(q.gp)}</b> for GP approval (${q.gp.toFixed(1)}% margin).</div>`:''}
+    <div class="table-wrap"><table><thead><tr><th>Code</th><th>Description</th><th>Brand</th><th>Qty</th><th>U.Price</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="totals-box">
+      <div class="line"><span>Quote Value</span><span class="mono">${fmtMoney(q.quoteValue)}</span></div>
+      <div class="line"><span>VAT 5%</span><span class="mono">${fmtMoney(q.vat)}</span></div>
+      <div class="line total"><span>Total Value</span><span class="mono">${fmtMoney(q.totalValue)}</span></div>
+    </div>
+    ${revRows?`<div class="audit-log"><div style="color:var(--ink-faint);text-transform:uppercase;font-size:9.5px;letter-spacing:0.8px;margin-bottom:4px;">Revision history</div>${revRows}</div>`:''}
+    <div class="audit-log">${q.auditLog.slice().reverse().map(a=>`<div><span class="who">${a.who}</span> — ${a.action} <span style="color:var(--ink-faint);">(${new Date(a.at).toLocaleString('en-AE')})</span></div>`).join('')}</div>
+    ${canEditQuotes() && !['Converted to LPO','Lost'].includes(q.status) ? `
+    <div style="display:flex;gap:8px;margin-top:16px;border-top:1px solid var(--grid-line);padding-top:14px;">
+      <button class="btn btn-primary" onclick="convertToLpo('${q.id}')">Convert to LPO</button>
+      ${['Quoted','Under Negotiation'].includes(q.status) ? `<button class="btn" onclick="openRevise('${q.id}')">Revise</button>` : ''}
+    </div>` : ''}
+  `;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+/* ============================= REVISE ============================= */
+let reviseId = null;
+let reviseLines = [];
+function openRevise(id){
+  const q = DATA.quotations.find(x=>x.id===id);
+  if(!q || !canEditQuotes()) return;
+  reviseId = id;
+  reviseLines = JSON.parse(JSON.stringify(q.items));
+  renderReviseModal();
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function reviseAddLine(){ reviseLines.push({code:'', description:'', brand:'', uom:'', qty:1, speDiscPct:0, marginPct:DEFAULT_MARGIN_PCT, unitLanded:0, unitSell:0, lineTotal:0, manual:true}); renderReviseModal(); }
+function reviseRemoveLine(idx){ reviseLines.splice(idx,1); renderReviseModal(); }
+function reviseRecalc(idx){
+  const l = reviseLines[idx];
+  const cat = findCatalogItem(l.code);
+  const ctl = defaultPricingControls();
+  if(cat){
+    l.description = cat.description; l.brand = cat.brand; l.uom = cat.uom; l.manual = false;
+    const p = computeLinePricing(cat, {speDiscPct:l.speDiscPct, marginPct:l.marginPct, ctl});
+    l.unitLanded = p.landedUnit; l.unitSell = p.sellUnit;
+  } else {
+    l.manual = true;
+  }
+  l.lineTotal = round2((l.qty||0)*(l.unitSell||0));
+}
+function reviseUpdateLine(idx, field, val){
+  const l = reviseLines[idx];
+  if(field==='qty'||field==='speDiscPct'||field==='marginPct') l[field] = parseFloat(val)||0;
+  else l[field] = val;
+  if(field==='code'||field==='qty'||field==='speDiscPct'||field==='marginPct') reviseRecalc(idx);
+  if(field==='unitSell') l.lineTotal = round2((l.qty||0)*(l.unitSell||0));
+  renderReviseModal();
+}
+function renderReviseModal(){
+  const q = DATA.quotations.find(x=>x.id===reviseId);
+  const nextSuffix = 'R' + ((q.revision||0)+1);
+  const rows = reviseLines.map((l,idx)=>`<div style="display:grid;grid-template-columns:1fr 1.4fr 0.6fr 0.5fr 0.5fr 0.7fr 0.7fr 26px;gap:6px;margin-bottom:6px;align-items:center;">
+      <input class="mono" list="catalogDatalist" value="${l.code||''}" placeholder="Cat. Ref." onchange="reviseUpdateLine(${idx},'code',this.value)">
+      <input value="${l.description||''}" placeholder="Description" onchange="reviseUpdateLine(${idx},'description',this.value)">
+      <input class="mono" type="number" min="1" value="${l.qty}" onchange="reviseUpdateLine(${idx},'qty',this.value)">
+      <input class="mono" type="number" step="0.01" value="${l.speDiscPct||0}" title="Spe.Disc%" onchange="reviseUpdateLine(${idx},'speDiscPct',this.value)">
+      <input class="mono" type="number" step="0.01" value="${l.marginPct===undefined?DEFAULT_MARGIN_PCT:l.marginPct}" title="Margin%" onchange="reviseUpdateLine(${idx},'marginPct',this.value)">
+      <input class="mono" type="number" step="0.01" value="${l.unitSell||0}" ${l.manual?'':'readonly'} onchange="reviseUpdateLine(${idx},'unitSell',this.value)">
+      <div class="mono" style="text-align:right;">${fmtMoney(l.lineTotal)}</div>
+      <button class="remove-line" onclick="reviseRemoveLine(${idx})">×</button>
+    </div>`).join('');
+  const value = round2(reviseLines.reduce((s,l)=>s+l.lineTotal,0));
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-header">
+      <div><h3 class="mono">${q.quoteNo}-${nextSuffix}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">Revising ${quoteRef(q)} — current value ${fmtMoney(q.quoteValue)}</div></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="permission-note">Saving will supersede the current version, bump the reference to <b>${nextSuffix}</b>, reset the 7-day idle timer, and log this edit under your name.</div>
+    ${rows}
+    <button class="btn btn-sm" onclick="reviseAddLine()">+ Add item</button>
+    <div class="totals-box"><div class="line total"><span>New Quote Value</span><span class="mono">${fmtMoney(value)}</span></div></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-primary" onclick="saveRevision()">Save as ${nextSuffix}</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  `;
+}
+function saveRevision(){
+  const q = DATA.quotations.find(x=>x.id===reviseId);
+  if(!q) return;
+  q.revisionHistory = q.revisionHistory || [];
+  q.revisionHistory.push({revision:q.revision||0, value:q.quoteValue, at:q.lastEditedAt});
+  q.items = reviseLines;
+  q.quoteValue = round2(reviseLines.reduce((s,l)=>s+l.lineTotal,0));
+  q.vat = round2(q.quoteValue*0.05);
+  q.totalValue = round2(q.quoteValue+q.vat);
+  const landedTotal = reviseLines.reduce((s,l)=>s+(l.unitLanded||0)*l.qty,0);
+  q.gp = q.quoteValue ? (q.quoteValue-landedTotal)/q.quoteValue*100 : 0;
+  q.revision = (q.revision||0) + 1;
+  logAudit(q, 'Revised to R'+q.revision);
+  persist().then(()=>{ closeModal(); render(); });
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); }
+
+/* ============================= RENDER: MATERIAL TRACKER ============================= */
+function renderMaterials(){
+  const quoted = {}, converted = {};
+  DATA.quotations.filter(q=>withinPeriod(q.createdAt, matPeriod) && q.status!=='Draft').forEach(q=>{
+    q.items.forEach(it=>{
+      const key = (it.code||'')+'|'+it.description;
+      quoted[key] = quoted[key] || {code:it.code, name:it.description, brand:it.brand, qty:0};
+      quoted[key].qty += it.qty;
+    });
+  });
+  DATA.quotations.filter(q=>q.status==='Converted to LPO' && withinPeriod(q.createdAt, matPeriod)).forEach(q=>{
+    q.items.forEach(it=>{
+      const key = (it.code||'')+'|'+it.description;
+      converted[key] = converted[key] || {qty:0};
+      converted[key].qty += it.qty;
+    });
+  });
+  const rows = Object.entries(quoted).map(([key,info])=>{
+    const q = info.qty, c = (converted[key]||{qty:0}).qty;
+    const gap = q-c;
+    const rate = q ? (c/q*100) : 0;
+    return {code:info.code, name:info.name, brand:info.brand, q,c,gap,rate};
+  }).sort((a,b)=>b.gap-a.gap);
+
+  document.getElementById('movementLegend').innerHTML = `<span>Run-rate = average units quoted per month over the selected window — use it as your reorder signal.</span>`;
+  document.getElementById('materialTable').querySelector('tbody').innerHTML = rows.length ? rows.map(r=>{
+    const runRate = matPeriod ? Math.round(r.q / matPeriod) : null;
+    return `<tr>
+      <td class="mono">${r.code||'—'}</td>
+      <td>${r.name}</td>
+      <td>${r.brand||'—'}</td>
+      <td class="mono">${r.q.toLocaleString()}</td>
+      <td class="mono">${r.c.toLocaleString()}</td>
+      <td class="mono ${r.gap>0?'gap-pos':'gap-neg'}">${r.gap>0?'+':''}${r.gap.toLocaleString()}</td>
+      <td class="mono">${r.rate.toFixed(0)}%</td>
+      <td class="mono">${runRate!==null ? runRate.toLocaleString()+'/mo' : '—'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="8" class="empty-state">No quoted or converted activity for this period.</td></tr>`;
+}
+
+/* ============================= RENDER: ADMIN ============================= */
+function renderAdmin(){
+  document.getElementById('adminNote').textContent = canAdmin()
+    ? 'You are the sole Admin. Only you can add brands, add items, and edit price/cost data. Every change flows live into the Quotation Builder.'
+    : 'View-only. Only the designated Admin user can edit price and stock.';
+  const brands = catalogBrands();
+  if(!adminBrand || !brands.includes(adminBrand)) adminBrand = brands[0] || null;
+
+  document.getElementById('adminBrandTabs').innerHTML = brands.map(b=>{
+    const cnt = itemsForBrand(b).length;
+    return `<button class="brand-tab ${b===adminBrand?'active':''}" onclick="setAdminBrand('${b.replace(/'/g,"\\'")}')">${b} <span class="cnt">(${cnt})</span></button>`;
+  }).join('') + (canAdmin() ? `<button class="brand-tab" onclick="adminAddBrand()">+ New brand</button>` : '');
+
+  document.getElementById('adminAddItemBtn').style.display = canAdmin() ? '' : 'none';
+  document.getElementById('adminBrandSummary').textContent = adminBrand ? `${adminBrand} — ${itemsForBrand(adminBrand).length} items` : 'No brands yet';
+
+  const items = adminBrand ? itemsForBrand(adminBrand) : [];
+  document.getElementById('adminTable').innerHTML = items.length ? items.map(it=>{
+    const idx = DATA.catalog.indexOf(it);
+    const after = afterDiscount(it);
+    if(canAdmin()){
+      return `<tr>
+        <td><input class="mono" style="width:110px" value="${it.code}" onchange="updateCatalogField(${idx},'code',this.value)"></td>
+        <td><input style="width:220px" value="${it.description}" onchange="updateCatalogField(${idx},'description',this.value)"></td>
+        <td><input style="width:70px" value="${it.uom}" onchange="updateCatalogField(${idx},'uom',this.value)"></td>
+        <td><input class="mono" style="width:80px" type="number" step="0.01" value="${it.listPrice}" onchange="updateCatalogField(${idx},'listPrice',this.value)"></td>
+        <td><input style="width:55px" value="${it.currency}" onchange="updateCatalogField(${idx},'currency',this.value)"></td>
+        <td><input class="mono" style="width:65px" type="number" step="0.01" value="${it.disPct}" onchange="updateCatalogField(${idx},'disPct',this.value)"></td>
+        <td><input class="mono" style="width:65px" type="number" step="0.01" value="${it.exRate}" onchange="updateCatalogField(${idx},'exRate',this.value)"></td>
+        <td><input class="mono" style="width:60px" type="number" step="0.01" value="${it.freightPct}" onchange="updateCatalogField(${idx},'freightPct',this.value)"></td>
+        <td><input class="mono" style="width:60px" type="number" step="0.01" value="${it.dutyPct}" onchange="updateCatalogField(${idx},'dutyPct',this.value)"></td>
+        <td><input class="mono" style="width:55px" type="number" step="0.01" value="${it.adPct}" onchange="updateCatalogField(${idx},'adPct',this.value)"></td>
+        <td class="mono" style="color:var(--ink-faint);">${after.toFixed(2)} ${it.currency}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="adminDeleteItem(${idx})">Delete</button></td>
+      </tr>`;
+    }
+    return `<tr><td class="mono">${it.code}</td><td>${it.description}</td><td>${it.uom}</td><td class="mono">${it.listPrice}</td><td>${it.currency}</td><td class="mono">${it.disPct}%</td><td class="mono">${it.exRate}</td><td class="mono">${it.freightPct}%</td><td class="mono">${it.dutyPct}%</td><td class="mono">${it.adPct}%</td><td class="mono">${after.toFixed(2)}</td><td></td></tr>`;
+  }).join('') : `<tr><td colspan="12" class="empty-state">No items in this brand yet.</td></tr>`;
+}
+function setAdminBrand(b){ adminBrand = b; render(); }
+function updateCatalogField(idx, field, val){
+  const it = DATA.catalog[idx];
+  if(!it || !canAdmin()) return;
+  if(['listPrice','disPct','exRate','freightPct','dutyPct','adPct'].includes(field)) it[field] = parseFloat(val)||0;
+  else it[field] = val;
+  persist().then(()=>{ refreshCatalogDatalist(); render(); });
+}
+function adminAddItem(){
+  if(!canAdmin() || !adminBrand) return;
+  DATA.catalog.push({code:'NEW-'+Date.now().toString().slice(-6), description:'New item', brand:adminBrand, uom:'EACH', exWork:'', currency:'USD', listPrice:0, disPct:0, exRate:3.68, freightPct:0, dutyPct:0, adPct:0});
+  persist().then(()=>{ refreshCatalogDatalist(); render(); });
+}
+function adminDeleteItem(idx){
+  if(!canAdmin()) return;
+  if(!confirm('Delete this item from the catalog?')) return;
+  DATA.catalog.splice(idx,1);
+  persist().then(()=>{ refreshCatalogDatalist(); render(); });
+}
+function adminAddBrand(){
+  if(!canAdmin()) return;
+  const name = prompt('New brand name:');
+  if(!name || !name.trim()) return;
+  const brand = name.trim();
+  DATA.catalog.push({code:'NEW-'+Date.now().toString().slice(-6), description:'New item', brand, uom:'EACH', exWork:'', currency:'USD', listPrice:0, disPct:0, exRate:3.68, freightPct:0, dutyPct:0, adPct:0});
+  adminBrand = brand;
+  persist().then(()=>{ refreshCatalogDatalist(); render(); });
+}
+
+/* ============================= RENDER: APPROVALS ============================= */
+function renderApprovals(){
+  document.getElementById('approvalsNote').textContent = canApprove()
+    ? `Showing GP approval requests routed to ${role}. ≥10% GP → Line Manager · 5–10% → GM · <5% → CEO.`
+    : (canAdmin() ? 'Admin oversight view of all approval tiers.' : 'Not applicable to your role.');
+  const rows = DATA.approvals.filter(a => canAdmin() ? true : a.tier===role).slice().sort((a,b)=>new Date(b.requestedAt)-new Date(a.requestedAt));
+  document.getElementById('approvalsTable').innerHTML = rows.length ? rows.map(a=>{
+    const linkedQ = DATA.quotations.find(x=>x.id===a.quoteId);
+    return `
+    <tr>
+      <td class="mono">${linkedQ?quoteRef(linkedQ):a.quoteNo}</td><td>${a.brand}</td><td class="mono">${fmtMoney(a.value)}</td>
+      <td class="mono">${a.gp.toFixed(1)}%</td><td>${a.tier}</td>
+      <td class="mono">${new Date(a.requestedAt).toLocaleDateString('en-AE')}</td>
+      <td>
+        <span class="status-pill ${a.status==='Pending'?'status-Under-Negotiation':a.status==='Approved'?'status-Converted-to-LPO':'status-Lost'}">${a.status}</span>
+        ${a.status==='Rejected' && a.comment ? `<div style="font-size:10.5px;color:var(--ink-dim);margin-top:4px;max-width:220px;">"${a.comment}" <span style="color:var(--ink-faint);">— ${a.decidedBy}</span></div>` : ''}
+      </td>
+      <td>${a.status==='Pending' && canApprove() && a.tier===role ? `
+        <div class="row-actions">
+          <button class="btn btn-sm btn-green" onclick="decideApproval('${a.id}','Approved')">Approve</button>
+          <button class="btn btn-sm btn-danger" onclick="openRejectModal('${a.id}')">Reject</button>
+        </div>` : '—'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="8" class="empty-state">No approval requests in this queue.</td></tr>`;
+}
+function decideApproval(id, decision, comment){
+  const a = DATA.approvals.find(x=>x.id===id);
+  if(!a) return;
+  a.status = decision;
+  a.decidedBy = role;
+  a.decidedAt = new Date().toISOString();
+  if(comment) a.comment = comment;
+  const q = DATA.quotations.find(x=>x.id===a.quoteId);
+  if(q) logAudit(q, `LPO GP approval ${decision.toLowerCase()} by ${role}${comment?`: "${comment}"`:''}`);
+  persist().then(()=>{ routeTabsForRole(); render(); });
+}
+function openRejectModal(id){
+  const a = DATA.approvals.find(x=>x.id===id);
+  if(!a) return;
+  const linkedQ = DATA.quotations.find(x=>x.id===a.quoteId);
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-header">
+      <div><h3 class="mono">Reject ${linkedQ?quoteRef(linkedQ):a.quoteNo}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${a.brand} · ${a.gp.toFixed(1)}% GP · routed to ${a.tier}</div></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="permission-note">A reason is required so the Quotation Officer and salesman know what to fix before resubmitting.</div>
+    <div class="form-field"><label>Reason for rejection</label><textarea id="rejectComment" rows="4" style="width:100%;" placeholder="e.g. Margin too thin given current steel pricing — renegotiate before resubmitting."></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-danger" onclick="confirmReject('${a.id}')">Confirm Reject</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function confirmReject(id){
+  const text = document.getElementById('rejectComment').value.trim();
+  if(!text){ alert('Please enter a reason for rejection.'); return; }
+  decideApproval(id, 'Rejected', text);
+  closeModal();
+}
+
+/* ============================= BUILDER ============================= */
+function goBuilder(){ switchTab('builder'); }
+function initBuilderStatics(){
+  document.getElementById('bSalesman').innerHTML = SALESMEN.map(s=>`<option>${s}</option>`).join('');
+  document.getElementById('bQuoteNo').value = 'BMTC-JIH-' + currentYYYYMM() + '-' + DATA.quoteSeq;
+  document.getElementById('bDate').value = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'}).replace(/ /g,'-');
+  builderLines = [{code:'', description:'', brand:'', uom:'', qty:1, speDiscPct:0, marginPct:DEFAULT_MARGIN_PCT, unitLanded:0, unitSell:0, lineTotal:0, manual:true}];
+  renderLineItems();
+}
+function currentYYYYMM(){ const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0'); }
+function onCtlChange(){ recalcAllLines(); renderLineItems(); }
+function addLineItem(){ builderLines.push({code:'', description:'', brand:'', uom:'', qty:1, speDiscPct:0, marginPct:DEFAULT_MARGIN_PCT, unitLanded:0, unitSell:0, lineTotal:0, manual:true}); renderLineItems(); }
+function removeLineItem(idx){ builderLines.splice(idx,1); renderLineItems(); }
+function recalcLine(idx){
+  const l = builderLines[idx];
+  const cat = findCatalogItem(l.code);
+  const ctl = readGlobalCtl();
+  if(cat){
+    l.description = cat.description; l.brand = cat.brand; l.uom = cat.uom; l.manual = false;
+    const p = computeLinePricing(cat, {speDiscPct:l.speDiscPct, marginPct:l.marginPct, ctl});
+    l.unitLanded = p.landedUnit; l.unitSell = p.sellUnit;
+  } else {
+    l.manual = true; l.unitLanded = l.unitLanded || 0;
+  }
+  l.lineTotal = round2((l.qty||0)*(l.unitSell||0));
+}
+function recalcAllLines(){ builderLines.forEach((l,idx)=>{ if(!l.manual || findCatalogItem(l.code)) recalcLine(idx); else l.lineTotal = round2((l.qty||0)*(l.unitSell||0)); }); }
+function updateLineItem(idx, field, val){
+  const l = builderLines[idx];
+  if(['qty','speDiscPct','marginPct','unitSell'].includes(field)) l[field] = parseFloat(val)||0;
+  else l[field] = val;
+  if(field==='code'||field==='qty'||field==='speDiscPct'||field==='marginPct') recalcLine(idx);
+  if(field==='unitSell') l.lineTotal = round2((l.qty||0)*(l.unitSell||0));
+  if(field==='description' || field==='brand' || field==='uom') { /* manual free-text edits, no recalc needed */ }
+  renderLineItems();
+}
+function renderLineItems(){
+  const body = document.getElementById('lineItemsBody');
+  body.innerHTML = builderLines.map((l,idx)=>{
+    const cat = findCatalogItem(l.code);
+    const notFound = l.code && !cat;
+    return `<tr>
+      <td class="mono">${idx+1}</td>
+      <td class="code-cell"><input class="mono" list="catalogDatalist" value="${l.code||''}" placeholder="Cat. Ref." onchange="updateLineItem(${idx},'code',this.value)">${notFound?'<div class="li-badge" style="color:var(--red);">code not in catalog — manual line</div>':''}</td>
+      <td class="desc-cell"><input value="${(l.description||'').replace(/"/g,'&quot;')}" placeholder="Description" onchange="updateLineItem(${idx},'description',this.value)" ${cat?'readonly':''}></td>
+      <td><input style="width:90px" value="${l.brand||''}" placeholder="Brand" onchange="updateLineItem(${idx},'brand',this.value)" ${cat?'readonly':''}></td>
+      <td><input style="width:70px" value="${l.uom||''}" placeholder="UOM" onchange="updateLineItem(${idx},'uom',this.value)" ${cat?'readonly':''}></td>
+      <td class="num-cell"><input class="mono" type="number" min="0" value="${l.qty}" onchange="updateLineItem(${idx},'qty',this.value)"></td>
+      <td class="num-cell"><input class="mono" type="number" step="0.01" value="${l.speDiscPct||0}" onchange="updateLineItem(${idx},'speDiscPct',this.value)"></td>
+      <td class="num-cell"><input class="mono" type="number" step="0.01" value="${l.marginPct===undefined?DEFAULT_MARGIN_PCT:l.marginPct}" onchange="updateLineItem(${idx},'marginPct',this.value)"></td>
+      <td class="num-cell"><input class="mono" type="number" step="0.01" value="${l.unitSell||0}" ${cat?'readonly':''} onchange="updateLineItem(${idx},'unitSell',this.value)"></td>
+      <td class="mono" style="text-align:right;white-space:nowrap;">${fmtMoney(l.lineTotal)}</td>
+      <td><button class="remove-line" onclick="removeLineItem(${idx})">×</button></td>
+    </tr>`;
+  }).join('');
+  const quoteValue = round2(builderLines.reduce((s,l)=>s+l.lineTotal,0));
+  const vat = round2(quoteValue*0.05);
+  const total = round2(quoteValue+vat);
+  const landedTotal = builderLines.reduce((s,l)=>s+(l.unitLanded||0)*(l.qty||0),0);
+  const gp = quoteValue ? (quoteValue-landedTotal)/quoteValue*100 : 0;
+  document.getElementById('bQuoteValue').textContent = fmtMoney(quoteValue);
+  document.getElementById('bVat').textContent = fmtMoney(vat);
+  document.getElementById('bTotalValue').textContent = fmtMoney(total);
+  document.getElementById('bGP').textContent = gp.toFixed(1)+'%';
+}
+
+function collectHeaderFields(){
+  return {
+    to: document.getElementById('hTo').value, attention: document.getElementById('hAttention').value,
+    reference: document.getElementById('hReference').value, project: document.getElementById('hProject').value,
+    consultant: document.getElementById('hConsultant').value, client: document.getElementById('hClient').value,
+    subject: document.getElementById('hSubject').value, telNo: document.getElementById('hTel').value,
+    faxNo: document.getElementById('hFax').value, mobNo: document.getElementById('hMob').value,
+    delivery: document.getElementById('hDelivery').value, deliveryPlace: document.getElementById('hDeliveryPlace').value,
+    validity: document.getElementById('hValidity').value, paymentTerms: document.getElementById('hPayment').value,
+    prepName: document.getElementById('hPrepName').value, prepTitle: document.getElementById('hPrepTitle').value,
+    prepMobile: document.getElementById('hPrepMobile').value
+  };
+}
+
+function saveQuotation(status){
+  if(!canEditQuotes()){ alert('Only the Admin or a Quotation Officer can save quotations.'); return; }
+  if(builderLines.length===0 || builderLines.every(l=>!l.code && !l.description)){ alert('Add at least one line item.'); return; }
+  const salesman = document.getElementById('bSalesman').value;
+  const quoteNo = document.getElementById('bQuoteNo').value;
+  const h = collectHeaderFields();
+  const ctl = readGlobalCtl();
+  recalcAllLines();
+  const items = JSON.parse(JSON.stringify(builderLines));
+  const quoteValue = round2(items.reduce((s,l)=>s+l.lineTotal,0));
+  const vat = round2(quoteValue*0.05);
+  const totalValue = round2(quoteValue+vat);
+  const landedTotal = items.reduce((s,l)=>s+(l.unitLanded||0)*(l.qty||0),0);
+  const gp = quoteValue ? (quoteValue-landedTotal)/quoteValue*100 : 0;
+
+  const q = {
+    id:'q'+Date.now(), quoteNo, revision:0, status, salesman, items,
+    ...h, pricingControls: ctl,
+    quoteValue, vat, totalValue, gp,
+    createdAt:new Date().toISOString(), lastEditedAt:new Date().toISOString(), lastEditedBy:currentActor(),
+    revisionHistory:[],
+    auditLog:[{who:currentActor(), action:'Quotation created ('+status+')', at:new Date().toISOString()}]
+  };
+  DATA.quotations.push(q);
+  DATA.quoteSeq += 1;
+  persist().then(()=>{
+    switchTab('quotations');
+    initBuilderStatics();
+  });
+}
+
+/* ============================= PDF (matches official BMTC quotation template) ============================= */
+const TERMS_CONDITIONS = [
+  'Quoted are Net in AED, for material supply only,based on the quantities mentioned in the BOQ received with your enquiry.',
+  'Prices quoted are based on the present rate of  government levied  taxes .  Any change to these will be to your account.',
+  'Our prices including the cost of normal packing.',
+  'Our special prices mentioned above is valid only for the subject project. Further these prices are subject to reconfirmation, if the quantities are changed.',
+  'Our prices not include the expenses for the visit of representative of client/consultant for witnessing test.',
+  'Prices quoted are based on current market conditions and are subject to change in the event of fluctuations in raw material costs, manufacturer pricing, currency exchange rates, freight charges, or other external factors beyond our control.'
+];
+function generatePdf(){
+  recalcAllLines();
+  const h = collectHeaderFields();
+  const quoteNo = document.getElementById('bQuoteNo').value;
+  const dateStr = document.getElementById('bDate').value;
+  const rows = builderLines.filter(l=>l.description).map((l,i)=>`
+    <tr>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">${i+1}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;">${l.code||''}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;">${l.description}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;">${l.brand||''}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">${l.uom||''}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(l.qty||0).toLocaleString()}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(l.unitSell||0).toFixed(2)}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(l.lineTotal||0).toFixed(2)}</td>
+    </tr>`).join('');
+  const quoteValue = round2(builderLines.reduce((s,l)=>s+l.lineTotal,0));
+  const vat = round2(quoteValue*0.05);
+  const total = round2(quoteValue+vat);
+  const termsRows = TERMS_CONDITIONS.map((t,i)=>`<tr><td style="vertical-align:top;padding:2px 6px 2px 0;font-weight:bold;">${i+1}-</td><td style="padding:2px 0;">${t}</td></tr>`).join('');
+
+  document.getElementById('printArea').innerHTML = `
+    <div style="font-family:Arial,sans-serif;padding:36px;color:#111;font-size:12px;">
+      <table style="border-collapse:collapse;width:100%;border:1px solid #999;margin-bottom:14px;">
+        <tr><td colspan="4" style="text-align:center;font-weight:bold;font-size:13px;border:1px solid #999;padding:4px;background:#f2f2f2;">QUOTATION</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;width:14%;">To</td><td style="border:1px solid #999;padding:4px 8px;width:36%;">${h.to||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;width:14%;">Our Ref .:</td><td style="border:1px solid #999;padding:4px 8px;width:36%;">${quoteNo}</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Attention</td><td style="border:1px solid #999;padding:4px 8px;">${h.attention||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Date .:</td><td style="border:1px solid #999;padding:4px 8px;">${dateStr}</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Reference</td><td style="border:1px solid #999;padding:4px 8px;">${h.reference||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Tel No .:</td><td style="border:1px solid #999;padding:4px 8px;">${h.telNo||''}</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Project</td><td style="border:1px solid #999;padding:4px 8px;">${h.project||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Fax No .:</td><td style="border:1px solid #999;padding:4px 8px;">${h.faxNo||''}</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Consultant</td><td style="border:1px solid #999;padding:4px 8px;">${h.consultant||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Mob No .:</td><td style="border:1px solid #999;padding:4px 8px;">${h.mobNo||''}</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Client</td><td style="border:1px solid #999;padding:4px 8px;" colspan="3"></td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Subject .:</td><td style="border:1px solid #999;padding:4px 8px;" colspan="3">${h.subject||''}</td></tr>
+      </table>
+      <div style="margin-bottom:8px;">We thank you for the referred enquiry and are pleased to offer the following quote:</div>
+      <table style="border-collapse:collapse;width:100%;font-size:11.5px;margin-bottom:6px;">
+        <thead><tr style="background:#16243a;color:#fff;">
+          <th style="padding:6px 8px;border:1px solid #999;">S.#.</th><th style="padding:6px 8px;border:1px solid #999;">Cat. Ref.</th>
+          <th style="padding:6px 8px;border:1px solid #999;">Description</th><th style="padding:6px 8px;border:1px solid #999;">Brand</th>
+          <th style="padding:6px 8px;border:1px solid #999;">UOM</th><th style="padding:6px 8px;border:1px solid #999;">Qty.</th>
+          <th style="padding:6px 8px;border:1px solid #999;">U.Price</th><th style="padding:6px 8px;border:1px solid #999;">Total AED.</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <table style="border-collapse:collapse;width:100%;font-size:12px;margin-bottom:18px;">
+        <tr><td style="width:80%;"></td><td style="padding:4px 8px;font-weight:bold;text-align:right;border:1px solid #999;">Quote Value AED</td><td style="padding:4px 8px;text-align:right;border:1px solid #999;width:12%;">${quoteValue.toFixed(2)}</td></tr>
+        <tr><td></td><td style="padding:4px 8px;font-weight:bold;text-align:right;border:1px solid #999;">VAT 5%</td><td style="padding:4px 8px;text-align:right;border:1px solid #999;">${vat.toFixed(2)}</td></tr>
+        <tr><td></td><td style="padding:4px 8px;font-weight:bold;text-align:right;border:1px solid #999;background:#f2f2f2;">Total Value AED</td><td style="padding:4px 8px;text-align:right;border:1px solid #999;background:#f2f2f2;font-weight:bold;">${total.toFixed(2)}</td></tr>
+      </table>
+
+      <div style="font-weight:bold;text-decoration:underline;margin-bottom:6px;">Terms & Conditions:</div>
+      <div style="font-weight:bold;margin-bottom:4px;">Price Offer:</div>
+      <table style="font-size:11px;margin-bottom:10px;">${termsRows}</table>
+
+      <div style="font-size:11.5px;line-height:1.7;">
+        <div><b>Currency:</b> Arab Emirates Dirham (AED)</div>
+        <div><b>Delivery :</b> ${h.delivery||'To be confirmed'}</div>
+        <div><b>Delivery Place:</b> ${h.deliveryPlace||''}</div>
+        <div><b>Validity:</b> ${h.validity||''}</div>
+        <div><b>Payment Terms:</b> ${h.paymentTerms||'To be confirmed'}</div>
+      </div>
+
+      <div style="margin-top:14px;font-size:11.5px;">
+        We look forward to meeting your expectations and to conducting long term business relationship.<br>
+        Thanking you and assuring you of our best services at all times.
+      </div>
+
+      <div style="margin-top:22px;font-size:11.5px;">
+        <div style="font-weight:bold;">For AL BAHRI AND AL MAZROEI TRADING COM. LLC</div>
+        <div style="height:34px;"></div>
+        <div style="font-weight:bold;">${h.prepName||identity}</div>
+        <div>${h.prepTitle||''}</div>
+        <div>${h.prepMobile?('MOBILE: '+h.prepMobile):''}</div>
+      </div>
+
+      <div style="margin-top:30px;border-top:1px solid #ccc;padding-top:10px;font-size:10px;color:#555;">
+        <div>شركة البحري والمزروعي التجارية ذ.م.م.-ش.ش.و</div>
+        <div style="font-weight:bold;">Al Bahri & Al Mazroei Trading Company L.L.C.- S.P.C</div>
+        <div>P.O. Box 72901, Abu Dhabi, United Arab Emirates</div>
+        <div>00971 2 550 6700 | info@bmtc.ae | www.bmtc.ae</div>
+      </div>
+    </div>`;
+  window.print();
+}
+
+/* ============================= RENDER: SYNERGY ============================= */
+function renderSynergy(){
+  const active = q => !['Converted to LPO','Lost'].includes(q.status);
+
+  const officerRows = OFFICERS.map(officer=>{
+    const owned = DATA.quotations.filter(q=>q.lastEditedBy===officer);
+    const activeOwned = owned.filter(active);
+    const overdueOwned = activeOwned.filter(isOverdue).length;
+    const converted = owned.filter(q=>q.status==='Converted to LPO').length;
+    return { name: officer, activeCount: activeOwned.length, value: activeOwned.reduce((s,q)=>s+q.quoteValue,0), overdue: overdueOwned, converted };
+  });
+  document.getElementById('synergyOfficerTable').innerHTML = officerRows.map(r=>`
+    <tr><td>${r.name}</td><td class="mono">${r.activeCount}</td><td class="mono">${fmtMoney(r.value)}</td><td class="mono ${r.overdue>0?'gap-pos':''}">${r.overdue}</td><td class="mono">${r.converted}</td></tr>`).join('');
+
+  const salesmanRows = SALESMEN.map(sm=>{
+    const owned = DATA.quotations.filter(q=>q.salesman===sm);
+    const activeOwned = owned.filter(active);
+    const won = owned.filter(q=>q.status==='Converted to LPO').length;
+    const lost = owned.filter(q=>q.status==='Lost').length;
+    const decided = won+lost;
+    const wr = decided ? (won/decided*100) : 0;
+    return { name: sm, activeCount: activeOwned.length, value: activeOwned.reduce((s,q)=>s+q.quoteValue,0), winRate: wr, lost };
+  });
+  document.getElementById('synergySalesmanTable').innerHTML = salesmanRows.map(r=>`
+    <tr><td>${r.name}</td><td class="mono">${r.activeCount}</td><td class="mono">${fmtMoney(r.value)}</td><td class="mono">${r.winRate.toFixed(0)}%</td><td class="mono">${r.lost}</td></tr>`).join('');
+
+  const byCustomer = {};
+  DATA.quotations.forEach(q=>{
+    const key = q.to || 'Unnamed customer';
+    if(!byCustomer[key]) byCustomer[key] = [];
+    byCustomer[key].push(q);
+  });
+  const crossRows = Object.entries(byCustomer).map(([customer, qs])=>{
+    const brands = [...new Set(qs.flatMap(q=>q.items.map(it=>it.brand)).filter(Boolean))];
+    return { customer, brands, count: qs.length, value: qs.reduce((s,q)=>s+q.quoteValue,0), multiBrand: brands.length >= 2 };
+  }).filter(r=>r.multiBrand).sort((a,b)=>b.value-a.value);
+
+  document.getElementById('synergyCrossBrandTable').innerHTML = crossRows.length ? crossRows.map(r=>`
+    <tr><td>${r.customer}</td><td>${r.brands.join(' + ')}</td><td class="mono">${r.count}</td><td class="mono">${fmtMoney(r.value)}</td><td><span class="status-pill status-Under-Negotiation">Cross-sell opportunity</span></td></tr>`).join('')
+    : `<tr><td colspan="5" class="empty-state">No single customer has been quoted across two or more brands yet.</td></tr>`;
+
+  const totalActive = DATA.quotations.filter(active).length;
+  const avgPerOfficer = OFFICERS.length ? (officerRows.reduce((s,r)=>s+r.activeCount,0)/OFFICERS.length) : 0;
+  const busiest = officerRows.slice().sort((a,b)=>b.activeCount-a.activeCount)[0];
+  document.getElementById('synergyKpiStrip').innerHTML = [
+    {label:'Active quotations in system', value:totalActive},
+    {label:'Avg. load per officer', value:avgPerOfficer.toFixed(1)},
+    {label:'Busiest officer right now', value:busiest?busiest.name.split(' ')[0]:'—', sub:busiest?busiest.activeCount+' active':''},
+    {label:'Cross-sell customers found', value:crossRows.length}
+  ].map(k=>`<div class="kpi-card"><div class="label">${k.label}</div><div class="value">${k.value}</div>${k.sub?`<div class="subtext">${k.sub}</div>`:''}</div>`).join('');
+}
+
+function render(){
+  routeTabsForRole();
+  if(currentTab==='dashboard') renderDashboard();
+  if(currentTab==='quotations') renderQuotations();
+  if(currentTab==='materials') renderMaterials();
+  if(currentTab==='synergy') renderSynergy();
+  if(currentTab==='builder') initBuilderStatics();
+  if(currentTab==='admin') renderAdmin();
+  if(currentTab==='approvals') renderApprovals();
+}
+
+/* ============================= INIT ============================= */
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') closeModal(); });
+populateRoleUI();
+routeTabsForRole();
+loadData();
+</script>
+</body>
+</html>
