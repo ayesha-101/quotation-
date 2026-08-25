@@ -36,7 +36,7 @@
     -webkit-font-smoothing:antialiased;
   }
   .mono{font-family:'IBM Plex Mono',monospace;}
-  .app{max-width:1400px;margin:0 auto;padding:20px 24px 60px;}
+  .app{max-width:1500px;margin:0 auto;padding:20px 24px 60px;}
 
   /* Header */
   .topbar{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--grid-line);margin-bottom:18px;}
@@ -116,13 +116,6 @@
   .gap-neg{color:var(--ink-dim);}
   .movement-legend{display:flex;gap:16px;align-items:center;font-size:10.5px;color:var(--ink-dim);margin-bottom:12px;}
   .movement-legend .dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px;}
-  .movement-chart{display:flex;gap:5px;align-items:flex-end;}
-  .movement-bucket{display:flex;flex-direction:column;align-items:center;gap:2px;}
-  .movement-bars{display:flex;gap:2px;align-items:flex-end;height:28px;}
-  .bar-quoted{width:5px;background:var(--amber);border-radius:1px 1px 0 0;min-height:2px;}
-  .bar-converted{width:5px;background:var(--green);border-radius:1px 1px 0 0;min-height:2px;}
-  .movement-bucket .m-label{font-size:8px;color:var(--ink-faint);}
-  .movement-empty{font-size:10.5px;color:var(--ink-faint);}
 
   .btn{
     background:var(--navy-panel2);border:1px solid var(--grid-line);color:var(--ink);
@@ -144,14 +137,13 @@
   .filters{display:flex;gap:8px;flex-wrap:wrap;}
 
   .empty-state{padding:40px 20px;text-align:center;color:var(--ink-faint);font-size:12.5px;}
-  .empty-state .glyph{font-size:22px;margin-bottom:8px;color:var(--ink-faint);}
 
   .table-wrap{overflow-x:auto;}
 
   /* Modal */
   .modal-overlay{position:fixed;inset:0;background:rgba(5,10,18,0.72);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
   .modal-overlay.active{display:flex;}
-  .modal{background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:8px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;}
+  .modal{background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:8px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;}
   .modal-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
   .modal-header h3{font-family:'Space Grotesk',sans-serif;font-size:16px;margin:0;}
   .modal-close{background:none;border:none;color:var(--ink-faint);font-size:20px;cursor:pointer;line-height:1;padding:0 4px;}
@@ -165,18 +157,32 @@
   .audit-log .who{color:var(--amber);}
 
   /* Builder */
-  .builder-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;}
-  @media(max-width:900px){.builder-grid{grid-template-columns:1fr;}}
-  .line-item-row{display:grid;grid-template-columns:2fr 0.7fr 0.9fr 0.9fr 30px;gap:8px;align-items:center;margin-bottom:8px;}
-  .line-item-row .stock-note{font-size:9.5px;color:var(--ink-faint);grid-column:1/-1;margin-top:-4px;margin-bottom:2px;}
-  .remove-line{background:none;border:1px solid var(--grid-line);color:var(--ink-faint);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:14px;}
+  .builder-grid{display:grid;grid-template-columns:1fr;gap:18px;}
+  .header-fields-panel{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:6px;padding:14px 16px;margin-bottom:16px;}
+  .pricing-ctl-panel{background:var(--navy-panel2);border:1px dashed var(--grid-line);border-radius:6px;padding:12px 16px;margin:14px 0;}
+  .pricing-ctl-panel .pc-title{font-size:10.5px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-faint);margin-bottom:10px;}
+  .pc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
+  .pc-grid .form-field input{width:100%;}
+  .li-table input, .li-table select{width:100%;font-size:11.5px;padding:5px 7px;}
+  .li-table td{padding:5px 6px;}
+  .li-table .code-cell{min-width:140px;}
+  .li-table .desc-cell{min-width:220px;}
+  .li-table .num-cell{width:70px;}
+  .li-badge{font-size:9.5px;color:var(--ink-faint);margin-top:2px;}
+  .remove-line{background:none;border:1px solid var(--grid-line);color:var(--ink-faint);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:14px;flex-shrink:0;}
   .remove-line:hover{color:var(--red);border-color:var(--red);}
-  .totals-box{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:6px;padding:14px 16px;margin-top:10px;}
+  .totals-box{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:6px;padding:14px 16px;margin-top:10px;max-width:380px;margin-left:auto;}
   .totals-box .line{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;}
   .totals-box .line.total{border-top:1px solid var(--grid-line);margin-top:6px;padding-top:8px;font-weight:700;font-size:14px;color:var(--amber);}
+  .terms-panel{margin-top:14px;}
+  .terms-panel .form-grid{margin-bottom:0;}
 
-  .quote-preview{background:#fff;color:#111;border-radius:4px;padding:0;font-size:12px;}
   .permission-note{font-size:11px;color:var(--ink-faint);background:var(--navy-panel2);border:1px dashed var(--grid-line);border-radius:6px;padding:10px 14px;margin-bottom:16px;}
+
+  .brand-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .brand-tab{padding:6px 13px;border-radius:20px;font-size:11.5px;font-weight:600;background:var(--navy-panel2);border:1px solid var(--grid-line);color:var(--ink-dim);cursor:pointer;}
+  .brand-tab.active{background:var(--amber);color:#1a1206;border-color:var(--amber);}
+  .brand-tab .cnt{opacity:0.7;font-weight:400;}
 
   ::-webkit-scrollbar{width:8px;height:8px;}
   ::-webkit-scrollbar-track{background:var(--navy-panel);}
@@ -198,7 +204,7 @@
       <div class="plug"><svg viewBox="0 0 24 24" fill="none" stroke="#f2a53c" stroke-width="2"><path d="M7 2v5M17 2v5M6 9h12l-1 5a5 5 0 0 1-10 0L6 9Z"/><path d="M12 16v6"/></svg></div>
       <div>
         <h1>BMTC Quotation & LPO Control</h1>
-        <div class="sub">Unified Tracker · Electrical Solutions · Abu Dhabi</div>
+        <div class="sub">Al Bahri & Al Mazroei Trading Co. · Electrical Solutions · Abu Dhabi</div>
       </div>
     </div>
     <div class="session-controls">
@@ -221,9 +227,9 @@
     <div class="permission-note" id="dashNote"></div>
     <div class="section-title"><span class="tick"></span>Performance — trailing <span id="dashPeriodLabel">6 months</span>
       <span style="margin-left:auto;display:flex;gap:6px;">
-        <button class="btn btn-sm" data-period="3" onclick="setDashPeriod(3)">3M</button>
-        <button class="btn btn-sm" data-period="6" onclick="setDashPeriod(6)">6M</button>
-        <button class="btn btn-sm" data-period="0" onclick="setDashPeriod(0)">All time</button>
+        <button class="btn btn-sm" onclick="setDashPeriod(3)">3M</button>
+        <button class="btn btn-sm" onclick="setDashPeriod(6)">6M</button>
+        <button class="btn btn-sm" onclick="setDashPeriod(0)">All time</button>
       </span>
     </div>
     <div class="kpi-strip" id="kpiStrip"></div>
@@ -235,7 +241,7 @@
 
     <div class="panel">
       <div class="section-title"><span class="tick"></span>Attention required — overdue quotations (7+ days untouched)</div>
-      <div class="table-wrap"><table id="overdueTable"><thead><tr><th>Quote No.</th><th>Brand</th><th>Salesman</th><th>Value</th><th>Status</th><th>Idle</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="overdueTable"><thead><tr><th>Ref.</th><th>Brand(s)</th><th>Salesman</th><th>Value</th><th>Status</th><th>Idle</th></tr></thead><tbody></tbody></table></div>
     </div>
   </div>
 
@@ -254,7 +260,7 @@
         </div>
       </div>
       <div class="table-wrap"><table id="quoteTable">
-        <thead><tr><th>Quote No.</th><th>Brand</th><th>Value</th><th>GP%</th><th>Status</th><th>Salesman</th><th>Last edited by</th><th>Last edited</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Ref.</th><th>To</th><th>Brand(s)</th><th>Value</th><th>GP%</th><th>Status</th><th>Salesman</th><th>Last edited by</th><th>Last edited</th><th>Actions</th></tr></thead>
         <tbody></tbody>
       </table></div>
     </div>
@@ -264,18 +270,15 @@
   <div class="view" id="view-materials">
     <div class="section-title"><span class="tick"></span>Material Tracker — quoted vs. converted, by item
       <span style="margin-left:auto;display:flex;gap:6px;">
-        <button class="btn btn-sm" data-mperiod="3" onclick="setMatPeriod(3)">3M</button>
-        <button class="btn btn-sm" data-mperiod="6" onclick="setMatPeriod(6)">6M</button>
-        <button class="btn btn-sm" data-mperiod="0" onclick="setMatPeriod(0)">All time</button>
+        <button class="btn btn-sm" onclick="setMatPeriod(3)">3M</button>
+        <button class="btn btn-sm" onclick="setMatPeriod(6)">6M</button>
+        <button class="btn btn-sm" onclick="setMatPeriod(0)">All time</button>
       </span>
     </div>
     <div class="panel">
-      <div class="movement-legend" id="movementLegend">
-        <span><span class="dot" style="background:var(--amber);"></span>Quoted</span>
-        <span><span class="dot" style="background:var(--green);"></span>Converted to LPO</span>
-      </div>
+      <div class="movement-legend" id="movementLegend"></div>
       <div class="table-wrap"><table id="materialTable">
-        <thead><tr><th>Item</th><th>Qty quoted</th><th>Qty converted (LPO)</th><th>Gap</th><th>Conversion rate</th><th>Stock on hand</th><th>Movement</th></tr></thead>
+        <thead><tr><th>Code</th><th>Item</th><th>Brand</th><th>Qty quoted</th><th>Qty converted (LPO)</th><th>Gap</th><th>Conversion rate</th><th>Run-rate</th></tr></thead>
         <tbody></tbody>
       </table></div>
     </div>
@@ -286,35 +289,70 @@
     <div class="permission-note" id="builderNote"></div>
     <div class="panel">
       <div class="section-title"><span class="tick"></span>Quotation Builder</div>
-      <div class="builder-grid">
-        <div>
-          <div class="form-grid">
-            <div class="form-field"><label>Brand</label><select id="bBrand"></select></div>
-            <div class="form-field"><label>Customer</label><input id="bCustomer" placeholder="Customer / project name"></div>
-            <div class="form-field full"><label>Project reference</label><input id="bProject" placeholder="e.g. Reem Island Tower B — MEP Package 2"></div>
-            <div class="form-field"><label>Salesman</label><select id="bSalesman"></select></div>
-            <div class="form-field"><label>Quote No.</label><input id="bQuoteNo" class="mono" readonly></div>
-          </div>
-          <div id="lineItemsWrap"></div>
-          <button class="btn" onclick="addLineItem()">+ Add item</button>
-          <div class="totals-box">
-            <div class="line"><span>Line items value</span><span class="mono" id="bTotalValue">AED 0.00</span></div>
-            <div class="line"><span>Estimated cost basis</span><span class="mono" id="bTotalCost">AED 0.00</span></div>
-            <div class="line total"><span>Gross profit</span><span class="mono" id="bGP">0.0%</span></div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
-            <button class="btn btn-primary" onclick="saveQuotation('Quoted')">Save & Mark Quoted</button>
-            <button class="btn" onclick="saveQuotation('Draft')">Save as Draft</button>
-            <button class="btn btn-green" onclick="generatePdf()">Generate PDF</button>
-          </div>
+
+      <div class="header-fields-panel">
+        <div class="form-grid">
+          <div class="form-field"><label>To (Customer / Company)</label><input id="hTo" placeholder="e.g. MTEC ELECTROMECHANICAL"></div>
+          <div class="form-field"><label>Our Ref.</label><input id="bQuoteNo" class="mono" readonly></div>
+          <div class="form-field"><label>Attention</label><input id="hAttention" placeholder="e.g. MR. ..."></div>
+          <div class="form-field"><label>Date</label><input id="bDate" class="mono" readonly></div>
+          <div class="form-field"><label>Reference</label><input id="hReference" placeholder="Enquiry reference"></div>
+          <div class="form-field"><label>Tel No.</label><input id="hTel"></div>
+          <div class="form-field"><label>Project</label><input id="hProject" placeholder="e.g. Reem Island Tower B — MEP Package 2"></div>
+          <div class="form-field"><label>Fax No.</label><input id="hFax"></div>
+          <div class="form-field"><label>Consultant</label><input id="hConsultant"></div>
+          <div class="form-field"><label>Mob No.</label><input id="hMob"></div>
+          <div class="form-field"><label>Client</label><input id="hClient"></div>
+          <div class="form-field"><label>Salesman (internal)</label><select id="bSalesman"></select></div>
+          <div class="form-field full"><label>Subject</label><input id="hSubject" placeholder="e.g. FLOOR BOX"></div>
         </div>
-        <div>
-          <div class="section-title" style="font-size:12.5px;"><span class="tick"></span>Live price & stock — Admin Panel feed</div>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Item</th><th>Price</th><th>Stock</th></tr></thead>
-            <tbody id="livePriceFeed"></tbody>
-          </table></div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="li-table" id="lineItemsTable">
+          <thead><tr>
+            <th>#</th><th>Cat. Ref.</th><th>Description</th><th>Brand</th><th>UOM</th><th>Qty</th>
+            <th>Spe.Disc%</th><th>Margin%</th><th>U.Price AED</th><th>Total AED</th><th></th>
+          </tr></thead>
+          <tbody id="lineItemsBody"></tbody>
+        </table>
+      </div>
+      <button class="btn" onclick="addLineItem()">+ Add item</button>
+
+      <div class="pricing-ctl-panel">
+        <div class="pc-title">Global pricing overrides (usually left at defaults — only for project-wide special terms)</div>
+        <div class="pc-grid">
+          <div class="form-field"><label>Spe. Disc % (global)</label><input type="number" step="0.01" id="ctlSpeDisc" value="0" onchange="onCtlChange()"></div>
+          <div class="form-field"><label>EX-GBP factor</label><input type="number" step="0.01" id="ctlExGbp" value="1" onchange="onCtlChange()"></div>
+          <div class="form-field"><label>Freight % (global)</label><input type="number" step="0.01" id="ctlFreight" value="0" onchange="onCtlChange()"></div>
+          <div class="form-field"><label>Duty % (global)</label><input type="number" step="0.01" id="ctlDuty" value="0" onchange="onCtlChange()"></div>
+          <div class="form-field"><label>Margin % (global)</label><input type="number" step="0.01" id="ctlMargin" value="0" onchange="onCtlChange()"></div>
         </div>
+      </div>
+
+      <div class="totals-box">
+        <div class="line"><span>Quote Value AED</span><span class="mono" id="bQuoteValue">AED 0.00</span></div>
+        <div class="line"><span>VAT 5%</span><span class="mono" id="bVat">AED 0.00</span></div>
+        <div class="line total"><span>Total Value AED</span><span class="mono" id="bTotalValue">AED 0.00</span></div>
+        <div class="line" style="margin-top:8px;border-top:1px dashed var(--grid-line);padding-top:8px;"><span>Internal margin (approval routing)</span><span class="mono" id="bGP">0.0%</span></div>
+      </div>
+
+      <div class="terms-panel">
+        <div class="form-grid">
+          <div class="form-field"><label>Delivery</label><input id="hDelivery" value="To be confirmed"></div>
+          <div class="form-field"><label>Payment Terms</label><input id="hPayment" value="To be confirmed"></div>
+          <div class="form-field full"><label>Delivery Place</label><input id="hDeliveryPlace" value="DDP - Customer project site in UAE (Offloading of Materials shall be on Client's Account)."></div>
+          <div class="form-field full"><label>Validity</label><input id="hValidity" value="This offer is valid for 2 Days and for the complete package only."></div>
+          <div class="form-field"><label>Prepared by — Name</label><input id="hPrepName"></div>
+          <div class="form-field"><label>Prepared by — Title</label><input id="hPrepTitle" placeholder="e.g. SALES ENGINEER"></div>
+          <div class="form-field"><label>Prepared by — Mobile</label><input id="hPrepMobile" placeholder="05X-XXXXXXX"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="saveQuotation('Quoted')">Save & Mark Quoted</button>
+        <button class="btn" onclick="saveQuotation('Draft')">Save as Draft</button>
+        <button class="btn btn-green" onclick="generatePdf()">Generate PDF</button>
       </div>
     </div>
   </div>
@@ -323,9 +361,14 @@
   <div class="view" id="view-admin">
     <div class="permission-note" id="adminNote"></div>
     <div class="panel">
-      <div class="section-title"><span class="tick"></span>Admin Panel — price & stock master</div>
+      <div class="section-title"><span class="tick"></span>Admin Panel — price & cost master, by brand</div>
+      <div class="brand-tabs" id="adminBrandTabs"></div>
+      <div class="toolbar">
+        <div style="font-size:11.5px;color:var(--ink-dim);" id="adminBrandSummary"></div>
+        <button class="btn btn-primary btn-sm" id="adminAddItemBtn" onclick="adminAddItem()">+ Add item to this brand</button>
+      </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Item</th><th>Unit cost</th><th>Unit price</th><th>Stock on hand</th><th></th></tr></thead>
+        <thead><tr><th>Code</th><th>Description</th><th>UOM</th><th>List Price</th><th>Ccy</th><th>Disc%</th><th>Ex.Rate</th><th>Freight%</th><th>Duty%</th><th>AD%</th><th>After Disc.</th><th></th></tr></thead>
         <tbody id="adminTable"></tbody>
       </table></div>
     </div>
@@ -337,7 +380,7 @@
     <div class="panel">
       <div class="section-title"><span class="tick"></span>GP Approval Queue</div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Quote No.</th><th>Brand</th><th>Value</th><th>GP%</th><th>Routed to</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Ref.</th><th>Brand(s)</th><th>Value</th><th>GP%</th><th>Routed to</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead>
         <tbody id="approvalsTable"></tbody>
       </table></div>
     </div>
@@ -367,7 +410,7 @@
     <div class="panel">
       <div class="section-title"><span class="tick"></span>Cross-brand synergy — same customer, multiple brands</div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Customer</th><th>Brands quoted</th><th>Quotations</th><th>Combined value</th><th>Signal</th></tr></thead>
+        <thead><tr><th>Customer (To)</th><th>Brands quoted</th><th>Quotations</th><th>Combined value</th><th>Signal</th></tr></thead>
         <tbody id="synergyCrossBrandTable"></tbody>
       </table></div>
     </div>
@@ -380,8 +423,11 @@
   <div class="modal" id="modalBody"></div>
 </div>
 
+<datalist id="catalogDatalist"></datalist>
+
 <div id="printArea"></div>
 
+<script src="catalog-data.js"></script>
 <script>
 /* ============================= STATE ============================= */
 let DATA = null;
@@ -390,19 +436,63 @@ let dashPeriod = 6;
 let matPeriod = 6;
 const SALESMEN = ['Salesman A','Salesman B','Salesman C'];
 const OFFICERS = ['Ahmed (Officer)','Fatima (Officer)'];
-const BRANDS = ['Legrand','Schneider','ABB','Eaton'];
-const ITEM_CATALOG = [
-  'RSC Coupler 25mm','RSC Coupler 32mm','Conduit Saddle 20mm','Conduit Saddle 25mm',
-  'GI Conduit Pipe 20mm','GI Conduit Pipe 25mm','Junction Box 4x4','Cable Gland M20',
-  'MCB 32A SP','MCCB 100A TP'
-];
+const DEFAULT_MARGIN_PCT = 35;
 
-/* current role/identity */
 let role = 'Quotation Officer';
 let identity = OFFICERS[0];
 
-/* builder in-progress line items */
 let builderLines = [];
+let adminBrand = null;
+
+/* ============================= PRICING ENGINE =============================
+   Mirrors the company's Excel costing sheet exactly:
+   Std Disc Price -> Spe Disc Price -> Landed Dubai (AED) -> Selling Price (AED)
+*/
+function round2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
+function afterDiscount(cat){ return cat.listPrice * (1 - (cat.disPct||0)/100); }
+function defaultPricingControls(){
+  return { speDiscGlobalPct:0, exGbp:1, freightGlobalPct:0, dutyGlobalPct:0, marginGlobalPct:0 };
+}
+function computeLinePricing(cat, opts){
+  const ctl = opts.ctl || defaultPricingControls();
+  const speDiscPct = opts.speDiscPct || 0;
+  const marginPct = (opts.marginPct===undefined || opts.marginPct===null) ? DEFAULT_MARGIN_PCT : opts.marginPct;
+  const std = afterDiscount(cat);
+  const spe = round2(std * (1 - speDiscPct/100) * (1 - ctl.speDiscGlobalPct/100));
+  const landedUnit = round2(spe * (cat.exRate||1) * (ctl.exGbp||1)
+    * (1 + (cat.freightPct||0)/100) * (1 + ctl.freightGlobalPct/100)
+    * (1 + ctl.dutyGlobalPct/100) * (1 + (cat.dutyPct||0)/100)
+    * (1 + (cat.adPct||0)/100));
+  const denom = (1 - marginPct/100) * (1 - ctl.marginGlobalPct/100);
+  const sellUnit = denom > 0 ? round2(landedUnit / denom) : landedUnit;
+  return { std, spe, landedUnit, sellUnit };
+}
+function readGlobalCtl(){
+  return {
+    speDiscGlobalPct: parseFloat(document.getElementById('ctlSpeDisc').value)||0,
+    exGbp: parseFloat(document.getElementById('ctlExGbp').value)||1,
+    freightGlobalPct: parseFloat(document.getElementById('ctlFreight').value)||0,
+    dutyGlobalPct: parseFloat(document.getElementById('ctlDuty').value)||0,
+    marginGlobalPct: parseFloat(document.getElementById('ctlMargin').value)||0
+  };
+}
+
+/* ============================= CATALOG HELPERS ============================= */
+function findCatalogItem(code){
+  if(!code) return null;
+  const c = String(code).trim().toUpperCase();
+  return DATA.catalog.find(it=>it.code.toUpperCase()===c) || null;
+}
+function catalogBrands(){
+  return [...new Set(DATA.catalog.map(it=>it.brand))].sort();
+}
+function itemsForBrand(brand){
+  return DATA.catalog.filter(it=>it.brand===brand);
+}
+function refreshCatalogDatalist(){
+  const dl = document.getElementById('catalogDatalist');
+  dl.innerHTML = DATA.catalog.slice(0,4000).map(it=>`<option value="${it.code}">${it.code} — ${it.description} (${it.brand})</option>`).join('');
+}
 
 /* ============================= STORAGE ============================= */
 async function loadData(){
@@ -413,6 +503,7 @@ async function loadData(){
     DATA = seedData();
     await persist();
   }
+  refreshCatalogDatalist();
   render();
 }
 async function persist(){
@@ -431,125 +522,94 @@ async function persist(){
 function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString(); }
 
 function seedData(){
-  const priceList = {
-    'RSC Coupler 25mm': {cost:2.10, price:3.40, stock:4200},
-    'RSC Coupler 32mm': {cost:2.80, price:4.60, stock:3100},
-    'Conduit Saddle 20mm': {cost:0.65, price:1.20, stock:9800},
-    'Conduit Saddle 25mm': {cost:0.80, price:1.45, stock:8600},
-    'GI Conduit Pipe 20mm': {cost:9.20, price:14.50, stock:1800},
-    'GI Conduit Pipe 25mm': {cost:11.40, price:17.80, stock:1450},
-    'Junction Box 4x4': {cost:6.50, price:10.90, stock:920},
-    'Cable Gland M20': {cost:1.90, price:3.10, stock:5400},
-    'MCB 32A SP': {cost:14.00, price:22.50, stock:640},
-    'MCCB 100A TP': {cost:210.00, price:335.00, stock:78}
-  };
+  const catalog = JSON.parse(JSON.stringify(window.BMTC_CATALOG||[]));
+  const ctl = defaultPricingControls();
 
-  function mk(items){
-    return items.map(([name,qty])=>{
-      const p = priceList[name];
-      return {item:name, qty, unitPrice:p.price, unitCost:p.cost};
-    });
+  function mkLine(cat, qty, speDiscPct, marginPct){
+    const p = computeLinePricing(cat, {speDiscPct, marginPct, ctl});
+    return {
+      code:cat.code, description:cat.description, brand:cat.brand, uom:cat.uom, qty,
+      speDiscPct: speDiscPct||0, marginPct: (marginPct===undefined?DEFAULT_MARGIN_PCT:marginPct),
+      unitLanded:p.landedUnit, unitSell:p.sellUnit, lineTotal: round2(qty*p.sellUnit), manual:false
+    };
   }
-  function val(lines){ return lines.reduce((s,l)=>s+l.qty*l.unitPrice,0); }
-  function cost(lines){ return lines.reduce((s,l)=>s+l.qty*l.unitCost,0); }
-  function gp(lines){ const v=val(lines), c=cost(lines); return v? ((v-c)/v*100):0; }
+  function quoteTotals(items){
+    const quoteValue = round2(items.reduce((s,l)=>s+l.lineTotal,0));
+    const landedTotal = items.reduce((s,l)=>s+l.unitLanded*l.qty,0);
+    const gp = quoteValue ? (quoteValue-landedTotal)/quoteValue*100 : 0;
+    return { quoteValue, vat: round2(quoteValue*0.05), totalValue: round2(quoteValue*1.05), gp };
+  }
+  function itemsFor(brand, count){ return itemsForBrand(brand).slice(0,count); }
 
-  const rows = [
-    {no:'Q-2026-0142', brand:'Legrand', salesman:'Salesman A', status:'Quoted', edited:2, editor:'Ahmed (Officer)', items:mk([['RSC Coupler 25mm',800],['Conduit Saddle 20mm',1200]])},
-    {no:'Q-2026-0143', brand:'Schneider', salesman:'Salesman B', status:'Quoted', edited:9, editor:'Fatima (Officer)', items:mk([['MCB 32A SP',60],['Junction Box 4x4',40]]), rev:1},
-    {no:'Q-2026-0144', brand:'ABB', salesman:'Salesman A', status:'Converted to LPO', edited:15, editor:'Ahmed (Officer)', items:mk([['MCCB 100A TP',12],['Cable Gland M20',600]])},
-    {no:'Q-2026-0145', brand:'Eaton', salesman:'Salesman C', status:'Under Negotiation', edited:3, editor:'Fatima (Officer)', items:mk([['GI Conduit Pipe 20mm',300],['RSC Coupler 32mm',450]])},
-    {no:'Q-2026-0146', brand:'Legrand', salesman:'Salesman B', status:'Lost', edited:20, editor:'Ahmed (Officer)', items:mk([['Conduit Saddle 25mm',900]])},
-    {no:'Q-2026-0147', brand:'Schneider', salesman:'Salesman A', status:'Quoted', edited:10, editor:'Fatima (Officer)', items:mk([['GI Conduit Pipe 25mm',220],['Junction Box 4x4',65]])},
-    {no:'Q-2026-0148', brand:'ABB', salesman:'Salesman C', status:'Converted to LPO', edited:40, editor:'Ahmed (Officer)', items:mk([['MCB 32A SP',140],['RSC Coupler 25mm',1600]])},
-    {no:'Q-2026-0149', brand:'Eaton', salesman:'Salesman B', status:'Draft', edited:1, editor:'Fatima (Officer)', items:mk([['Cable Gland M20',300]])},
-    {no:'Q-2026-0150', brand:'Legrand', salesman:'Salesman A', status:'Converted to LPO', edited:60, editor:'Ahmed (Officer)', items:mk([['Conduit Saddle 20mm',3000],['RSC Coupler 32mm',700]])},
-    {no:'Q-2026-0151', brand:'Schneider', salesman:'Salesman C', status:'Quoted', edited:4, editor:'Fatima (Officer)', items:mk([['MCCB 100A TP',5],['GI Conduit Pipe 20mm',180]]), rev:2},
-    {no:'Q-2026-0152', brand:'ABB', salesman:'Salesman B', status:'Quoted', edited:8, editor:'Ahmed (Officer)', items:mk([['Junction Box 4x4',110],['Cable Gland M20',900]])},
-    {no:'Q-2026-0153', brand:'Eaton', salesman:'Salesman A', status:'Converted to LPO', edited:25, editor:'Fatima (Officer)', items:mk([['RSC Coupler 25mm',1200],['MCB 32A SP',80]])}
-  ];
+  const brandCycle = ['MK','CRABTREE','BARTON','KATKO','BG','Elsewedy','EVOTEC','REXTON','MESC','STERLING','BAHRA','LEWDEN'];
+  const statusCycle = ['Quoted','Quoted','Converted to LPO','Under Negotiation','Lost','Quoted','Converted to LPO','Draft','Converted to LPO','Quoted','Quoted','Converted to LPO'];
+  const editedCycle = [2,9,15,3,20,10,40,1,60,4,8,25];
+  const editorCycle = ['Ahmed (Officer)','Fatima (Officer)'];
+  const salesmanCycle = SALESMEN;
+  const toNames = ['MTEC ELECTROMECHANICAL','Reem Contracting LLC','Al Futtaim MEP','Ghantoot Electromechanical','Trans Gulf Electromechanical','Depa Interiors','Al Naboodah MEP','ETA Ascon','National Projects & Const.','Metito Utilities','Arabtec MEP','Target Engineering'];
 
-  const quotations = rows.map((r,i)=>({
-    id:'q'+(i+1),
-    quoteNo:r.no,
-    brand:r.brand,
-    customer:'Confidential — sample record',
-    project:'',
-    salesman:r.salesman,
-    status:r.status,
-    items:r.items,
-    value: val(r.items),
-    gp: gp(r.items),
-    createdAt: daysAgo(r.edited + Math.floor(Math.random()*20)),
-    lastEditedAt: daysAgo(r.edited),
-    lastEditedBy: r.editor,
-    revision: r.rev||0,
-    revisionHistory: r.rev ? Array.from({length:r.rev},(_,k)=>({revision:k, value: val(r.items)*(0.9+k*0.05), at:daysAgo(r.edited + (r.rev-k)*6)})) : [],
-    auditLog:[{who:r.editor, action:'Quotation created', at:daysAgo(r.edited+5)},
-      ...(r.rev?Array.from({length:r.rev},(_,k)=>({who:r.editor, action:'Revised to R'+(k+1), at:daysAgo(r.edited+(r.rev-k)*6)})):[]),
-      {who:r.editor, action:'Status set to '+r.status, at:daysAgo(r.edited)}]
-  }));
+  const quotations = brandCycle.map((brand,i)=>{
+    const catItems = itemsFor(brand, 2);
+    if(catItems.length===0) return null;
+    const qtys = [40 + i*7, 15 + i*3].slice(0,catItems.length);
+    const items = catItems.map((c,idx)=>mkLine(c, qtys[idx]||10, 0, DEFAULT_MARGIN_PCT));
+    const t = quoteTotals(items);
+    const status = statusCycle[i];
+    const edited = editedCycle[i];
+    const editor = editorCycle[i%2];
+    const rev = (i===1||i===9) ? 1 : 0;
+    const auditLog = [{who:editor, action:'Quotation created ('+status+')', at:daysAgo(edited+5)}];
+    if(rev) auditLog.push({who:editor, action:'Revised to R'+rev, at:daysAgo(edited+3)});
+    if(status==='Converted to LPO') auditLog.push({who:editor, action:'Converted to LPO', at:daysAgo(edited)});
+    else auditLog.push({who:editor, action:'Status set to '+status, at:daysAgo(edited)});
+    return {
+      id:'q'+(i+1),
+      quoteNo:'BMTC-JIH-202608-'+(1200+i*13),
+      revision: rev,
+      status,
+      to: toNames[i % toNames.length],
+      attention:'MR.', reference:'', project:'', consultant:'', client:'',
+      subject: brand+' MATERIALS', telNo:'', faxNo:'', mobNo:'',
+      salesman: salesmanCycle[i % salesmanCycle.length],
+      pricingControls: ctl,
+      items,
+      quoteValue: t.quoteValue, vat: t.vat, totalValue: t.totalValue, gp: t.gp,
+      delivery:'To be confirmed', deliveryPlace:"DDP - Customer project site in UAE (Offloading of Materials shall be on Client's Account).",
+      validity:'This offer is valid for 2 Days and for the complete package only.', paymentTerms:'To be confirmed',
+      prepName:'', prepTitle:'', prepMobile:'',
+      createdAt: daysAgo(edited + Math.floor(Math.random()*20)),
+      lastEditedAt: daysAgo(edited),
+      lastEditedBy: editor,
+      revisionHistory: rev ? [{revision:0, value: t.quoteValue*0.92, at:daysAgo(edited+6)}] : [],
+      auditLog
+    };
+  }).filter(Boolean);
 
   const approvals = [];
   quotations.filter(q=>q.status==='Converted to LPO').forEach((q,idx)=>{
-    const tier = q.gp>=10?'Line Manager':(q.gp>=5?'GM':'CEO');
+    const tier = gpTier(q.gp);
     approvals.push({
-      id:'a'+q.id, quoteId:q.id, quoteNo:q.quoteNo, brand:q.brand, value:q.value, gp:q.gp,
+      id:'a'+q.id, quoteId:q.id, quoteNo:q.quoteNo, brand:quoteDisplayBrand(q), value:q.quoteValue, gp:q.gp,
       tier, status: idx%3===0 ? 'Pending' : 'Approved', requestedAt:q.lastEditedAt
     });
   });
 
-  return { priceList, quotations, approvals, quoteSeq: 154 };
+  return { catalog, quotations, approvals, quoteSeq: 1391 };
 }
 
 /* ============================= HELPERS ============================= */
-function fmtMoney(n){ return 'AED ' + n.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtMoney(n){ return 'AED ' + (n||0).toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function statusClass(s){ return 'status-' + s.replace(/ /g,'-'); }
 function daysSince(iso){ return Math.floor((Date.now()-new Date(iso).getTime())/(1000*60*60*24)); }
 function isOverdue(q){ return !['Converted to LPO','Lost'].includes(q.status) && daysSince(q.lastEditedAt) >= 7; }
-function quoteSuffix(q){ if(q.status==='Converted to LPO') return 'LPO'; return (q.revision && q.revision>0) ? ('R'+q.revision) : 'Q'; }
-function quoteRef(q){ return q.quoteNo + '-' + quoteSuffix(q); }
+function quoteRef(q){ return q.quoteNo + (q.revision && q.revision>0 ? '-R'+q.revision : ''); }
 function withinPeriod(iso, months){ if(!months) return true; const cutoff=new Date(); cutoff.setMonth(cutoff.getMonth()-months); return new Date(iso) >= cutoff; }
 function getConvertedAt(q){ const entry = (q.auditLog||[]).slice().reverse().find(a=>a.action==='Converted to LPO'); return entry ? entry.at : q.lastEditedAt; }
-function monthBuckets(months){
-  const buckets = [];
-  for(let i=months-1;i>=0;i--){
-    const end = new Date(); end.setMonth(end.getMonth()-i);
-    const start = new Date(); start.setMonth(start.getMonth()-i-1);
-    buckets.push({start,end,label: end.toLocaleDateString('en-AE',{month:'short'})});
-  }
-  return buckets;
-}
-function itemMonthlySeries(name, months){
-  const buckets = monthBuckets(months);
-  return buckets.map(b=>{
-    let q=0,c=0;
-    DATA.quotations.forEach(quo=>{
-      if(quo.status==='Draft') return;
-      const created = new Date(quo.createdAt);
-      if(created>=b.start && created<b.end){
-        quo.items.forEach(it=>{ if(it.item===name) q+=it.qty; });
-      }
-      if(quo.status==='Converted to LPO'){
-        const convAt = new Date(getConvertedAt(quo));
-        if(convAt>=b.start && convAt<b.end){
-          quo.items.forEach(it=>{ if(it.item===name) c+=it.qty; });
-        }
-      }
-    });
-    return {label:b.label, q, c};
-  });
-}
-function movementChartHtml(series){
-  const max = Math.max(1, ...series.flatMap(s=>[s.q,s.c]));
-  return `<div class="movement-chart">${series.map(s=>`
-    <div class="movement-bucket" title="${s.label}: quoted ${s.q.toLocaleString()}, converted ${s.c.toLocaleString()}">
-      <div class="movement-bars">
-        <div class="bar-quoted" style="height:${Math.max(2,(s.q/max)*28)}px;"></div>
-        <div class="bar-converted" style="height:${Math.max(2,(s.c/max)*28)}px;"></div>
-      </div>
-      <div class="m-label">${s.label}</div>
-    </div>`).join('')}</div>`;
+function quoteDisplayBrand(q){
+  const brands = [...new Set((q.items||[]).map(it=>it.brand).filter(Boolean))];
+  if(brands.length===0) return '—';
+  if(brands.length===1) return brands[0];
+  return brands.length+' brands';
 }
 function gpTier(gp){ return gp>=10?'Line Manager':(gp>=5?'GM':'CEO'); }
 function canEditQuotes(){ return role==='Admin' || role==='Quotation Officer'; }
@@ -631,8 +691,8 @@ function renderDashboard(){
   const lost = inRange.filter(q=>q.status==='Lost');
   const decided = won.length + lost.length;
   const winRate = decided ? (won.length/decided*100) : 0;
-  const quotedValue = inRange.reduce((s,q)=>s+q.value,0);
-  const soldValue = won.reduce((s,q)=>s+q.value,0);
+  const quotedValue = inRange.reduce((s,q)=>s+q.quoteValue,0);
+  const soldValue = won.reduce((s,q)=>s+q.quoteValue,0);
   const conversion = quotedValue ? (soldValue/quotedValue*100) : 0;
   const overdueCount = DATA.quotations.filter(isOverdue).length;
 
@@ -651,20 +711,18 @@ function renderDashboard(){
       ${k.gauge!==undefined?`<div class="gauge-track"><div class="gauge-fill" style="width:${Math.min(100,k.gauge)}%"></div></div>`:''}
     </div>`).join('');
 
-  // top movers
   const qtyMap = {};
-  inRange.forEach(q=>q.items.forEach(it=>{ qtyMap[it.item] = (qtyMap[it.item]||0) + it.qty; }));
-  const top = Object.entries(qtyMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  document.getElementById('topMovers').innerHTML = top.length ? top.map(([name,qty])=>
-    `<div class="mover-chip">${name} <span class="n">${qty.toLocaleString()}</span></div>`
+  inRange.forEach(q=>q.items.forEach(it=>{ const key=it.code||it.description; qtyMap[key] = qtyMap[key]||{label:(it.code?it.code+' — ':'')+it.description, qty:0}; qtyMap[key].qty += it.qty; }));
+  const top = Object.values(qtyMap).sort((a,b)=>b.qty-a.qty).slice(0,6);
+  document.getElementById('topMovers').innerHTML = top.length ? top.map(t=>
+    `<div class="mover-chip">${t.label} <span class="n">${t.qty.toLocaleString()}</span></div>`
   ).join('') : `<div class="empty-state">No item activity in this period.</div>`;
 
-  // overdue table
   const overdueRows = DATA.quotations.filter(isOverdue).sort((a,b)=>daysSince(b.lastEditedAt)-daysSince(a.lastEditedAt));
   document.getElementById('overdueTable').querySelector('tbody').innerHTML = overdueRows.length ? overdueRows.map(q=>`
     <tr class="overdue">
-      <td class="mono">${quoteRef(q)}</td><td>${q.brand}</td><td>${q.salesman}</td>
-      <td class="mono">${fmtMoney(q.value)}</td>
+      <td class="mono">${quoteRef(q)}</td><td>${quoteDisplayBrand(q)}</td><td>${q.salesman}</td>
+      <td class="mono">${fmtMoney(q.quoteValue)}</td>
       <td><span class="status-pill ${statusClass(q.status)}">${q.status}</span></td>
       <td class="mono">${daysSince(q.lastEditedAt)}d</td>
     </tr>`).join('') : `<tr><td colspan="6" class="empty-state">Nothing overdue — every active quotation was touched within 7 days.</td></tr>`;
@@ -679,18 +737,18 @@ function renderQuotations(){
       : `View-only access.`;
   document.getElementById('quoteNote').textContent = note;
 
-  // filters populate once
   const statusSel = document.getElementById('qFilterStatus');
   if(statusSel.options.length<=1){
     ['Draft','Quoted','Under Negotiation','Lost','Converted to LPO'].forEach(s=>statusSel.add(new Option(s,s)));
-    document.getElementById('qFilterBrand').append(...BRANDS.map(b=>new Option(b,b)));
+    const brandSel = document.getElementById('qFilterBrand');
+    catalogBrands().forEach(b=>brandSel.add(new Option(b,b)));
     document.getElementById('qFilterSalesman').append(...SALESMEN.map(s=>new Option(s,s)));
-    [statusSel, document.getElementById('qFilterBrand'), document.getElementById('qFilterSalesman')].forEach(el=>el.onchange=renderQuotations);
+    [statusSel, brandSel, document.getElementById('qFilterSalesman')].forEach(el=>el.onchange=renderQuotations);
   }
   document.getElementById('newQuoteBtn').style.display = canEditQuotes() ? '' : 'none';
 
   const fs = statusSel.value, fb = document.getElementById('qFilterBrand').value, fsm = document.getElementById('qFilterSalesman').value;
-  let rows = DATA.quotations.filter(q => (!fs||q.status===fs) && (!fb||q.brand===fb) && (!fsm||q.salesman===fsm));
+  let rows = DATA.quotations.filter(q => (!fs||q.status===fs) && (!fb||q.items.some(it=>it.brand===fb)) && (!fsm||q.salesman===fsm));
   rows = rows.slice().sort((a,b)=> new Date(b.lastEditedAt)-new Date(a.lastEditedAt));
 
   document.getElementById('quoteTable').querySelector('tbody').innerHTML = rows.length ? rows.map(q=>{
@@ -709,8 +767,9 @@ function renderQuotations(){
     }
     return `<tr class="${overdue?'overdue':''}">
       <td class="mono">${quoteRef(q)}</td>
-      <td>${q.brand}</td>
-      <td class="mono">${fmtMoney(q.value)}</td>
+      <td>${q.to||'—'}</td>
+      <td>${quoteDisplayBrand(q)}</td>
+      <td class="mono">${fmtMoney(q.quoteValue)}</td>
       <td class="mono">${q.gp.toFixed(1)}%</td>
       <td><span class="status-pill ${statusClass(q.status)}">${q.status}</span>${overdue?'<span class="overdue-flag">● OVERDUE</span>':''}</td>
       <td>${q.salesman}</td>
@@ -718,16 +777,15 @@ function renderQuotations(){
       <td class="mono">${daysSince(q.lastEditedAt)}d ago</td>
       <td><div class="row-actions">${actions}</div></td>
     </tr>`;
-  }).join('') : `<tr><td colspan="9" class="empty-state">No quotations match these filters.</td></tr>`;
+  }).join('') : `<tr><td colspan="10" class="empty-state">No quotations match these filters.</td></tr>`;
 
-  // secondary KPI strip scoped to filtered set
   const won = rows.filter(q=>q.status==='Converted to LPO').length;
   const lost = rows.filter(q=>q.status==='Lost').length;
   const decided = won+lost;
   const wr = decided? (won/decided*100):0;
   document.getElementById('quoteKpiStrip').innerHTML = [
     {label:'Filtered results', value:rows.length},
-    {label:'Combined value', value:fmtMoney(rows.reduce((s,q)=>s+q.value,0))},
+    {label:'Combined value', value:fmtMoney(rows.reduce((s,q)=>s+q.quoteValue,0))},
     {label:'Win rate (filtered)', value:wr.toFixed(1)+'%'},
     {label:'Overdue in view', value:rows.filter(isOverdue).length}
   ].map(k=>`<div class="kpi-card"><div class="label">${k.label}</div><div class="value">${k.value}</div></div>`).join('');
@@ -748,8 +806,8 @@ function convertToLpo(id){
   logAudit(q, 'Converted to LPO');
   const tier = gpTier(q.gp);
   DATA.approvals.push({
-    id:'a'+q.id+'-'+Date.now(), quoteId:q.id, quoteNo:q.quoteNo, brand:q.brand,
-    value:q.value, gp:q.gp, tier, status:'Pending', requestedAt:new Date().toISOString()
+    id:'a'+q.id+'-'+Date.now(), quoteId:q.id, quoteNo:q.quoteNo, brand:quoteDisplayBrand(q),
+    value:q.quoteValue, gp:q.gp, tier, status:'Pending', requestedAt:new Date().toISOString()
   });
   persist().then(()=>{ routeTabsForRole(); render(); openDetail(id, true); });
 }
@@ -757,18 +815,19 @@ function convertToLpo(id){
 /* ============================= DETAIL MODAL ============================= */
 function openDetail(id, justConverted){
   const q = DATA.quotations.find(x=>x.id===id);
-  const rows = q.items.map(it=>`<tr><td>${it.item}</td><td class="mono">${it.qty.toLocaleString()}</td><td class="mono">${fmtMoney(it.unitPrice)}</td><td class="mono">${fmtMoney(it.qty*it.unitPrice)}</td></tr>`).join('');
-  const revRows = (q.revisionHistory||[]).slice().reverse().map(r=>`<div>Revision <span class="who">${r.revision===0?'Q (original)':'R'+r.revision}</span> — ${fmtMoney(r.value)} <span style="color:var(--ink-faint);">(superseded ${new Date(r.at).toLocaleDateString('en-AE')})</span></div>`).join('');
+  const rows = q.items.map(it=>`<tr><td class="mono">${it.code||'—'}</td><td>${it.description}</td><td>${it.brand||'—'}</td><td class="mono">${it.qty.toLocaleString()}</td><td class="mono">${fmtMoney(it.unitSell)}</td><td class="mono">${fmtMoney(it.lineTotal)}</td></tr>`).join('');
+  const revRows = (q.revisionHistory||[]).slice().reverse().map(r=>`<div>Revision <span class="who">${r.revision===0?'original':'R'+r.revision}</span> — ${fmtMoney(r.value)} <span style="color:var(--ink-faint);">(superseded ${new Date(r.at).toLocaleDateString('en-AE')})</span></div>`).join('');
   document.getElementById('modalBody').innerHTML = `
     <div class="modal-header">
-      <div><h3 class="mono">${quoteRef(q)}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${q.brand} · ${q.salesman} ${q.revision>0?'· revision '+q.revision:''}</div></div>
+      <div><h3 class="mono">${quoteRef(q)}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${quoteDisplayBrand(q)} · ${q.to||'—'} · ${q.salesman}</div></div>
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     ${justConverted?`<div class="permission-note" style="border-color:var(--green);color:var(--green);">Converted to LPO. Routed to <b>${gpTier(q.gp)}</b> for GP approval (${q.gp.toFixed(1)}% margin).</div>`:''}
-    <div class="table-wrap"><table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Line total</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>Code</th><th>Description</th><th>Brand</th><th>Qty</th><th>U.Price</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="totals-box">
-      <div class="line"><span>Total value</span><span class="mono">${fmtMoney(q.value)}</span></div>
-      <div class="line total"><span>Gross profit</span><span class="mono">${q.gp.toFixed(1)}%</span></div>
+      <div class="line"><span>Quote Value</span><span class="mono">${fmtMoney(q.quoteValue)}</span></div>
+      <div class="line"><span>VAT 5%</span><span class="mono">${fmtMoney(q.vat)}</span></div>
+      <div class="line total"><span>Total Value</span><span class="mono">${fmtMoney(q.totalValue)}</span></div>
     </div>
     ${revRows?`<div class="audit-log"><div style="color:var(--ink-faint);text-transform:uppercase;font-size:9.5px;letter-spacing:0.8px;margin-bottom:4px;">Revision history</div>${revRows}</div>`:''}
     <div class="audit-log">${q.auditLog.slice().reverse().map(a=>`<div><span class="who">${a.who}</span> — ${a.action} <span style="color:var(--ink-faint);">(${new Date(a.at).toLocaleString('en-AE')})</span></div>`).join('')}</div>
@@ -788,36 +847,56 @@ function openRevise(id){
   const q = DATA.quotations.find(x=>x.id===id);
   if(!q || !canEditQuotes()) return;
   reviseId = id;
-  reviseLines = q.items.map(it=>({item:it.item, qty:it.qty}));
+  reviseLines = JSON.parse(JSON.stringify(q.items));
   renderReviseModal();
   document.getElementById('modalOverlay').classList.add('active');
 }
-function reviseAddLine(){ reviseLines.push({item:ITEM_CATALOG[0], qty:1}); renderReviseModal(); }
+function reviseAddLine(){ reviseLines.push({code:'', description:'', brand:'', uom:'', qty:1, speDiscPct:0, marginPct:DEFAULT_MARGIN_PCT, unitLanded:0, unitSell:0, lineTotal:0, manual:true}); renderReviseModal(); }
 function reviseRemoveLine(idx){ reviseLines.splice(idx,1); renderReviseModal(); }
-function reviseUpdateLine(idx, field, val){ reviseLines[idx][field] = field==='qty'?(parseFloat(val)||0):val; renderReviseModal(); }
+function reviseRecalc(idx){
+  const l = reviseLines[idx];
+  const cat = findCatalogItem(l.code);
+  const ctl = defaultPricingControls();
+  if(cat){
+    l.description = cat.description; l.brand = cat.brand; l.uom = cat.uom; l.manual = false;
+    const p = computeLinePricing(cat, {speDiscPct:l.speDiscPct, marginPct:l.marginPct, ctl});
+    l.unitLanded = p.landedUnit; l.unitSell = p.sellUnit;
+  } else {
+    l.manual = true;
+  }
+  l.lineTotal = round2((l.qty||0)*(l.unitSell||0));
+}
+function reviseUpdateLine(idx, field, val){
+  const l = reviseLines[idx];
+  if(field==='qty'||field==='speDiscPct'||field==='marginPct') l[field] = parseFloat(val)||0;
+  else l[field] = val;
+  if(field==='code'||field==='qty'||field==='speDiscPct'||field==='marginPct') reviseRecalc(idx);
+  if(field==='unitSell') l.lineTotal = round2((l.qty||0)*(l.unitSell||0));
+  renderReviseModal();
+}
 function renderReviseModal(){
   const q = DATA.quotations.find(x=>x.id===reviseId);
   const nextSuffix = 'R' + ((q.revision||0)+1);
-  const rows = reviseLines.map((l,idx)=>{
-    const p = DATA.priceList[l.item];
-    return `<div class="line-item-row">
-      <select onchange="reviseUpdateLine(${idx},'item',this.value)">${ITEM_CATALOG.map(n=>`<option ${n===l.item?'selected':''}>${n}</option>`).join('')}</select>
-      <input type="number" min="1" class="mono" value="${l.qty}" onchange="reviseUpdateLine(${idx},'qty',this.value)">
-      <div class="mono" style="align-self:center;">${fmtMoney(p.price)}</div>
-      <div class="mono" style="align-self:center;">${fmtMoney(p.price*l.qty)}</div>
+  const rows = reviseLines.map((l,idx)=>`<div style="display:grid;grid-template-columns:1fr 1.4fr 0.6fr 0.5fr 0.5fr 0.7fr 0.7fr 26px;gap:6px;margin-bottom:6px;align-items:center;">
+      <input class="mono" list="catalogDatalist" value="${l.code||''}" placeholder="Cat. Ref." onchange="reviseUpdateLine(${idx},'code',this.value)">
+      <input value="${l.description||''}" placeholder="Description" onchange="reviseUpdateLine(${idx},'description',this.value)">
+      <input class="mono" type="number" min="1" value="${l.qty}" onchange="reviseUpdateLine(${idx},'qty',this.value)">
+      <input class="mono" type="number" step="0.01" value="${l.speDiscPct||0}" title="Spe.Disc%" onchange="reviseUpdateLine(${idx},'speDiscPct',this.value)">
+      <input class="mono" type="number" step="0.01" value="${l.marginPct===undefined?DEFAULT_MARGIN_PCT:l.marginPct}" title="Margin%" onchange="reviseUpdateLine(${idx},'marginPct',this.value)">
+      <input class="mono" type="number" step="0.01" value="${l.unitSell||0}" ${l.manual?'':'readonly'} onchange="reviseUpdateLine(${idx},'unitSell',this.value)">
+      <div class="mono" style="text-align:right;">${fmtMoney(l.lineTotal)}</div>
       <button class="remove-line" onclick="reviseRemoveLine(${idx})">×</button>
-    </div>`;
-  }).join('');
-  const value = reviseLines.reduce((s,l)=>s+DATA.priceList[l.item].price*l.qty,0);
+    </div>`).join('');
+  const value = round2(reviseLines.reduce((s,l)=>s+l.lineTotal,0));
   document.getElementById('modalBody').innerHTML = `
     <div class="modal-header">
-      <div><h3 class="mono">${q.quoteNo}-${nextSuffix}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">Revising ${quoteRef(q)} — current value ${fmtMoney(q.value)}</div></div>
+      <div><h3 class="mono">${q.quoteNo}-${nextSuffix}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">Revising ${quoteRef(q)} — current value ${fmtMoney(q.quoteValue)}</div></div>
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <div class="permission-note">Saving will supersede the current version, bump the reference to <b>${nextSuffix}</b>, reset the 7-day idle timer, and log this edit under your name.</div>
     ${rows}
     <button class="btn btn-sm" onclick="reviseAddLine()">+ Add item</button>
-    <div class="totals-box"><div class="line total"><span>New total value</span><span class="mono">${fmtMoney(value)}</span></div></div>
+    <div class="totals-box"><div class="line total"><span>New Quote Value</span><span class="mono">${fmtMoney(value)}</span></div></div>
     <div style="display:flex;gap:8px;margin-top:14px;">
       <button class="btn btn-primary" onclick="saveRevision()">Save as ${nextSuffix}</button>
       <button class="btn" onclick="closeModal()">Cancel</button>
@@ -828,13 +907,13 @@ function saveRevision(){
   const q = DATA.quotations.find(x=>x.id===reviseId);
   if(!q) return;
   q.revisionHistory = q.revisionHistory || [];
-  q.revisionHistory.push({revision:q.revision||0, value:q.value, at:q.lastEditedAt});
-  const items = reviseLines.map(l=>({item:l.item, qty:l.qty, unitPrice:DATA.priceList[l.item].price, unitCost:DATA.priceList[l.item].cost}));
-  const value = items.reduce((s,l)=>s+l.qty*l.unitPrice,0);
-  const cost = items.reduce((s,l)=>s+l.qty*l.unitCost,0);
-  q.items = items;
-  q.value = value;
-  q.gp = value ? (value-cost)/value*100 : 0;
+  q.revisionHistory.push({revision:q.revision||0, value:q.quoteValue, at:q.lastEditedAt});
+  q.items = reviseLines;
+  q.quoteValue = round2(reviseLines.reduce((s,l)=>s+l.lineTotal,0));
+  q.vat = round2(q.quoteValue*0.05);
+  q.totalValue = round2(q.quoteValue+q.vat);
+  const landedTotal = reviseLines.reduce((s,l)=>s+(l.unitLanded||0)*l.qty,0);
+  q.gp = q.quoteValue ? (q.quoteValue-landedTotal)/q.quoteValue*100 : 0;
   q.revision = (q.revision||0) + 1;
   logAudit(q, 'Revised to R'+q.revision);
   persist().then(()=>{ closeModal(); render(); });
@@ -845,57 +924,108 @@ function closeModal(){ document.getElementById('modalOverlay').classList.remove(
 function renderMaterials(){
   const quoted = {}, converted = {};
   DATA.quotations.filter(q=>withinPeriod(q.createdAt, matPeriod) && q.status!=='Draft').forEach(q=>{
-    q.items.forEach(it=>{ quoted[it.item] = (quoted[it.item]||0) + it.qty; });
+    q.items.forEach(it=>{
+      const key = (it.code||'')+'|'+it.description;
+      quoted[key] = quoted[key] || {code:it.code, name:it.description, brand:it.brand, qty:0};
+      quoted[key].qty += it.qty;
+    });
   });
   DATA.quotations.filter(q=>q.status==='Converted to LPO' && withinPeriod(q.createdAt, matPeriod)).forEach(q=>{
-    q.items.forEach(it=>{ converted[it.item] = (converted[it.item]||0) + it.qty; });
+    q.items.forEach(it=>{
+      const key = (it.code||'')+'|'+it.description;
+      converted[key] = converted[key] || {qty:0};
+      converted[key].qty += it.qty;
+    });
   });
-  const rows = ITEM_CATALOG.map(name=>{
-    const q = quoted[name]||0, c = converted[name]||0;
+  const rows = Object.entries(quoted).map(([key,info])=>{
+    const q = info.qty, c = (converted[key]||{qty:0}).qty;
     const gap = q-c;
     const rate = q ? (c/q*100) : 0;
-    const stock = DATA.priceList[name].stock;
-    return {name,q,c,gap,rate,stock};
-  }).filter(r=>r.q>0 || r.c>0).sort((a,b)=>b.gap-a.gap);
+    return {code:info.code, name:info.name, brand:info.brand, q,c,gap,rate};
+  }).sort((a,b)=>b.gap-a.gap);
 
-  document.getElementById('movementLegend').style.display = matPeriod ? 'flex' : 'none';
-  document.getElementById('movementLegend').innerHTML = `<span>Movement = average units quoted per month over the selected window — use it as your reorder run-rate.</span>`;
+  document.getElementById('movementLegend').innerHTML = `<span>Run-rate = average units quoted per month over the selected window — use it as your reorder signal.</span>`;
   document.getElementById('materialTable').querySelector('tbody').innerHTML = rows.length ? rows.map(r=>{
     const runRate = matPeriod ? Math.round(r.q / matPeriod) : null;
     return `<tr>
+      <td class="mono">${r.code||'—'}</td>
       <td>${r.name}</td>
+      <td>${r.brand||'—'}</td>
       <td class="mono">${r.q.toLocaleString()}</td>
       <td class="mono">${r.c.toLocaleString()}</td>
       <td class="mono ${r.gap>0?'gap-pos':'gap-neg'}">${r.gap>0?'+':''}${r.gap.toLocaleString()}</td>
       <td class="mono">${r.rate.toFixed(0)}%</td>
-      <td class="mono">${r.stock.toLocaleString()}</td>
-      <td class="mono">${runRate!==null ? runRate.toLocaleString()+'/mo' : '<span class="movement-empty">Select 3M or 6M</span>'}</td>
+      <td class="mono">${runRate!==null ? runRate.toLocaleString()+'/mo' : '—'}</td>
     </tr>`;
-  }).join('') : `<tr><td colspan="7" class="empty-state">No quoted or converted activity for this period.</td></tr>`;
+  }).join('') : `<tr><td colspan="8" class="empty-state">No quoted or converted activity for this period.</td></tr>`;
 }
 
 /* ============================= RENDER: ADMIN ============================= */
 function renderAdmin(){
   document.getElementById('adminNote').textContent = canAdmin()
-    ? 'You are the sole Admin. Edits here flow live into the Quotation Builder price feed.'
+    ? 'You are the sole Admin. Only you can add brands, add items, and edit price/cost data. Every change flows live into the Quotation Builder.'
     : 'View-only. Only the designated Admin user can edit price and stock.';
-  document.getElementById('adminTable').innerHTML = ITEM_CATALOG.map(name=>{
-    const p = DATA.priceList[name];
+  const brands = catalogBrands();
+  if(!adminBrand || !brands.includes(adminBrand)) adminBrand = brands[0] || null;
+
+  document.getElementById('adminBrandTabs').innerHTML = brands.map(b=>{
+    const cnt = itemsForBrand(b).length;
+    return `<button class="brand-tab ${b===adminBrand?'active':''}" onclick="setAdminBrand('${b.replace(/'/g,"\\'")}')">${b} <span class="cnt">(${cnt})</span></button>`;
+  }).join('') + (canAdmin() ? `<button class="brand-tab" onclick="adminAddBrand()">+ New brand</button>` : '');
+
+  document.getElementById('adminAddItemBtn').style.display = canAdmin() ? '' : 'none';
+  document.getElementById('adminBrandSummary').textContent = adminBrand ? `${adminBrand} — ${itemsForBrand(adminBrand).length} items` : 'No brands yet';
+
+  const items = adminBrand ? itemsForBrand(adminBrand) : [];
+  document.getElementById('adminTable').innerHTML = items.length ? items.map(it=>{
+    const idx = DATA.catalog.indexOf(it);
+    const after = afterDiscount(it);
     if(canAdmin()){
       return `<tr>
-        <td>${name}</td>
-        <td><input class="mono" style="width:90px" type="number" step="0.01" value="${p.cost}" onchange="updatePrice('${name}','cost',this.value)"></td>
-        <td><input class="mono" style="width:90px" type="number" step="0.01" value="${p.price}" onchange="updatePrice('${name}','price',this.value)"></td>
-        <td><input class="mono" style="width:90px" type="number" value="${p.stock}" onchange="updatePrice('${name}','stock',this.value)"></td>
-        <td style="color:var(--ink-faint);font-size:10.5px;">GP ${(((p.price-p.cost)/p.price)*100).toFixed(1)}%</td>
+        <td><input class="mono" style="width:110px" value="${it.code}" onchange="updateCatalogField(${idx},'code',this.value)"></td>
+        <td><input style="width:220px" value="${it.description}" onchange="updateCatalogField(${idx},'description',this.value)"></td>
+        <td><input style="width:70px" value="${it.uom}" onchange="updateCatalogField(${idx},'uom',this.value)"></td>
+        <td><input class="mono" style="width:80px" type="number" step="0.01" value="${it.listPrice}" onchange="updateCatalogField(${idx},'listPrice',this.value)"></td>
+        <td><input style="width:55px" value="${it.currency}" onchange="updateCatalogField(${idx},'currency',this.value)"></td>
+        <td><input class="mono" style="width:65px" type="number" step="0.01" value="${it.disPct}" onchange="updateCatalogField(${idx},'disPct',this.value)"></td>
+        <td><input class="mono" style="width:65px" type="number" step="0.01" value="${it.exRate}" onchange="updateCatalogField(${idx},'exRate',this.value)"></td>
+        <td><input class="mono" style="width:60px" type="number" step="0.01" value="${it.freightPct}" onchange="updateCatalogField(${idx},'freightPct',this.value)"></td>
+        <td><input class="mono" style="width:60px" type="number" step="0.01" value="${it.dutyPct}" onchange="updateCatalogField(${idx},'dutyPct',this.value)"></td>
+        <td><input class="mono" style="width:55px" type="number" step="0.01" value="${it.adPct}" onchange="updateCatalogField(${idx},'adPct',this.value)"></td>
+        <td class="mono" style="color:var(--ink-faint);">${after.toFixed(2)} ${it.currency}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="adminDeleteItem(${idx})">Delete</button></td>
       </tr>`;
     }
-    return `<tr><td>${name}</td><td class="mono">${fmtMoney(p.cost)}</td><td class="mono">${fmtMoney(p.price)}</td><td class="mono">${p.stock.toLocaleString()}</td><td></td></tr>`;
-  }).join('');
+    return `<tr><td class="mono">${it.code}</td><td>${it.description}</td><td>${it.uom}</td><td class="mono">${it.listPrice}</td><td>${it.currency}</td><td class="mono">${it.disPct}%</td><td class="mono">${it.exRate}</td><td class="mono">${it.freightPct}%</td><td class="mono">${it.dutyPct}%</td><td class="mono">${it.adPct}%</td><td class="mono">${after.toFixed(2)}</td><td></td></tr>`;
+  }).join('') : `<tr><td colspan="12" class="empty-state">No items in this brand yet.</td></tr>`;
 }
-function updatePrice(name, field, val){
-  DATA.priceList[name][field] = parseFloat(val)||0;
-  persist();
+function setAdminBrand(b){ adminBrand = b; render(); }
+function updateCatalogField(idx, field, val){
+  const it = DATA.catalog[idx];
+  if(!it || !canAdmin()) return;
+  if(['listPrice','disPct','exRate','freightPct','dutyPct','adPct'].includes(field)) it[field] = parseFloat(val)||0;
+  else it[field] = val;
+  persist().then(()=>{ refreshCatalogDatalist(); render(); });
+}
+function adminAddItem(){
+  if(!canAdmin() || !adminBrand) return;
+  DATA.catalog.push({code:'NEW-'+Date.now().toString().slice(-6), description:'New item', brand:adminBrand, uom:'EACH', exWork:'', currency:'USD', listPrice:0, disPct:0, exRate:3.68, freightPct:0, dutyPct:0, adPct:0});
+  persist().then(()=>{ refreshCatalogDatalist(); render(); });
+}
+function adminDeleteItem(idx){
+  if(!canAdmin()) return;
+  if(!confirm('Delete this item from the catalog?')) return;
+  DATA.catalog.splice(idx,1);
+  persist().then(()=>{ refreshCatalogDatalist(); render(); });
+}
+function adminAddBrand(){
+  if(!canAdmin()) return;
+  const name = prompt('New brand name:');
+  if(!name || !name.trim()) return;
+  const brand = name.trim();
+  DATA.catalog.push({code:'NEW-'+Date.now().toString().slice(-6), description:'New item', brand, uom:'EACH', exWork:'', currency:'USD', listPrice:0, disPct:0, exRate:3.68, freightPct:0, dutyPct:0, adPct:0});
+  adminBrand = brand;
+  persist().then(()=>{ refreshCatalogDatalist(); render(); });
 }
 
 /* ============================= RENDER: APPROVALS ============================= */
@@ -913,7 +1043,7 @@ function renderApprovals(){
       <td class="mono">${new Date(a.requestedAt).toLocaleDateString('en-AE')}</td>
       <td>
         <span class="status-pill ${a.status==='Pending'?'status-Under-Negotiation':a.status==='Approved'?'status-Converted-to-LPO':'status-Lost'}">${a.status}</span>
-        ${a.status==='Rejected' && a.comment ? `<div style="font-size:10.5px;color:var(--ink-dim);margin-top:4px;max-width:220px;">“${a.comment}” <span style="color:var(--ink-faint);">— ${a.decidedBy}</span></div>` : ''}
+        ${a.status==='Rejected' && a.comment ? `<div style="font-size:10.5px;color:var(--ink-dim);margin-top:4px;max-width:220px;">"${a.comment}" <span style="color:var(--ink-faint);">— ${a.decidedBy}</span></div>` : ''}
       </td>
       <td>${a.status==='Pending' && canApprove() && a.tier===role ? `
         <div class="row-actions">
@@ -962,64 +1092,104 @@ function confirmReject(id){
 /* ============================= BUILDER ============================= */
 function goBuilder(){ switchTab('builder'); }
 function initBuilderStatics(){
-  document.getElementById('bBrand').innerHTML = BRANDS.map(b=>`<option>${b}</option>`).join('');
   document.getElementById('bSalesman').innerHTML = SALESMEN.map(s=>`<option>${s}</option>`).join('');
-  document.getElementById('bQuoteNo').value = 'Q-2026-' + String(DATA.quoteSeq).padStart(4,'0');
-  builderLines = [{item:ITEM_CATALOG[0], qty:1}];
+  document.getElementById('bQuoteNo').value = 'BMTC-JIH-' + currentYYYYMM() + '-' + DATA.quoteSeq;
+  document.getElementById('bDate').value = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'}).replace(/ /g,'-');
+  builderLines = [{code:'', description:'', brand:'', uom:'', qty:1, speDiscPct:0, marginPct:DEFAULT_MARGIN_PCT, unitLanded:0, unitSell:0, lineTotal:0, manual:true}];
   renderLineItems();
-  renderLivePriceFeed();
 }
-function renderLivePriceFeed(){
-  document.getElementById('livePriceFeed').innerHTML = ITEM_CATALOG.map(name=>{
-    const p = DATA.priceList[name];
-    return `<tr><td>${name}</td><td class="mono">${fmtMoney(p.price)}</td><td class="mono">${p.stock.toLocaleString()}</td></tr>`;
-  }).join('');
-}
-function addLineItem(){ builderLines.push({item:ITEM_CATALOG[0], qty:1}); renderLineItems(); }
+function currentYYYYMM(){ const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0'); }
+function onCtlChange(){ recalcAllLines(); renderLineItems(); }
+function addLineItem(){ builderLines.push({code:'', description:'', brand:'', uom:'', qty:1, speDiscPct:0, marginPct:DEFAULT_MARGIN_PCT, unitLanded:0, unitSell:0, lineTotal:0, manual:true}); renderLineItems(); }
 function removeLineItem(idx){ builderLines.splice(idx,1); renderLineItems(); }
+function recalcLine(idx){
+  const l = builderLines[idx];
+  const cat = findCatalogItem(l.code);
+  const ctl = readGlobalCtl();
+  if(cat){
+    l.description = cat.description; l.brand = cat.brand; l.uom = cat.uom; l.manual = false;
+    const p = computeLinePricing(cat, {speDiscPct:l.speDiscPct, marginPct:l.marginPct, ctl});
+    l.unitLanded = p.landedUnit; l.unitSell = p.sellUnit;
+  } else {
+    l.manual = true; l.unitLanded = l.unitLanded || 0;
+  }
+  l.lineTotal = round2((l.qty||0)*(l.unitSell||0));
+}
+function recalcAllLines(){ builderLines.forEach((l,idx)=>{ if(!l.manual || findCatalogItem(l.code)) recalcLine(idx); else l.lineTotal = round2((l.qty||0)*(l.unitSell||0)); }); }
 function updateLineItem(idx, field, val){
-  builderLines[idx][field] = field==='qty' ? (parseFloat(val)||0) : val;
+  const l = builderLines[idx];
+  if(['qty','speDiscPct','marginPct','unitSell'].includes(field)) l[field] = parseFloat(val)||0;
+  else l[field] = val;
+  if(field==='code'||field==='qty'||field==='speDiscPct'||field==='marginPct') recalcLine(idx);
+  if(field==='unitSell') l.lineTotal = round2((l.qty||0)*(l.unitSell||0));
+  if(field==='description' || field==='brand' || field==='uom') { /* manual free-text edits, no recalc needed */ }
   renderLineItems();
 }
 function renderLineItems(){
-  const wrap = document.getElementById('lineItemsWrap');
-  wrap.innerHTML = builderLines.map((l,idx)=>{
-    const p = DATA.priceList[l.item];
-    const lineTotal = p.price * l.qty;
-    const short = l.qty > p.stock;
-    return `
-    <div class="line-item-row">
-      <select onchange="updateLineItem(${idx},'item',this.value)">${ITEM_CATALOG.map(n=>`<option ${n===l.item?'selected':''}>${n}</option>`).join('')}</select>
-      <input type="number" min="1" class="mono" value="${l.qty}" onchange="updateLineItem(${idx},'qty',this.value)">
-      <div class="mono" style="align-self:center;">${fmtMoney(p.price)}</div>
-      <div class="mono" style="align-self:center;">${fmtMoney(lineTotal)}</div>
-      <button class="remove-line" onclick="removeLineItem(${idx})">×</button>
-      ${short?`<div class="stock-note" style="color:var(--red);">⚠ requested qty exceeds stock on hand (${p.stock.toLocaleString()})</div>`:''}
-    </div>`;
+  const body = document.getElementById('lineItemsBody');
+  body.innerHTML = builderLines.map((l,idx)=>{
+    const cat = findCatalogItem(l.code);
+    const notFound = l.code && !cat;
+    return `<tr>
+      <td class="mono">${idx+1}</td>
+      <td class="code-cell"><input class="mono" list="catalogDatalist" value="${l.code||''}" placeholder="Cat. Ref." onchange="updateLineItem(${idx},'code',this.value)">${notFound?'<div class="li-badge" style="color:var(--red);">code not in catalog — manual line</div>':''}</td>
+      <td class="desc-cell"><input value="${(l.description||'').replace(/"/g,'&quot;')}" placeholder="Description" onchange="updateLineItem(${idx},'description',this.value)" ${cat?'readonly':''}></td>
+      <td><input style="width:90px" value="${l.brand||''}" placeholder="Brand" onchange="updateLineItem(${idx},'brand',this.value)" ${cat?'readonly':''}></td>
+      <td><input style="width:70px" value="${l.uom||''}" placeholder="UOM" onchange="updateLineItem(${idx},'uom',this.value)" ${cat?'readonly':''}></td>
+      <td class="num-cell"><input class="mono" type="number" min="0" value="${l.qty}" onchange="updateLineItem(${idx},'qty',this.value)"></td>
+      <td class="num-cell"><input class="mono" type="number" step="0.01" value="${l.speDiscPct||0}" onchange="updateLineItem(${idx},'speDiscPct',this.value)"></td>
+      <td class="num-cell"><input class="mono" type="number" step="0.01" value="${l.marginPct===undefined?DEFAULT_MARGIN_PCT:l.marginPct}" onchange="updateLineItem(${idx},'marginPct',this.value)"></td>
+      <td class="num-cell"><input class="mono" type="number" step="0.01" value="${l.unitSell||0}" ${cat?'readonly':''} onchange="updateLineItem(${idx},'unitSell',this.value)"></td>
+      <td class="mono" style="text-align:right;white-space:nowrap;">${fmtMoney(l.lineTotal)}</td>
+      <td><button class="remove-line" onclick="removeLineItem(${idx})">×</button></td>
+    </tr>`;
   }).join('');
-  const value = builderLines.reduce((s,l)=>s+ DATA.priceList[l.item].price*l.qty,0);
-  const cost = builderLines.reduce((s,l)=>s+ DATA.priceList[l.item].cost*l.qty,0);
-  const gp = value ? (value-cost)/value*100 : 0;
-  document.getElementById('bTotalValue').textContent = fmtMoney(value);
-  document.getElementById('bTotalCost').textContent = fmtMoney(cost);
+  const quoteValue = round2(builderLines.reduce((s,l)=>s+l.lineTotal,0));
+  const vat = round2(quoteValue*0.05);
+  const total = round2(quoteValue+vat);
+  const landedTotal = builderLines.reduce((s,l)=>s+(l.unitLanded||0)*(l.qty||0),0);
+  const gp = quoteValue ? (quoteValue-landedTotal)/quoteValue*100 : 0;
+  document.getElementById('bQuoteValue').textContent = fmtMoney(quoteValue);
+  document.getElementById('bVat').textContent = fmtMoney(vat);
+  document.getElementById('bTotalValue').textContent = fmtMoney(total);
   document.getElementById('bGP').textContent = gp.toFixed(1)+'%';
+}
+
+function collectHeaderFields(){
+  return {
+    to: document.getElementById('hTo').value, attention: document.getElementById('hAttention').value,
+    reference: document.getElementById('hReference').value, project: document.getElementById('hProject').value,
+    consultant: document.getElementById('hConsultant').value, client: document.getElementById('hClient').value,
+    subject: document.getElementById('hSubject').value, telNo: document.getElementById('hTel').value,
+    faxNo: document.getElementById('hFax').value, mobNo: document.getElementById('hMob').value,
+    delivery: document.getElementById('hDelivery').value, deliveryPlace: document.getElementById('hDeliveryPlace').value,
+    validity: document.getElementById('hValidity').value, paymentTerms: document.getElementById('hPayment').value,
+    prepName: document.getElementById('hPrepName').value, prepTitle: document.getElementById('hPrepTitle').value,
+    prepMobile: document.getElementById('hPrepMobile').value
+  };
 }
 
 function saveQuotation(status){
   if(!canEditQuotes()){ alert('Only the Admin or a Quotation Officer can save quotations.'); return; }
-  const brand = document.getElementById('bBrand').value;
-  const customer = document.getElementById('bCustomer').value || 'Unnamed customer';
-  const project = document.getElementById('bProject').value;
+  if(builderLines.length===0 || builderLines.every(l=>!l.code && !l.description)){ alert('Add at least one line item.'); return; }
   const salesman = document.getElementById('bSalesman').value;
   const quoteNo = document.getElementById('bQuoteNo').value;
-  const items = builderLines.map(l=>({item:l.item, qty:l.qty, unitPrice:DATA.priceList[l.item].price, unitCost:DATA.priceList[l.item].cost}));
-  const value = items.reduce((s,l)=>s+l.qty*l.unitPrice,0);
-  const cost = items.reduce((s,l)=>s+l.qty*l.unitCost,0);
-  const gp = value ? (value-cost)/value*100 : 0;
+  const h = collectHeaderFields();
+  const ctl = readGlobalCtl();
+  recalcAllLines();
+  const items = JSON.parse(JSON.stringify(builderLines));
+  const quoteValue = round2(items.reduce((s,l)=>s+l.lineTotal,0));
+  const vat = round2(quoteValue*0.05);
+  const totalValue = round2(quoteValue+vat);
+  const landedTotal = items.reduce((s,l)=>s+(l.unitLanded||0)*(l.qty||0),0);
+  const gp = quoteValue ? (quoteValue-landedTotal)/quoteValue*100 : 0;
 
   const q = {
-    id:'q'+Date.now(), quoteNo, brand, customer, project, salesman, status, items, value, gp,
+    id:'q'+Date.now(), quoteNo, revision:0, status, salesman, items,
+    ...h, pricingControls: ctl,
+    quoteValue, vat, totalValue, gp,
     createdAt:new Date().toISOString(), lastEditedAt:new Date().toISOString(), lastEditedBy:currentActor(),
+    revisionHistory:[],
     auditLog:[{who:currentActor(), action:'Quotation created ('+status+')', at:new Date().toISOString()}]
   };
   DATA.quotations.push(q);
@@ -1030,64 +1200,113 @@ function saveQuotation(status){
   });
 }
 
-/* ============================= PDF ============================= */
+/* ============================= PDF (matches official BMTC quotation template) ============================= */
+const TERMS_CONDITIONS = [
+  'Quoted are Net in AED, for material supply only,based on the quantities mentioned in the BOQ received with your enquiry.',
+  'Prices quoted are based on the present rate of  government levied  taxes .  Any change to these will be to your account.',
+  'Our prices including the cost of normal packing.',
+  'Our special prices mentioned above is valid only for the subject project. Further these prices are subject to reconfirmation, if the quantities are changed.',
+  'Our prices not include the expenses for the visit of representative of client/consultant for witnessing test.',
+  'Prices quoted are based on current market conditions and are subject to change in the event of fluctuations in raw material costs, manufacturer pricing, currency exchange rates, freight charges, or other external factors beyond our control.'
+];
 function generatePdf(){
-  const brand = document.getElementById('bBrand').value;
-  const customer = document.getElementById('bCustomer').value || 'Customer name pending';
-  const project = document.getElementById('bProject').value;
-  const salesman = document.getElementById('bSalesman').value;
+  recalcAllLines();
+  const h = collectHeaderFields();
   const quoteNo = document.getElementById('bQuoteNo').value;
-  const rows = builderLines.map((l,i)=>{
-    const p = DATA.priceList[l.item];
-    return `<tr><td style="padding:6px 8px;border:1px solid #ccc;">${i+1}</td><td style="padding:6px 8px;border:1px solid #ccc;">${l.item}</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${l.qty.toLocaleString()}</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${p.price.toFixed(2)}</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(p.price*l.qty).toFixed(2)}</td></tr>`;
-  }).join('');
-  const total = builderLines.reduce((s,l)=>s+DATA.priceList[l.item].price*l.qty,0);
+  const dateStr = document.getElementById('bDate').value;
+  const rows = builderLines.filter(l=>l.description).map((l,i)=>`
+    <tr>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">${i+1}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;">${l.code||''}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;">${l.description}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;">${l.brand||''}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">${l.uom||''}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(l.qty||0).toLocaleString()}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(l.unitSell||0).toFixed(2)}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(l.lineTotal||0).toFixed(2)}</td>
+    </tr>`).join('');
+  const quoteValue = round2(builderLines.reduce((s,l)=>s+l.lineTotal,0));
+  const vat = round2(quoteValue*0.05);
+  const total = round2(quoteValue+vat);
+  const termsRows = TERMS_CONDITIONS.map((t,i)=>`<tr><td style="vertical-align:top;padding:2px 6px 2px 0;font-weight:bold;">${i+1}-</td><td style="padding:2px 0;">${t}</td></tr>`).join('');
+
   document.getElementById('printArea').innerHTML = `
-    <div style="font-family:Arial,sans-serif;padding:40px;color:#111;">
-      <div style="display:flex;justify-content:space-between;border-bottom:3px solid #16243a;padding-bottom:14px;margin-bottom:20px;">
-        <div><div style="font-size:20px;font-weight:bold;">Al Bahri & Al Mazroei Trading Co. (BMTC)</div><div style="font-size:11px;color:#555;">Electrical Solutions Division — Abu Dhabi, UAE</div></div>
-        <div style="text-align:right;font-size:12px;"><b>Quotation No:</b> ${quoteNo}-Q<br><b>Date:</b> ${new Date().toLocaleDateString('en-AE')}<br><b>Brand:</b> ${brand}</div>
-      </div>
-      <div style="margin-bottom:14px;font-size:12px;"><b>Customer:</b> ${customer}<br>${project?`<b>Project:</b> ${project}<br>`:''}<b>Prepared by:</b> ${salesman} / ${identity}</div>
-      <table style="border-collapse:collapse;width:100%;font-size:12px;margin-bottom:16px;">
-        <thead><tr style="background:#16243a;color:#fff;"><th style="padding:6px 8px;">#</th><th style="padding:6px 8px;">Item Description</th><th style="padding:6px 8px;">Qty</th><th style="padding:6px 8px;">Unit Price (AED)</th><th style="padding:6px 8px;">Total (AED)</th></tr></thead>
+    <div style="font-family:Arial,sans-serif;padding:36px;color:#111;font-size:12px;">
+      <table style="border-collapse:collapse;width:100%;border:1px solid #999;margin-bottom:14px;">
+        <tr><td colspan="4" style="text-align:center;font-weight:bold;font-size:13px;border:1px solid #999;padding:4px;background:#f2f2f2;">QUOTATION</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;width:14%;">To</td><td style="border:1px solid #999;padding:4px 8px;width:36%;">${h.to||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;width:14%;">Our Ref .:</td><td style="border:1px solid #999;padding:4px 8px;width:36%;">${quoteNo}</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Attention</td><td style="border:1px solid #999;padding:4px 8px;">${h.attention||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Date .:</td><td style="border:1px solid #999;padding:4px 8px;">${dateStr}</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Reference</td><td style="border:1px solid #999;padding:4px 8px;">${h.reference||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Tel No .:</td><td style="border:1px solid #999;padding:4px 8px;">${h.telNo||''}</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Project</td><td style="border:1px solid #999;padding:4px 8px;">${h.project||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Fax No .:</td><td style="border:1px solid #999;padding:4px 8px;">${h.faxNo||''}</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Consultant</td><td style="border:1px solid #999;padding:4px 8px;">${h.consultant||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Mob No .:</td><td style="border:1px solid #999;padding:4px 8px;">${h.mobNo||''}</td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Client</td><td style="border:1px solid #999;padding:4px 8px;" colspan="3"></td></tr>
+        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Subject .:</td><td style="border:1px solid #999;padding:4px 8px;" colspan="3">${h.subject||''}</td></tr>
+      </table>
+      <div style="margin-bottom:8px;">We thank you for the referred enquiry and are pleased to offer the following quote:</div>
+      <table style="border-collapse:collapse;width:100%;font-size:11.5px;margin-bottom:6px;">
+        <thead><tr style="background:#16243a;color:#fff;">
+          <th style="padding:6px 8px;border:1px solid #999;">S.#.</th><th style="padding:6px 8px;border:1px solid #999;">Cat. Ref.</th>
+          <th style="padding:6px 8px;border:1px solid #999;">Description</th><th style="padding:6px 8px;border:1px solid #999;">Brand</th>
+          <th style="padding:6px 8px;border:1px solid #999;">UOM</th><th style="padding:6px 8px;border:1px solid #999;">Qty.</th>
+          <th style="padding:6px 8px;border:1px solid #999;">U.Price</th><th style="padding:6px 8px;border:1px solid #999;">Total AED.</th>
+        </tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <div style="text-align:right;font-size:14px;font-weight:bold;margin-bottom:24px;">Grand Total: AED ${total.toFixed(2)}</div>
-      <div style="font-size:10.5px;color:#555;border-top:1px solid #ccc;padding-top:10px;">Terms: Prices valid for 30 days from date of issue. Delivery subject to stock availability at time of order confirmation. This document was generated by the BMTC Quotation & LPO Control system.</div>
+      <table style="border-collapse:collapse;width:100%;font-size:12px;margin-bottom:18px;">
+        <tr><td style="width:80%;"></td><td style="padding:4px 8px;font-weight:bold;text-align:right;border:1px solid #999;">Quote Value AED</td><td style="padding:4px 8px;text-align:right;border:1px solid #999;width:12%;">${quoteValue.toFixed(2)}</td></tr>
+        <tr><td></td><td style="padding:4px 8px;font-weight:bold;text-align:right;border:1px solid #999;">VAT 5%</td><td style="padding:4px 8px;text-align:right;border:1px solid #999;">${vat.toFixed(2)}</td></tr>
+        <tr><td></td><td style="padding:4px 8px;font-weight:bold;text-align:right;border:1px solid #999;background:#f2f2f2;">Total Value AED</td><td style="padding:4px 8px;text-align:right;border:1px solid #999;background:#f2f2f2;font-weight:bold;">${total.toFixed(2)}</td></tr>
+      </table>
+
+      <div style="font-weight:bold;text-decoration:underline;margin-bottom:6px;">Terms & Conditions:</div>
+      <div style="font-weight:bold;margin-bottom:4px;">Price Offer:</div>
+      <table style="font-size:11px;margin-bottom:10px;">${termsRows}</table>
+
+      <div style="font-size:11.5px;line-height:1.7;">
+        <div><b>Currency:</b> Arab Emirates Dirham (AED)</div>
+        <div><b>Delivery :</b> ${h.delivery||'To be confirmed'}</div>
+        <div><b>Delivery Place:</b> ${h.deliveryPlace||''}</div>
+        <div><b>Validity:</b> ${h.validity||''}</div>
+        <div><b>Payment Terms:</b> ${h.paymentTerms||'To be confirmed'}</div>
+      </div>
+
+      <div style="margin-top:14px;font-size:11.5px;">
+        We look forward to meeting your expectations and to conducting long term business relationship.<br>
+        Thanking you and assuring you of our best services at all times.
+      </div>
+
+      <div style="margin-top:22px;font-size:11.5px;">
+        <div style="font-weight:bold;">For AL BAHRI AND AL MAZROEI TRADING COM. LLC</div>
+        <div style="height:34px;"></div>
+        <div style="font-weight:bold;">${h.prepName||identity}</div>
+        <div>${h.prepTitle||''}</div>
+        <div>${h.prepMobile?('MOBILE: '+h.prepMobile):''}</div>
+      </div>
+
+      <div style="margin-top:30px;border-top:1px solid #ccc;padding-top:10px;font-size:10px;color:#555;">
+        <div>شركة البحري والمزروعي التجارية ذ.م.م.-ش.ش.و</div>
+        <div style="font-weight:bold;">Al Bahri & Al Mazroei Trading Company L.L.C.- S.P.C</div>
+        <div>P.O. Box 72901, Abu Dhabi, United Arab Emirates</div>
+        <div>00971 2 550 6700 | info@bmtc.ae | www.bmtc.ae</div>
+      </div>
     </div>`;
   window.print();
 }
 
-/* ============================= MAIN RENDER ============================= */
 /* ============================= RENDER: SYNERGY ============================= */
 function renderSynergy(){
   const active = q => !['Converted to LPO','Lost'].includes(q.status);
 
-  // Officer workload — attribute by lastEditedBy when it's a known officer
   const officerRows = OFFICERS.map(officer=>{
     const owned = DATA.quotations.filter(q=>q.lastEditedBy===officer);
     const activeOwned = owned.filter(active);
     const overdueOwned = activeOwned.filter(isOverdue).length;
     const converted = owned.filter(q=>q.status==='Converted to LPO').length;
-    return {
-      name: officer,
-      activeCount: activeOwned.length,
-      value: activeOwned.reduce((s,q)=>s+q.value,0),
-      overdue: overdueOwned,
-      converted
-    };
+    return { name: officer, activeCount: activeOwned.length, value: activeOwned.reduce((s,q)=>s+q.quoteValue,0), overdue: overdueOwned, converted };
   });
   document.getElementById('synergyOfficerTable').innerHTML = officerRows.map(r=>`
-    <tr>
-      <td>${r.name}</td>
-      <td class="mono">${r.activeCount}</td>
-      <td class="mono">${fmtMoney(r.value)}</td>
-      <td class="mono ${r.overdue>0?'gap-pos':''}">${r.overdue}</td>
-      <td class="mono">${r.converted}</td>
-    </tr>`).join('');
+    <tr><td>${r.name}</td><td class="mono">${r.activeCount}</td><td class="mono">${fmtMoney(r.value)}</td><td class="mono ${r.overdue>0?'gap-pos':''}">${r.overdue}</td><td class="mono">${r.converted}</td></tr>`).join('');
 
-  // Salesman workload
   const salesmanRows = SALESMEN.map(sm=>{
     const owned = DATA.quotations.filter(q=>q.salesman===sm);
     const activeOwned = owned.filter(active);
@@ -1095,51 +1314,26 @@ function renderSynergy(){
     const lost = owned.filter(q=>q.status==='Lost').length;
     const decided = won+lost;
     const wr = decided ? (won/decided*100) : 0;
-    return {
-      name: sm,
-      activeCount: activeOwned.length,
-      value: activeOwned.reduce((s,q)=>s+q.value,0),
-      winRate: wr,
-      lost
-    };
+    return { name: sm, activeCount: activeOwned.length, value: activeOwned.reduce((s,q)=>s+q.quoteValue,0), winRate: wr, lost };
   });
   document.getElementById('synergySalesmanTable').innerHTML = salesmanRows.map(r=>`
-    <tr>
-      <td>${r.name}</td>
-      <td class="mono">${r.activeCount}</td>
-      <td class="mono">${fmtMoney(r.value)}</td>
-      <td class="mono">${r.winRate.toFixed(0)}%</td>
-      <td class="mono">${r.lost}</td>
-    </tr>`).join('');
+    <tr><td>${r.name}</td><td class="mono">${r.activeCount}</td><td class="mono">${fmtMoney(r.value)}</td><td class="mono">${r.winRate.toFixed(0)}%</td><td class="mono">${r.lost}</td></tr>`).join('');
 
-  // Cross-brand synergy — group by customer
   const byCustomer = {};
   DATA.quotations.forEach(q=>{
-    const key = q.customer || 'Unnamed customer';
+    const key = q.to || 'Unnamed customer';
     if(!byCustomer[key]) byCustomer[key] = [];
     byCustomer[key].push(q);
   });
   const crossRows = Object.entries(byCustomer).map(([customer, qs])=>{
-    const brands = [...new Set(qs.map(q=>q.brand))];
-    return {
-      customer,
-      brands,
-      count: qs.length,
-      value: qs.reduce((s,q)=>s+q.value,0),
-      multiBrand: brands.length >= 2
-    };
+    const brands = [...new Set(qs.flatMap(q=>q.items.map(it=>it.brand)).filter(Boolean))];
+    return { customer, brands, count: qs.length, value: qs.reduce((s,q)=>s+q.quoteValue,0), multiBrand: brands.length >= 2 };
   }).filter(r=>r.multiBrand).sort((a,b)=>b.value-a.value);
 
   document.getElementById('synergyCrossBrandTable').innerHTML = crossRows.length ? crossRows.map(r=>`
-    <tr>
-      <td>${r.customer}</td>
-      <td>${r.brands.join(' + ')}</td>
-      <td class="mono">${r.count}</td>
-      <td class="mono">${fmtMoney(r.value)}</td>
-      <td><span class="status-pill status-Under-Negotiation">Cross-sell opportunity</span></td>
-    </tr>`).join('') : `<tr><td colspan="5" class="empty-state">No single customer has been quoted across two or more brands yet — this fills in as real customer names are entered through the Builder.</td></tr>`;
+    <tr><td>${r.customer}</td><td>${r.brands.join(' + ')}</td><td class="mono">${r.count}</td><td class="mono">${fmtMoney(r.value)}</td><td><span class="status-pill status-Under-Negotiation">Cross-sell opportunity</span></td></tr>`).join('')
+    : `<tr><td colspan="5" class="empty-state">No single customer has been quoted across two or more brands yet.</td></tr>`;
 
-  // KPI strip
   const totalActive = DATA.quotations.filter(active).length;
   const avgPerOfficer = OFFICERS.length ? (officerRows.reduce((s,r)=>s+r.activeCount,0)/OFFICERS.length) : 0;
   const busiest = officerRows.slice().sort((a,b)=>b.activeCount-a.activeCount)[0];
