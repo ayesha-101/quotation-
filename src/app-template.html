@@ -68,6 +68,7 @@
   .tab:hover{color:var(--ink);}
   .tab.active{background:var(--navy-panel2);color:var(--brand);box-shadow:inset 0 0 0 1px var(--grid-line);}
   .tab .badge{background:var(--brand);color:#fff;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;}
+  .auto-badge{display:inline-block;margin-left:6px;font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:8px;background:rgba(46,134,222,0.18);color:var(--brand);vertical-align:middle;}
 
   .view{display:none;}
   .view.active{display:block;}
@@ -896,7 +897,8 @@ function finalizeLpoConversion(id, lpoNo){
   q.status = 'Converted to LPO';
   q.customerLpoNo = lpoNo || '';
   q.lpoMismatch = false;
-  logAudit(q, 'Converted to LPO' + (lpoNo ? ` — matched against customer LPO ${lpoNo}` : ' — matched against customer LPO'));
+  q.customerLpoFile = matchLpoFileMeta ? {name:matchLpoFileMeta.name, size:matchLpoFileMeta.size} : null;
+  logAudit(q, 'Converted to LPO' + (lpoNo ? ` — matched against customer LPO ${lpoNo}` : ' — matched against customer LPO') + (matchLpoFileMeta ? ` — customer LPO document attached (${matchLpoFileMeta.name})` : ''));
   const tier = gpTier(q.gp);
   DATA.approvals.push({
     id:'a'+q.id+'-'+Date.now(), quoteId:q.id, quoteNo:q.quoteNo, brand:quoteDisplayBrand(q),
@@ -908,6 +910,9 @@ function finalizeLpoConversion(id, lpoNo){
 /* ============================= MATCH CUSTOMER LPO ============================= */
 let matchLpoId = null;
 let matchLpoLines = [];
+let matchLpoPasteText = '';
+let matchLpoFileMeta = null;
+let matchLpoAutoFillResult = null;
 function openMatchLpo(id){
   const q = DATA.quotations.find(x=>x.id===id);
   if(!q || !canEditQuotes()) return;
@@ -915,13 +920,64 @@ function openMatchLpo(id){
   matchLpoLines = q.items.map(it=>({
     code:it.code, description:it.description,
     ourQty:it.qty, ourPrice:it.unitSell,
-    custQty:it.qty, custPrice:it.unitSell
+    custQty:it.qty, custPrice:it.unitSell,
+    autoFilled:false
   }));
+  matchLpoPasteText = '';
+  matchLpoFileMeta = null;
+  matchLpoAutoFillResult = null;
   renderMatchLpoModal(null);
   document.getElementById('modalOverlay').classList.add('active');
 }
 function updateMatchLpoLine(idx, field, val){
   matchLpoLines[idx][field] = parseFloat(val)||0;
+  matchLpoLines[idx].autoFilled = false;
+}
+function handleLpoFileSelect(inputEl){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return;
+  matchLpoFileMeta = {name:file.name, size:file.size};
+  renderMatchLpoModal(null);
+}
+function autoFillFromLpoText(){
+  const text = (document.getElementById('lpoPasteText')||{}).value || matchLpoPasteText;
+  matchLpoPasteText = text;
+  if(!text.trim()){ matchLpoAutoFillResult = {filled:0, total:matchLpoLines.length, empty:true}; renderMatchLpoModal(null); return; }
+  const lines = text.split(/\r?\n/).filter(l=>l.trim());
+  const numRe = /(?<![\w.])-?\d{1,3}(?:,\d{3})*(?:\.\d+)?(?!\w)/g;
+  let filled = 0;
+  matchLpoLines.forEach(l=>{
+    const needle = (l.code||'').trim().toLowerCase();
+    const descWords = (l.description||'').toLowerCase().split(/\s+/).filter(w=>w.length>3);
+    let hit = null;
+    if(needle){
+      hit = lines.find(ln=>ln.toLowerCase().includes(needle)) || null;
+    }
+    if(!hit && descWords.length){
+      hit = lines.find(ln=>{ const lnLow = ln.toLowerCase(); return descWords.filter(w=>lnLow.includes(w)).length >= Math.min(2, descWords.length); }) || null;
+    }
+    if(hit){
+      let cut = -1;
+      const hitLow = hit.toLowerCase();
+      if(needle){
+        const idx = hitLow.lastIndexOf(needle);
+        if(idx>=0) cut = Math.max(cut, idx+needle.length);
+      }
+      descWords.forEach(w=>{
+        const idx = hitLow.lastIndexOf(w);
+        if(idx>=0) cut = Math.max(cut, idx+w.length);
+      });
+      const rest = cut>=0 ? hit.slice(cut) : hit;
+      const nums = (rest.match(numRe)||[]).map(n=>parseFloat(n.replace(/,/g,''))).filter(n=>!isNaN(n));
+      if(nums.length>=2){
+        l.custQty = nums[0]; l.custPrice = nums[1]; l.autoFilled = true; filled++;
+      } else if(nums.length===1){
+        l.custPrice = nums[0]; l.autoFilled = true; filled++;
+      }
+    }
+  });
+  matchLpoAutoFillResult = {filled, total:matchLpoLines.length, empty:false};
+  renderMatchLpoModal(null);
 }
 function computeLpoMismatches(){
   const mismatches = [];
@@ -952,12 +1008,14 @@ function renderMatchLpoModal(mismatches){
   const q = DATA.quotations.find(x=>x.id===matchLpoId);
   const rows = matchLpoLines.map((l,idx)=>{
     const mism = mismatches && mismatches.some(m=>m.label===(l.description||l.code));
+    const autoStyle = l.autoFilled ? 'background:rgba(46,134,222,0.10);border-color:var(--brand);' : '';
+    const autoBadge = l.autoFilled ? '<span class="auto-badge">auto</span>' : '';
     return `<tr class="${mism?'overdue':''}">
       <td>${esc(l.description)||esc(l.code)||'—'}</td>
       <td class="mono">${l.ourQty.toLocaleString()}</td>
-      <td><input class="mono" type="number" min="0" style="width:80px" value="${l.custQty}" onchange="updateMatchLpoLine(${idx},'custQty',this.value)"></td>
+      <td><input class="mono" type="number" min="0" style="width:80px;${autoStyle}" value="${l.custQty}" onchange="updateMatchLpoLine(${idx},'custQty',this.value)">${autoBadge}</td>
       <td class="mono">${fmtMoney(l.ourPrice)}</td>
-      <td><input class="mono" type="number" step="0.01" style="width:100px" value="${l.custPrice}" onchange="updateMatchLpoLine(${idx},'custPrice',this.value)"></td>
+      <td><input class="mono" type="number" step="0.01" style="width:100px;${autoStyle}" value="${l.custPrice}" onchange="updateMatchLpoLine(${idx},'custPrice',this.value)">${autoBadge}</td>
     </tr>`;
   }).join('');
   const mismatchBlock = mismatches===null ? '' : (mismatches.length
@@ -967,14 +1025,40 @@ function renderMatchLpoModal(mismatches){
         Flagged for Sales + Estimation review. You can correct the fields below to match what the customer's LPO actually states, then re-check.
       </div>`
     : `<div class="permission-note" style="border-color:var(--green);color:var(--green);">All lines match. Converting…</div>`);
+  const fileChip = matchLpoFileMeta
+    ? `<div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:6px;">📎 ${esc(matchLpoFileMeta.name)} (${(matchLpoFileMeta.size/1024).toFixed(0)} KB) attached to this quotation's record.</div>`
+    : '';
+  let autoFillNote = '';
+  if(matchLpoAutoFillResult){
+    if(matchLpoAutoFillResult.empty){
+      autoFillNote = `<div class="permission-note" style="border-color:var(--amber);color:var(--amber);margin-top:8px;">Paste the LPO text above first, then click Auto-fill.</div>`;
+    } else if(matchLpoAutoFillResult.filled){
+      autoFillNote = `<div class="permission-note" style="border-color:var(--brand);color:var(--brand);margin-top:8px;">Auto-filled ${matchLpoAutoFillResult.filled} of ${matchLpoAutoFillResult.total} line(s) from the pasted text (marked <span class="auto-badge">auto</span>). This is text-pattern matching, not full AI reading — please review the highlighted fields before checking the match.</div>`;
+    } else {
+      autoFillNote = `<div class="permission-note" style="border-color:var(--amber);color:var(--amber);margin-top:8px;">Could not confidently match any line from the pasted text — please review/edit the fields below manually.</div>`;
+    }
+  }
   document.getElementById('modalBody').innerHTML = `
     <div class="modal-header">
-      <div><h3>Match Customer LPO</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${quoteRef(q)} — enter what the customer's LPO actually states for each line, then check the match before converting.</div></div>
+      <div><h3>Match Customer LPO</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${quoteRef(q)} — attach the customer's LPO and match it against our quotation before converting.</div></div>
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     ${mismatchBlock}
     <div class="form-field" style="margin-bottom:14px;"><label>Customer LPO Number</label><input id="matchLpoNo" placeholder="e.g. customer's PO reference" value="${esc(q.customerLpoNo)}"></div>
-    <div class="table-wrap"><table>
+    <div class="form-field" style="margin-bottom:10px;">
+      <label>Customer LPO File (PDF)</label>
+      <input type="file" accept="application/pdf" onchange="handleLpoFileSelect(this)">
+      ${fileChip}
+    </div>
+    <div class="form-field" style="margin-bottom:6px;">
+      <label>Paste LPO Text (select-all + copy from your PDF viewer)</label>
+      <textarea id="lpoPasteText" rows="4" placeholder="Paste the customer's LPO text here, then click Auto-fill to extract quantities and prices per line." oninput="matchLpoPasteText=this.value">${esc(matchLpoPasteText)}</textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:6px;">
+      <button class="btn" onclick="autoFillFromLpoText()">Auto-fill from pasted text</button>
+    </div>
+    ${autoFillNote}
+    <div class="table-wrap" style="margin-top:12px;"><table>
       <thead><tr><th>Item</th><th>Our Qty</th><th>Customer LPO Qty</th><th>Our Price</th><th>Customer LPO Price</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
@@ -996,6 +1080,7 @@ function openDetail(id, justConverted){
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     ${justConverted?`<div class="permission-note" style="border-color:var(--green);color:var(--green);">Converted to LPO. Routed to <b>${gpTier(q.gp)}</b> for GP approval (${q.gp.toFixed(1)}% margin).</div>`:''}
+    ${q.customerLpoNo ? `<div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-bottom:10px;">Customer LPO ref: <b class="mono">${esc(q.customerLpoNo)}</b>${q.customerLpoFile?` · 📎 ${esc(q.customerLpoFile.name)}`:''}${q.lpoMismatch?` · <span style="color:var(--red);">unresolved mismatch</span>`:''}</div>` : ''}
     <div class="table-wrap"><table><thead><tr><th>Code</th><th>Description</th><th>Brand</th><th>Qty</th><th>U.Price</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="totals-box">
       <div class="line"><span>Quote Value</span><span class="mono">${fmtMoney(q.quoteValue)}</span></div>
