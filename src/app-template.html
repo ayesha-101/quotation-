@@ -12,6 +12,8 @@
     --navy-panel:#101f34;
     --navy-panel2:#132741;
     --grid-line:#1e3a5f;
+    --brand:#2e86de;
+    --brand-dim:#184d7e;
     --amber:#f2a53c;
     --amber-dim:#8a6626;
     --ink:#e7edf5;
@@ -41,7 +43,7 @@
   /* Header */
   .topbar{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--grid-line);margin-bottom:18px;}
   .brandmark{display:flex;align-items:center;gap:12px;}
-  .brandmark .plug{width:34px;height:34px;border:2px solid var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .brandmark .plug{width:34px;height:34px;border:2px solid var(--brand);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .brandmark .plug svg{width:18px;height:18px;}
   .brandmark h1{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;margin:0;letter-spacing:0.2px;}
   .brandmark .sub{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:1.4px;margin-top:2px;}
@@ -52,7 +54,7 @@
     background:var(--navy-panel2);border:1px solid var(--grid-line);color:var(--ink);
     padding:7px 10px;border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:13px;outline:none;
   }
-  select:focus, input:focus, textarea:focus{border-color:var(--amber);}
+  select:focus, input:focus, textarea:focus{border-color:var(--brand);}
   .save-indicator{font-size:10.5px;color:var(--ink-faint);display:flex;align-items:center;gap:6px;}
   .save-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
 
@@ -64,8 +66,8 @@
     display:flex;align-items:center;gap:7px;transition:background .15s,color .15s;
   }
   .tab:hover{color:var(--ink);}
-  .tab.active{background:var(--navy-panel2);color:var(--amber);box-shadow:inset 0 0 0 1px var(--grid-line);}
-  .tab .badge{background:var(--amber);color:var(--navy-deep);font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;}
+  .tab.active{background:var(--navy-panel2);color:var(--brand);box-shadow:inset 0 0 0 1px var(--grid-line);}
+  .tab .badge{background:var(--brand);color:#fff;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;}
 
   .view{display:none;}
   .view.active{display:block;}
@@ -76,7 +78,7 @@
     background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:6px;padding:16px 18px;
     position:relative;overflow:hidden;
   }
-  .kpi-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--amber);}
+  .kpi-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brand);}
   .kpi-card .label{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-faint);margin-bottom:8px;}
   .kpi-card .value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;line-height:1;}
   .kpi-card .value.green{color:var(--green);}
@@ -84,16 +86,16 @@
   .kpi-card .value.red{color:var(--red);}
   .kpi-card .subtext{font-size:11px;color:var(--ink-dim);margin-top:6px;}
   .gauge-track{height:5px;background:var(--grid-line);border-radius:3px;margin-top:10px;overflow:hidden;}
-  .gauge-fill{height:100%;background:linear-gradient(90deg,var(--amber-dim),var(--amber));border-radius:3px;transition:width .5s;}
+  .gauge-fill{height:100%;background:linear-gradient(90deg,var(--brand-dim),var(--brand));border-radius:3px;transition:width .5s;}
 
   .section-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;letter-spacing:0.3px;margin:0 0 12px;display:flex;align-items:center;gap:8px;color:var(--ink);}
-  .section-title .tick{width:3px;height:14px;background:var(--amber);display:inline-block;}
+  .section-title .tick{width:3px;height:14px;background:var(--brand);display:inline-block;}
   .panel{background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:6px;padding:18px;margin-bottom:20px;}
 
   /* top movers */
   .movers-row{display:flex;gap:10px;flex-wrap:wrap;}
   .mover-chip{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:20px;padding:6px 14px;font-size:12px;display:flex;align-items:center;gap:8px;}
-  .mover-chip .n{font-family:'IBM Plex Mono',monospace;color:var(--amber);font-weight:600;}
+  .mover-chip .n{font-family:'IBM Plex Mono',monospace;color:var(--brand);font-weight:600;}
 
   table{width:100%;border-collapse:collapse;font-size:12.5px;}
   thead th{
@@ -122,9 +124,9 @@
     padding:6px 12px;border-radius:var(--radius);font-size:11.5px;font-weight:600;cursor:pointer;
     transition:all .15s;white-space:nowrap;
   }
-  .btn:hover{border-color:var(--amber);color:var(--amber);}
-  .btn-primary{background:var(--amber);border-color:var(--amber);color:#1a1206;}
-  .btn-primary:hover{background:#ffb956;color:#1a1206;}
+  .btn:hover{border-color:var(--brand);color:var(--brand);}
+  .btn-primary{background:var(--brand);border-color:var(--brand);color:#fff;}
+  .btn-primary:hover{background:#4b9aea;color:#fff;}
   .btn-danger{border-color:var(--red);color:var(--red);}
   .btn-danger:hover{background:var(--red-bg);}
   .btn-green{border-color:var(--green);color:var(--green);}
@@ -154,7 +156,7 @@
   .form-field select, .form-field input, .form-field textarea{width:100%;}
   .audit-log{max-height:140px;overflow-y:auto;font-size:11px;color:var(--ink-dim);border-top:1px solid var(--grid-line);padding-top:10px;margin-top:10px;}
   .audit-log div{padding:3px 0;}
-  .audit-log .who{color:var(--amber);}
+  .audit-log .who{color:var(--brand);}
 
   /* Builder */
   .builder-grid{display:grid;grid-template-columns:1fr;gap:18px;}
@@ -173,7 +175,7 @@
   .remove-line:hover{color:var(--red);border-color:var(--red);}
   .totals-box{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:6px;padding:14px 16px;margin-top:10px;max-width:380px;margin-left:auto;}
   .totals-box .line{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;}
-  .totals-box .line.total{border-top:1px solid var(--grid-line);margin-top:6px;padding-top:8px;font-weight:700;font-size:14px;color:var(--amber);}
+  .totals-box .line.total{border-top:1px solid var(--grid-line);margin-top:6px;padding-top:8px;font-weight:700;font-size:14px;color:var(--brand);}
   .terms-panel{margin-top:14px;}
   .terms-panel .form-grid{margin-bottom:0;}
 
@@ -181,7 +183,7 @@
 
   .brand-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
   .brand-tab{padding:6px 13px;border-radius:20px;font-size:11.5px;font-weight:600;background:var(--navy-panel2);border:1px solid var(--grid-line);color:var(--ink-dim);cursor:pointer;}
-  .brand-tab.active{background:var(--amber);color:#1a1206;border-color:var(--amber);}
+  .brand-tab.active{background:var(--brand);color:#fff;border-color:var(--brand);}
   .brand-tab .cnt{opacity:0.7;font-weight:400;}
 
   ::-webkit-scrollbar{width:8px;height:8px;}
@@ -201,7 +203,7 @@
 
   <div class="topbar">
     <div class="brandmark">
-      <div class="plug"><svg viewBox="0 0 24 24" fill="none" stroke="#f2a53c" stroke-width="2"><path d="M7 2v5M17 2v5M6 9h12l-1 5a5 5 0 0 1-10 0L6 9Z"/><path d="M12 16v6"/></svg></div>
+      <div class="plug"><svg viewBox="0 0 24 24" fill="none" stroke="#2e86de" stroke-width="2"><path d="M7 2v5M17 2v5M6 9h12l-1 5a5 5 0 0 1-10 0L6 9Z"/><path d="M12 16v6"/></svg></div>
       <div>
         <h1>BMTC Quotation & LPO Control</h1>
         <div class="sub">Al Bahri & Al Mazroei Trading Co. · Electrical Solutions · Abu Dhabi</div>
@@ -242,6 +244,33 @@
     <div class="panel">
       <div class="section-title"><span class="tick"></span>Attention required — overdue quotations (7+ days untouched)</div>
       <div class="table-wrap"><table id="overdueTable"><thead><tr><th>Ref.</th><th>Brand(s)</th><th>Salesman</th><th>Value</th><th>Status</th><th>Idle</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="section-title" style="margin-top:6px;"><span class="tick"></span>Team & Synergy — workload balance and cross-brand opportunities</div>
+    <div class="kpi-strip" id="synergyKpiStrip"></div>
+
+    <div class="panel">
+      <div class="section-title" style="font-size:12.5px;"><span class="tick"></span>Team workload — Quotation Officers</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Officer</th><th>Active quotations</th><th>Pipeline value</th><th>Overdue owned</th><th>Converted (all time)</th></tr></thead>
+        <tbody id="synergyOfficerTable"></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title" style="font-size:12.5px;"><span class="tick"></span>Team workload — Salesmen</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Salesman</th><th>Active quotations</th><th>Pipeline value</th><th>Win rate</th><th>Flagged Lost</th></tr></thead>
+        <tbody id="synergySalesmanTable"></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title" style="font-size:12.5px;"><span class="tick"></span>Cross-brand synergy — same customer, multiple brands</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Customer (To)</th><th>Brands quoted</th><th>Quotations</th><th>Combined value</th><th>Signal</th></tr></thead>
+        <tbody id="synergyCrossBrandTable"></tbody>
+      </table></div>
     </div>
   </div>
 
@@ -349,10 +378,11 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-primary" onclick="saveQuotation('Quoted')">Save & Mark Quoted</button>
         <button class="btn" onclick="saveQuotation('Draft')">Save as Draft</button>
-        <button class="btn btn-green" onclick="generatePdf()">Generate PDF</button>
+        <button class="btn btn-green" onclick="generatePdf()">Print / Download PDF</button>
+        <span id="pdfStatus" style="font-size:11px;color:var(--ink-dim);"></span>
       </div>
     </div>
   </div>
@@ -382,36 +412,6 @@
       <div class="table-wrap"><table>
         <thead><tr><th>Ref.</th><th>Brand(s)</th><th>Value</th><th>GP%</th><th>Routed to</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead>
         <tbody id="approvalsTable"></tbody>
-      </table></div>
-    </div>
-  </div>
-
-  <!-- SYNERGY -->
-  <div class="view" id="view-synergy">
-    <div class="permission-note">Synergy Management — how work is balanced across the team, and where one customer's activity across multiple brands signals a cross-sell opportunity.</div>
-    <div class="kpi-strip" id="synergyKpiStrip"></div>
-
-    <div class="panel">
-      <div class="section-title"><span class="tick"></span>Team workload — Quotation Officers</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Officer</th><th>Active quotations</th><th>Pipeline value</th><th>Overdue owned</th><th>Converted (all time)</th></tr></thead>
-        <tbody id="synergyOfficerTable"></tbody>
-      </table></div>
-    </div>
-
-    <div class="panel">
-      <div class="section-title"><span class="tick"></span>Team workload — Salesmen</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Salesman</th><th>Active quotations</th><th>Pipeline value</th><th>Win rate</th><th>Flagged Lost</th></tr></thead>
-        <tbody id="synergySalesmanTable"></tbody>
-      </table></div>
-    </div>
-
-    <div class="panel">
-      <div class="section-title"><span class="tick"></span>Cross-brand synergy — same customer, multiple brands</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Customer (To)</th><th>Brands quoted</th><th>Quotations</th><th>Combined value</th><th>Signal</th></tr></thead>
-        <tbody id="synergyCrossBrandTable"></tbody>
       </table></div>
     </div>
   </div>
@@ -685,7 +685,6 @@ const TAB_DEFS = [
   {id:'dashboard', label:'Dashboard'},
   {id:'quotations', label:'Quotation Tracker'},
   {id:'materials', label:'Material Tracker'},
-  {id:'synergy', label:'Synergy'},
   {id:'builder', label:'Quotation Builder', roles:['Admin','Quotation Officer']},
   {id:'admin', label:'Admin Panel', roles:['Admin']},
   {id:'approvals', label:'Approvals', roles:['Line Manager','GM','CEO','Admin']}
@@ -1238,7 +1237,19 @@ const TERMS_CONDITIONS = [
   'Our prices not include the expenses for the visit of representative of client/consultant for witnessing test.',
   'Prices quoted are based on current market conditions and are subject to change in the event of fluctuations in raw material costs, manufacturer pricing, currency exchange rates, freight charges, or other external factors beyond our control.'
 ];
-function generatePdf(){
+let downloadsCapPromise = null;
+function getDownloadsCap(){
+  if(!window.claude || !window.claude.use) return Promise.resolve(null);
+  if(!downloadsCapPromise) downloadsCapPromise = window.claude.use('downloads').catch(()=>null);
+  return downloadsCapPromise;
+}
+function setPdfStatus(text, isError){
+  const el = document.getElementById('pdfStatus');
+  if(!el) return;
+  el.textContent = text;
+  el.style.color = isError ? 'var(--red)' : 'var(--ink-dim)';
+}
+async function generatePdf(){
   recalcAllLines();
   const h = collectHeaderFields();
   const quoteNo = document.getElementById('bQuoteNo').value;
@@ -1259,7 +1270,7 @@ function generatePdf(){
   const total = round2(quoteValue+vat);
   const termsRows = TERMS_CONDITIONS.map((t,i)=>`<tr><td style="vertical-align:top;padding:2px 6px 2px 0;font-weight:bold;">${i+1}-</td><td style="padding:2px 0;">${t}</td></tr>`).join('');
 
-  document.getElementById('printArea').innerHTML = `
+  const docBody = `
     <div style="font-family:Arial,sans-serif;padding:36px;color:#111;font-size:12px;">
       <table style="border-collapse:collapse;width:100%;border:1px solid #999;margin-bottom:14px;">
         <tr><td colspan="4" style="text-align:center;font-weight:bold;font-size:13px;border:1px solid #999;padding:4px;background:#f2f2f2;">QUOTATION</td></tr>
@@ -1319,7 +1330,28 @@ function generatePdf(){
         <div>00971 2 550 6700 | info@bmtc.ae | www.bmtc.ae</div>
       </div>
     </div>`;
-  window.print();
+
+  document.getElementById('printArea').innerHTML = docBody;
+
+  setPdfStatus('Opening print dialog…');
+  let printWorked = true;
+  try{ window.print(); }catch(e){ printWorked = false; }
+
+  const standaloneDoc = '<!doctype html>\n<html><head><meta charset="utf-8"><title>'+quoteNo+'</title></head><body>'+docBody+'</body></html>';
+  const dl = await getDownloadsCap();
+  if(!dl){
+    setPdfStatus(printWorked ? 'Print dialog opened. If nothing appeared, printing is unavailable in this view.' : 'Printing is unavailable in this view.', !printWorked);
+    return;
+  }
+  try{
+    const filename = (quoteNo||'quotation').replace(/[^A-Za-z0-9-_.]/g,'_') + '.html';
+    await dl.save({ filename, data: standaloneDoc });
+    setPdfStatus('Downloaded ' + filename + ' — open it in your browser and use Print → Save as PDF.');
+  }catch(e){
+    const code = e && e.code;
+    if(code === 'declined'){ setPdfStatus('Download cancelled.'); }
+    else { setPdfStatus('Could not offer the file for download (' + (code||'unknown error') + '). Try the print dialog instead.', true); }
+  }
 }
 
 /* ============================= RENDER: SYNERGY ============================= */
@@ -1376,10 +1408,9 @@ function renderSynergy(){
 
 function render(){
   routeTabsForRole();
-  if(currentTab==='dashboard') renderDashboard();
+  if(currentTab==='dashboard'){ renderDashboard(); renderSynergy(); }
   if(currentTab==='quotations') renderQuotations();
   if(currentTab==='materials') renderMaterials();
-  if(currentTab==='synergy') renderSynergy();
   if(currentTab==='builder') initBuilderStatics();
   if(currentTab==='admin') renderAdmin();
   if(currentTab==='approvals') renderApprovals();
