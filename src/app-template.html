@@ -491,7 +491,7 @@ function itemsForBrand(brand){
 }
 function refreshCatalogDatalist(){
   const dl = document.getElementById('catalogDatalist');
-  dl.innerHTML = DATA.catalog.slice(0,4000).map(it=>`<option value="${it.code}">${it.code} — ${it.description} (${it.brand})</option>`).join('');
+  dl.innerHTML = DATA.catalog.slice(0,4000).map(it=>`<option value="${esc(it.code)}">${esc(it.code)} — ${esc(it.description)} (${esc(it.brand)})</option>`).join('');
 }
 
 /* ============================= STORAGE =============================
@@ -506,9 +506,14 @@ const PAGE_SHELL = "__SHELL_PLACEHOLDER__";
 function renderDocument(dataObj){
   const stateJson = JSON.stringify(dataObj).replace(/</g,'\\u003c');
   const shellJson = JSON.stringify(PAGE_SHELL).replace(/</g,'\\u003c');
+  // Use function replacers: a string replacement argument has special
+  // $-patterns ($`, $', $&, $$) honored even against a plain-string search,
+  // so untrusted content in stateJson/shellJson could splice raw template
+  // text into the published document. A function replacer inserts its
+  // return value literally, with no pattern substitution.
   return PAGE_SHELL
-    .replace('__STATE_PLACEHOLDER__', stateJson)
-    .replace('const PAGE_SHELL = "__SHELL_PLACEHOLDER__";', 'const PAGE_SHELL = ' + shellJson + ';');
+    .replace('__STATE_PLACEHOLDER__', () => stateJson)
+    .replace('const PAGE_SHELL = "__SHELL_PLACEHOLDER__";', () => 'const PAGE_SHELL = ' + shellJson + ';');
 }
 let artifactCapPromise = null;
 function getArtifactCap(){
@@ -626,6 +631,9 @@ function seedData(){
 }
 
 /* ============================= HELPERS ============================= */
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 function fmtMoney(n){ return 'AED ' + (n||0).toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function statusClass(s){ return 'status-' + s.replace(/ /g,'-'); }
 function daysSince(iso){ return Math.floor((Date.now()-new Date(iso).getTime())/(1000*60*60*24)); }
@@ -742,13 +750,13 @@ function renderDashboard(){
   inRange.forEach(q=>q.items.forEach(it=>{ const key=it.code||it.description; qtyMap[key] = qtyMap[key]||{label:(it.code?it.code+' — ':'')+it.description, qty:0}; qtyMap[key].qty += it.qty; }));
   const top = Object.values(qtyMap).sort((a,b)=>b.qty-a.qty).slice(0,6);
   document.getElementById('topMovers').innerHTML = top.length ? top.map(t=>
-    `<div class="mover-chip">${t.label} <span class="n">${t.qty.toLocaleString()}</span></div>`
+    `<div class="mover-chip">${esc(t.label)} <span class="n">${t.qty.toLocaleString()}</span></div>`
   ).join('') : `<div class="empty-state">No item activity in this period.</div>`;
 
   const overdueRows = DATA.quotations.filter(isOverdue).sort((a,b)=>daysSince(b.lastEditedAt)-daysSince(a.lastEditedAt));
   document.getElementById('overdueTable').querySelector('tbody').innerHTML = overdueRows.length ? overdueRows.map(q=>`
     <tr class="overdue">
-      <td class="mono">${quoteRef(q)}</td><td>${quoteDisplayBrand(q)}</td><td>${q.salesman}</td>
+      <td class="mono">${quoteRef(q)}</td><td>${esc(quoteDisplayBrand(q))}</td><td>${q.salesman}</td>
       <td class="mono">${fmtMoney(q.quoteValue)}</td>
       <td><span class="status-pill ${statusClass(q.status)}">${q.status}</span></td>
       <td class="mono">${daysSince(q.lastEditedAt)}d</td>
@@ -794,8 +802,8 @@ function renderQuotations(){
     }
     return `<tr class="${overdue?'overdue':''}">
       <td class="mono">${quoteRef(q)}</td>
-      <td>${q.to||'—'}</td>
-      <td>${quoteDisplayBrand(q)}</td>
+      <td>${esc(q.to)||'—'}</td>
+      <td>${esc(quoteDisplayBrand(q))}</td>
       <td class="mono">${fmtMoney(q.quoteValue)}</td>
       <td class="mono">${q.gp.toFixed(1)}%</td>
       <td><span class="status-pill ${statusClass(q.status)}">${q.status}</span>${overdue?'<span class="overdue-flag">● OVERDUE</span>':''}</td>
@@ -842,11 +850,11 @@ function convertToLpo(id){
 /* ============================= DETAIL MODAL ============================= */
 function openDetail(id, justConverted){
   const q = DATA.quotations.find(x=>x.id===id);
-  const rows = q.items.map(it=>`<tr><td class="mono">${it.code||'—'}</td><td>${it.description}</td><td>${it.brand||'—'}</td><td class="mono">${it.qty.toLocaleString()}</td><td class="mono">${fmtMoney(it.unitSell)}</td><td class="mono">${fmtMoney(it.lineTotal)}</td></tr>`).join('');
+  const rows = q.items.map(it=>`<tr><td class="mono">${esc(it.code)||'—'}</td><td>${esc(it.description)}</td><td>${esc(it.brand)||'—'}</td><td class="mono">${it.qty.toLocaleString()}</td><td class="mono">${fmtMoney(it.unitSell)}</td><td class="mono">${fmtMoney(it.lineTotal)}</td></tr>`).join('');
   const revRows = (q.revisionHistory||[]).slice().reverse().map(r=>`<div>Revision <span class="who">${r.revision===0?'original':'R'+r.revision}</span> — ${fmtMoney(r.value)} <span style="color:var(--ink-faint);">(superseded ${new Date(r.at).toLocaleDateString('en-AE')})</span></div>`).join('');
   document.getElementById('modalBody').innerHTML = `
     <div class="modal-header">
-      <div><h3 class="mono">${quoteRef(q)}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${quoteDisplayBrand(q)} · ${q.to||'—'} · ${q.salesman}</div></div>
+      <div><h3 class="mono">${quoteRef(q)}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${esc(quoteDisplayBrand(q))} · ${esc(q.to)||'—'} · ${q.salesman}</div></div>
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     ${justConverted?`<div class="permission-note" style="border-color:var(--green);color:var(--green);">Converted to LPO. Routed to <b>${gpTier(q.gp)}</b> for GP approval (${q.gp.toFixed(1)}% margin).</div>`:''}
@@ -857,7 +865,7 @@ function openDetail(id, justConverted){
       <div class="line total"><span>Total Value</span><span class="mono">${fmtMoney(q.totalValue)}</span></div>
     </div>
     ${revRows?`<div class="audit-log"><div style="color:var(--ink-faint);text-transform:uppercase;font-size:9.5px;letter-spacing:0.8px;margin-bottom:4px;">Revision history</div>${revRows}</div>`:''}
-    <div class="audit-log">${q.auditLog.slice().reverse().map(a=>`<div><span class="who">${a.who}</span> — ${a.action} <span style="color:var(--ink-faint);">(${new Date(a.at).toLocaleString('en-AE')})</span></div>`).join('')}</div>
+    <div class="audit-log">${q.auditLog.slice().reverse().map(a=>`<div><span class="who">${esc(a.who)}</span> — ${esc(a.action)} <span style="color:var(--ink-faint);">(${new Date(a.at).toLocaleString('en-AE')})</span></div>`).join('')}</div>
     ${canEditQuotes() && !['Converted to LPO','Lost'].includes(q.status) ? `
     <div style="display:flex;gap:8px;margin-top:16px;border-top:1px solid var(--grid-line);padding-top:14px;">
       <button class="btn btn-primary" onclick="convertToLpo('${q.id}')">Convert to LPO</button>
@@ -905,8 +913,8 @@ function renderReviseModal(){
   const q = DATA.quotations.find(x=>x.id===reviseId);
   const nextSuffix = 'R' + ((q.revision||0)+1);
   const rows = reviseLines.map((l,idx)=>`<div style="display:grid;grid-template-columns:1fr 1.4fr 0.6fr 0.5fr 0.5fr 0.7fr 0.7fr 26px;gap:6px;margin-bottom:6px;align-items:center;">
-      <input class="mono" list="catalogDatalist" value="${l.code||''}" placeholder="Cat. Ref." onchange="reviseUpdateLine(${idx},'code',this.value)">
-      <input value="${l.description||''}" placeholder="Description" onchange="reviseUpdateLine(${idx},'description',this.value)">
+      <input class="mono" list="catalogDatalist" value="${esc(l.code)}" placeholder="Cat. Ref." onchange="reviseUpdateLine(${idx},'code',this.value)">
+      <input value="${esc(l.description)}" placeholder="Description" onchange="reviseUpdateLine(${idx},'description',this.value)">
       <input class="mono" type="number" min="1" value="${l.qty}" onchange="reviseUpdateLine(${idx},'qty',this.value)">
       <input class="mono" type="number" step="0.01" value="${l.speDiscPct||0}" title="Spe.Disc%" onchange="reviseUpdateLine(${idx},'speDiscPct',this.value)">
       <input class="mono" type="number" step="0.01" value="${l.marginPct===undefined?DEFAULT_MARGIN_PCT:l.marginPct}" title="Margin%" onchange="reviseUpdateLine(${idx},'marginPct',this.value)">
@@ -975,9 +983,9 @@ function renderMaterials(){
   document.getElementById('materialTable').querySelector('tbody').innerHTML = rows.length ? rows.map(r=>{
     const runRate = matPeriod ? Math.round(r.q / matPeriod) : null;
     return `<tr>
-      <td class="mono">${r.code||'—'}</td>
-      <td>${r.name}</td>
-      <td>${r.brand||'—'}</td>
+      <td class="mono">${esc(r.code)||'—'}</td>
+      <td>${esc(r.name)}</td>
+      <td>${esc(r.brand)||'—'}</td>
       <td class="mono">${r.q.toLocaleString()}</td>
       <td class="mono">${r.c.toLocaleString()}</td>
       <td class="mono ${r.gap>0?'gap-pos':'gap-neg'}">${r.gap>0?'+':''}${r.gap.toLocaleString()}</td>
@@ -997,7 +1005,7 @@ function renderAdmin(){
 
   document.getElementById('adminBrandTabs').innerHTML = brands.map(b=>{
     const cnt = itemsForBrand(b).length;
-    return `<button class="brand-tab ${b===adminBrand?'active':''}" onclick="setAdminBrand('${b.replace(/'/g,"\\'")}')">${b} <span class="cnt">(${cnt})</span></button>`;
+    return `<button class="brand-tab ${b===adminBrand?'active':''}" onclick="setAdminBrand(${esc(JSON.stringify(b))})">${esc(b)} <span class="cnt">(${cnt})</span></button>`;
   }).join('') + (canAdmin() ? `<button class="brand-tab" onclick="adminAddBrand()">+ New brand</button>` : '');
 
   document.getElementById('adminAddItemBtn').style.display = canAdmin() ? '' : 'none';
@@ -1009,21 +1017,21 @@ function renderAdmin(){
     const after = afterDiscount(it);
     if(canAdmin()){
       return `<tr>
-        <td><input class="mono" style="width:110px" value="${it.code}" onchange="updateCatalogField(${idx},'code',this.value)"></td>
-        <td><input style="width:220px" value="${it.description}" onchange="updateCatalogField(${idx},'description',this.value)"></td>
-        <td><input style="width:70px" value="${it.uom}" onchange="updateCatalogField(${idx},'uom',this.value)"></td>
+        <td><input class="mono" style="width:110px" value="${esc(it.code)}" onchange="updateCatalogField(${idx},'code',this.value)"></td>
+        <td><input style="width:220px" value="${esc(it.description)}" onchange="updateCatalogField(${idx},'description',this.value)"></td>
+        <td><input style="width:70px" value="${esc(it.uom)}" onchange="updateCatalogField(${idx},'uom',this.value)"></td>
         <td><input class="mono" style="width:80px" type="number" step="0.01" value="${it.listPrice}" onchange="updateCatalogField(${idx},'listPrice',this.value)"></td>
-        <td><input style="width:55px" value="${it.currency}" onchange="updateCatalogField(${idx},'currency',this.value)"></td>
+        <td><input style="width:55px" value="${esc(it.currency)}" onchange="updateCatalogField(${idx},'currency',this.value)"></td>
         <td><input class="mono" style="width:65px" type="number" step="0.01" value="${it.disPct}" onchange="updateCatalogField(${idx},'disPct',this.value)"></td>
         <td><input class="mono" style="width:65px" type="number" step="0.01" value="${it.exRate}" onchange="updateCatalogField(${idx},'exRate',this.value)"></td>
         <td><input class="mono" style="width:60px" type="number" step="0.01" value="${it.freightPct}" onchange="updateCatalogField(${idx},'freightPct',this.value)"></td>
         <td><input class="mono" style="width:60px" type="number" step="0.01" value="${it.dutyPct}" onchange="updateCatalogField(${idx},'dutyPct',this.value)"></td>
         <td><input class="mono" style="width:55px" type="number" step="0.01" value="${it.adPct}" onchange="updateCatalogField(${idx},'adPct',this.value)"></td>
-        <td class="mono" style="color:var(--ink-faint);">${after.toFixed(2)} ${it.currency}</td>
+        <td class="mono" style="color:var(--ink-faint);">${after.toFixed(2)} ${esc(it.currency)}</td>
         <td><button class="btn btn-sm btn-danger" onclick="adminDeleteItem(${idx})">Delete</button></td>
       </tr>`;
     }
-    return `<tr><td class="mono">${it.code}</td><td>${it.description}</td><td>${it.uom}</td><td class="mono">${it.listPrice}</td><td>${it.currency}</td><td class="mono">${it.disPct}%</td><td class="mono">${it.exRate}</td><td class="mono">${it.freightPct}%</td><td class="mono">${it.dutyPct}%</td><td class="mono">${it.adPct}%</td><td class="mono">${after.toFixed(2)}</td><td></td></tr>`;
+    return `<tr><td class="mono">${esc(it.code)}</td><td>${esc(it.description)}</td><td>${esc(it.uom)}</td><td class="mono">${it.listPrice}</td><td>${esc(it.currency)}</td><td class="mono">${it.disPct}%</td><td class="mono">${it.exRate}</td><td class="mono">${it.freightPct}%</td><td class="mono">${it.dutyPct}%</td><td class="mono">${it.adPct}%</td><td class="mono">${after.toFixed(2)}</td><td></td></tr>`;
   }).join('') : `<tr><td colspan="12" class="empty-state">No items in this brand yet.</td></tr>`;
 }
 function setAdminBrand(b){ adminBrand = b; render(); }
@@ -1065,12 +1073,12 @@ function renderApprovals(){
     const linkedQ = DATA.quotations.find(x=>x.id===a.quoteId);
     return `
     <tr>
-      <td class="mono">${linkedQ?quoteRef(linkedQ):a.quoteNo}</td><td>${a.brand}</td><td class="mono">${fmtMoney(a.value)}</td>
+      <td class="mono">${linkedQ?quoteRef(linkedQ):esc(a.quoteNo)}</td><td>${esc(a.brand)}</td><td class="mono">${fmtMoney(a.value)}</td>
       <td class="mono">${a.gp.toFixed(1)}%</td><td>${a.tier}</td>
       <td class="mono">${new Date(a.requestedAt).toLocaleDateString('en-AE')}</td>
       <td>
         <span class="status-pill ${a.status==='Pending'?'status-Under-Negotiation':a.status==='Approved'?'status-Converted-to-LPO':'status-Lost'}">${a.status}</span>
-        ${a.status==='Rejected' && a.comment ? `<div style="font-size:10.5px;color:var(--ink-dim);margin-top:4px;max-width:220px;">"${a.comment}" <span style="color:var(--ink-faint);">— ${a.decidedBy}</span></div>` : ''}
+        ${a.status==='Rejected' && a.comment ? `<div style="font-size:10.5px;color:var(--ink-dim);margin-top:4px;max-width:220px;">"${esc(a.comment)}" <span style="color:var(--ink-faint);">— ${a.decidedBy}</span></div>` : ''}
       </td>
       <td>${a.status==='Pending' && canApprove() && a.tier===role ? `
         <div class="row-actions">
@@ -1097,7 +1105,7 @@ function openRejectModal(id){
   const linkedQ = DATA.quotations.find(x=>x.id===a.quoteId);
   document.getElementById('modalBody').innerHTML = `
     <div class="modal-header">
-      <div><h3 class="mono">Reject ${linkedQ?quoteRef(linkedQ):a.quoteNo}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${a.brand} · ${a.gp.toFixed(1)}% GP · routed to ${a.tier}</div></div>
+      <div><h3 class="mono">Reject ${linkedQ?quoteRef(linkedQ):esc(a.quoteNo)}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${esc(a.brand)} · ${a.gp.toFixed(1)}% GP · routed to ${a.tier}</div></div>
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <div class="permission-note">A reason is required so the Quotation Officer and salesman know what to fix before resubmitting.</div>
@@ -1159,10 +1167,10 @@ function renderLineItems(){
     const notFound = l.code && !cat;
     return `<tr>
       <td class="mono">${idx+1}</td>
-      <td class="code-cell"><input class="mono" list="catalogDatalist" value="${l.code||''}" placeholder="Cat. Ref." onchange="updateLineItem(${idx},'code',this.value)">${notFound?'<div class="li-badge" style="color:var(--red);">code not in catalog — manual line</div>':''}</td>
-      <td class="desc-cell"><input value="${(l.description||'').replace(/"/g,'&quot;')}" placeholder="Description" onchange="updateLineItem(${idx},'description',this.value)" ${cat?'readonly':''}></td>
-      <td><input style="width:90px" value="${l.brand||''}" placeholder="Brand" onchange="updateLineItem(${idx},'brand',this.value)" ${cat?'readonly':''}></td>
-      <td><input style="width:70px" value="${l.uom||''}" placeholder="UOM" onchange="updateLineItem(${idx},'uom',this.value)" ${cat?'readonly':''}></td>
+      <td class="code-cell"><input class="mono" list="catalogDatalist" value="${esc(l.code)}" placeholder="Cat. Ref." onchange="updateLineItem(${idx},'code',this.value)">${notFound?'<div class="li-badge" style="color:var(--red);">code not in catalog — manual line</div>':''}</td>
+      <td class="desc-cell"><input value="${esc(l.description)}" placeholder="Description" onchange="updateLineItem(${idx},'description',this.value)" ${cat?'readonly':''}></td>
+      <td><input style="width:90px" value="${esc(l.brand)}" placeholder="Brand" onchange="updateLineItem(${idx},'brand',this.value)" ${cat?'readonly':''}></td>
+      <td><input style="width:70px" value="${esc(l.uom)}" placeholder="UOM" onchange="updateLineItem(${idx},'uom',this.value)" ${cat?'readonly':''}></td>
       <td class="num-cell"><input class="mono" type="number" min="0" value="${l.qty}" onchange="updateLineItem(${idx},'qty',this.value)"></td>
       <td class="num-cell"><input class="mono" type="number" step="0.01" value="${l.speDiscPct||0}" onchange="updateLineItem(${idx},'speDiscPct',this.value)"></td>
       <td class="num-cell"><input class="mono" type="number" step="0.01" value="${l.marginPct===undefined?DEFAULT_MARGIN_PCT:l.marginPct}" onchange="updateLineItem(${idx},'marginPct',this.value)"></td>
@@ -1251,8 +1259,8 @@ function setPdfStatus(text, isError){
 const QUOTE_FONT_LINK = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">';
 function qField(label, value, span){
   return `<div${span?' style="grid-column:span '+span+';"':''}>
-    <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.7px;color:#8a96a3;margin-bottom:3px;">${label}</div>
-    <div style="font-size:12.5px;color:#1a2233;">${value||'&nbsp;'}</div>
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.7px;color:#8a96a3;margin-bottom:3px;">${esc(label)}</div>
+    <div style="font-size:12.5px;color:#1a2233;">${value?esc(value):'&nbsp;'}</div>
   </div>`;
 }
 function buildQuotationDoc(){
@@ -1264,10 +1272,10 @@ function buildQuotationDoc(){
   const rows = lines.map((l,i)=>`
     <tr style="border-bottom:1px solid #eef1f5;">
       <td style="padding:10px 6px;color:#8a96a3;font-size:11.5px;">${i+1}</td>
-      <td style="padding:10px 6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4a5568;">${l.code||'—'}</td>
-      <td style="padding:10px 6px;">${l.description}</td>
-      <td style="padding:10px 6px;color:#4a5568;">${l.brand||''}</td>
-      <td style="padding:10px 6px;text-align:center;color:#4a5568;">${l.uom||''}</td>
+      <td style="padding:10px 6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4a5568;">${esc(l.code)||'—'}</td>
+      <td style="padding:10px 6px;">${esc(l.description)}</td>
+      <td style="padding:10px 6px;color:#4a5568;">${esc(l.brand)}</td>
+      <td style="padding:10px 6px;text-align:center;color:#4a5568;">${esc(l.uom)}</td>
       <td style="padding:10px 6px;text-align:right;font-variant-numeric:tabular-nums;">${(l.qty||0).toLocaleString()}</td>
       <td style="padding:10px 6px;text-align:right;font-variant-numeric:tabular-nums;">${(l.unitSell||0).toFixed(2)}</td>
       <td style="padding:10px 6px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;">${(l.lineTotal||0).toFixed(2)}</td>
@@ -1334,10 +1342,10 @@ function buildQuotationDoc(){
 
       <div style="font-size:11.5px;color:#4a5568;line-height:1.8;margin-bottom:20px;">
         <div><b style="color:#1a2233;">Currency:</b> Arab Emirates Dirham (AED)</div>
-        <div><b style="color:#1a2233;">Delivery:</b> ${h.delivery||'To be confirmed'}</div>
-        <div><b style="color:#1a2233;">Delivery Place:</b> ${h.deliveryPlace||''}</div>
-        <div><b style="color:#1a2233;">Validity:</b> ${h.validity||''}</div>
-        <div><b style="color:#1a2233;">Payment Terms:</b> ${h.paymentTerms||'To be confirmed'}</div>
+        <div><b style="color:#1a2233;">Delivery:</b> ${esc(h.delivery)||'To be confirmed'}</div>
+        <div><b style="color:#1a2233;">Delivery Place:</b> ${esc(h.deliveryPlace)}</div>
+        <div><b style="color:#1a2233;">Validity:</b> ${esc(h.validity)}</div>
+        <div><b style="color:#1a2233;">Payment Terms:</b> ${esc(h.paymentTerms)||'To be confirmed'}</div>
       </div>
 
       <div style="font-size:11.5px;color:#4a5568;margin-bottom:26px;">
@@ -1348,9 +1356,9 @@ function buildQuotationDoc(){
       <div style="font-size:11.5px;margin-bottom:36px;">
         <div style="font-weight:600;color:#1a2233;">For AL BAHRI AND AL MAZROEI TRADING COM. LLC</div>
         <div style="height:32px;"></div>
-        <div style="font-weight:700;color:#1a2233;">${h.prepName||identity}</div>
-        <div style="color:#6b7785;">${h.prepTitle||''}</div>
-        <div style="color:#6b7785;">${h.prepMobile?('MOBILE: '+h.prepMobile):''}</div>
+        <div style="font-weight:700;color:#1a2233;">${esc(h.prepName)||esc(identity)}</div>
+        <div style="color:#6b7785;">${esc(h.prepTitle)}</div>
+        <div style="color:#6b7785;">${h.prepMobile?('MOBILE: '+esc(h.prepMobile)):''}</div>
       </div>
 
       <div style="border-top:1px solid #eef1f5;padding-top:14px;font-size:9.5px;color:#8a96a3;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
@@ -1452,7 +1460,7 @@ function renderSynergy(){
   }).filter(r=>r.multiBrand).sort((a,b)=>b.value-a.value);
 
   document.getElementById('synergyCrossBrandTable').innerHTML = crossRows.length ? crossRows.map(r=>`
-    <tr><td>${r.customer}</td><td>${r.brands.join(' + ')}</td><td class="mono">${r.count}</td><td class="mono">${fmtMoney(r.value)}</td><td><span class="status-pill status-Under-Negotiation">Cross-sell opportunity</span></td></tr>`).join('')
+    <tr><td>${esc(r.customer)}</td><td>${esc(r.brands.join(' + '))}</td><td class="mono">${r.count}</td><td class="mono">${fmtMoney(r.value)}</td><td><span class="status-pill status-Under-Negotiation">Cross-sell opportunity</span></td></tr>`).join('')
     : `<tr><td colspan="5" class="empty-state">No single customer has been quoted across two or more brands yet.</td></tr>`;
 
   const totalActive = DATA.quotations.filter(active).length;
