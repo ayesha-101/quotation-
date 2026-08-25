@@ -857,7 +857,7 @@ function renderQuotations(){
       <td>${esc(quoteDisplayBrand(q))}</td>
       <td class="mono">${fmtMoney(q.quoteValue)}</td>
       <td class="mono">${q.gp.toFixed(1)}%</td>
-      <td><span class="status-pill ${statusClass(q.status)}">${q.status}</span>${overdue?'<span class="overdue-flag">● OVERDUE</span>':''}</td>
+      <td><span class="status-pill ${statusClass(q.status)}">${q.status}</span>${overdue?'<span class="overdue-flag">● OVERDUE</span>':''}${q.lpoMismatch?'<span class="overdue-flag">● LPO MISMATCH</span>':''}</td>
       <td>${q.salesman}</td>
       <td>${q.lastEditedBy}</td>
       <td class="mono">${daysSince(q.lastEditedAt)}d ago</td>
@@ -888,14 +888,101 @@ function flagStatus(id, status){
 function convertToLpo(id){
   const q = DATA.quotations.find(x=>x.id===id);
   if(!q || !canEditQuotes()) return;
+  openMatchLpo(id);
+}
+function finalizeLpoConversion(id, lpoNo){
+  const q = DATA.quotations.find(x=>x.id===id);
+  if(!q || !canEditQuotes()) return;
   q.status = 'Converted to LPO';
-  logAudit(q, 'Converted to LPO');
+  q.customerLpoNo = lpoNo || '';
+  q.lpoMismatch = false;
+  logAudit(q, 'Converted to LPO' + (lpoNo ? ` — matched against customer LPO ${lpoNo}` : ' — matched against customer LPO'));
   const tier = gpTier(q.gp);
   DATA.approvals.push({
     id:'a'+q.id+'-'+Date.now(), quoteId:q.id, quoteNo:q.quoteNo, brand:quoteDisplayBrand(q),
     value:q.quoteValue, gp:q.gp, tier, status:'Pending', requestedAt:new Date().toISOString()
   });
   persist().then(()=>{ routeTabsForRole(); render(); openDetail(id, true); });
+}
+
+/* ============================= MATCH CUSTOMER LPO ============================= */
+let matchLpoId = null;
+let matchLpoLines = [];
+function openMatchLpo(id){
+  const q = DATA.quotations.find(x=>x.id===id);
+  if(!q || !canEditQuotes()) return;
+  matchLpoId = id;
+  matchLpoLines = q.items.map(it=>({
+    code:it.code, description:it.description,
+    ourQty:it.qty, ourPrice:it.unitSell,
+    custQty:it.qty, custPrice:it.unitSell
+  }));
+  renderMatchLpoModal(null);
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function updateMatchLpoLine(idx, field, val){
+  matchLpoLines[idx][field] = parseFloat(val)||0;
+}
+function computeLpoMismatches(){
+  const mismatches = [];
+  matchLpoLines.forEach(l=>{
+    if(Number(l.custQty)!==Number(l.ourQty)){
+      mismatches.push({label:l.description||l.code, detail:`Qty — quoted ${l.ourQty.toLocaleString()}, customer LPO shows ${Number(l.custQty).toLocaleString()}`});
+    }
+    if(Math.abs(Number(l.custPrice)-Number(l.ourPrice))>0.01){
+      mismatches.push({label:l.description||l.code, detail:`Unit price — quoted ${fmtMoney(l.ourPrice)}, customer LPO shows ${fmtMoney(l.custPrice)}`});
+    }
+  });
+  return mismatches;
+}
+function checkLpoMatch(){
+  const lpoNo = document.getElementById('matchLpoNo').value.trim();
+  const mismatches = computeLpoMismatches();
+  const q = DATA.quotations.find(x=>x.id===matchLpoId);
+  if(mismatches.length){
+    q.lpoMismatch = true;
+    q.customerLpoNo = lpoNo;
+    logAudit(q, `LPO match check failed (customer ref ${lpoNo||'—'}): ` + mismatches.map(m=>`${m.label} — ${m.detail}`).join('; '));
+    persist().then(()=>{ renderMatchLpoModal(mismatches); render(); });
+  } else {
+    finalizeLpoConversion(matchLpoId, lpoNo);
+  }
+}
+function renderMatchLpoModal(mismatches){
+  const q = DATA.quotations.find(x=>x.id===matchLpoId);
+  const rows = matchLpoLines.map((l,idx)=>{
+    const mism = mismatches && mismatches.some(m=>m.label===(l.description||l.code));
+    return `<tr class="${mism?'overdue':''}">
+      <td>${esc(l.description)||esc(l.code)||'—'}</td>
+      <td class="mono">${l.ourQty.toLocaleString()}</td>
+      <td><input class="mono" type="number" min="0" style="width:80px" value="${l.custQty}" onchange="updateMatchLpoLine(${idx},'custQty',this.value)"></td>
+      <td class="mono">${fmtMoney(l.ourPrice)}</td>
+      <td><input class="mono" type="number" step="0.01" style="width:100px" value="${l.custPrice}" onchange="updateMatchLpoLine(${idx},'custPrice',this.value)"></td>
+    </tr>`;
+  }).join('');
+  const mismatchBlock = mismatches===null ? '' : (mismatches.length
+    ? `<div class="permission-note" style="border-color:var(--red);color:var(--red);">
+        <b>${mismatches.length} mismatch${mismatches.length>1?'es':''} found — this LPO does not match our quotation:</b>
+        <ul style="margin:8px 0 0;padding-left:18px;">${mismatches.map(m=>`<li>${esc(m.label)}: ${esc(m.detail)}</li>`).join('')}</ul>
+        Flagged for Sales + Estimation review. You can correct the fields below to match what the customer's LPO actually states, then re-check.
+      </div>`
+    : `<div class="permission-note" style="border-color:var(--green);color:var(--green);">All lines match. Converting…</div>`);
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-header">
+      <div><h3>Match Customer LPO</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${quoteRef(q)} — enter what the customer's LPO actually states for each line, then check the match before converting.</div></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    ${mismatchBlock}
+    <div class="form-field" style="margin-bottom:14px;"><label>Customer LPO Number</label><input id="matchLpoNo" placeholder="e.g. customer's PO reference" value="${esc(q.customerLpoNo)}"></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Item</th><th>Our Qty</th><th>Customer LPO Qty</th><th>Our Price</th><th>Customer LPO Price</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-primary" onclick="checkLpoMatch()">Check Match & Convert</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  `;
 }
 
 /* ============================= DETAIL MODAL ============================= */
