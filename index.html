@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMTC Quotation & LPO Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-deep:#0b1524;
+    --navy-panel:#101f34;
+    --navy-panel2:#132741;
+    --grid-line:#1e3a5f;
+    --amber:#f2a53c;
+    --amber-dim:#8a6626;
+    --ink:#e7edf5;
+    --ink-dim:#8ea0b8;
+    --ink-faint:#5c7189;
+    --green:#3fb88e;
+    --red:#e5555c;
+    --red-bg:rgba(229,85,92,0.12);
+    --blue:#4f8ff0;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--navy-deep),var(--navy-deep)),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(30,58,95,0.35) 39px, rgba(30,58,95,0.35) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(30,58,95,0.35) 39px, rgba(30,58,95,0.35) 40px);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .app{max-width:1400px;margin:0 auto;padding:20px 24px 60px;}
+
+  /* Header */
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--grid-line);margin-bottom:18px;}
+  .brandmark{display:flex;align-items:center;gap:12px;}
+  .brandmark .plug{width:34px;height:34px;border:2px solid var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .brandmark .plug svg{width:18px;height:18px;}
+  .brandmark h1{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;margin:0;letter-spacing:0.2px;}
+  .brandmark .sub{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:1.4px;margin-top:2px;}
+  .session-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .field-inline{display:flex;flex-direction:column;gap:3px;}
+  .field-inline label{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-faint);}
+  select, input, textarea{
+    background:var(--navy-panel2);border:1px solid var(--grid-line);color:var(--ink);
+    padding:7px 10px;border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:13px;outline:none;
+  }
+  select:focus, input:focus, textarea:focus{border-color:var(--amber);}
+  .save-indicator{font-size:10.5px;color:var(--ink-faint);display:flex;align-items:center;gap:6px;}
+  .save-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
+
+  /* Nav */
+  .tabs{display:flex;gap:4px;margin-bottom:22px;flex-wrap:wrap;background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:6px;padding:4px;}
+  .tab{
+    padding:9px 16px;font-size:12.5px;font-weight:600;letter-spacing:0.3px;color:var(--ink-dim);
+    background:transparent;border:none;border-radius:4px;cursor:pointer;position:relative;
+    display:flex;align-items:center;gap:7px;transition:background .15s,color .15s;
+  }
+  .tab:hover{color:var(--ink);}
+  .tab.active{background:var(--navy-panel2);color:var(--amber);box-shadow:inset 0 0 0 1px var(--grid-line);}
+  .tab .badge{background:var(--amber);color:var(--navy-deep);font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* KPI strip */
+  .kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:22px;}
+  .kpi-card{
+    background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:6px;padding:16px 18px;
+    position:relative;overflow:hidden;
+  }
+  .kpi-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--amber);}
+  .kpi-card .label{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-faint);margin-bottom:8px;}
+  .kpi-card .value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;line-height:1;}
+  .kpi-card .value.green{color:var(--green);}
+  .kpi-card .value.amber{color:var(--amber);}
+  .kpi-card .value.red{color:var(--red);}
+  .kpi-card .subtext{font-size:11px;color:var(--ink-dim);margin-top:6px;}
+  .gauge-track{height:5px;background:var(--grid-line);border-radius:3px;margin-top:10px;overflow:hidden;}
+  .gauge-fill{height:100%;background:linear-gradient(90deg,var(--amber-dim),var(--amber));border-radius:3px;transition:width .5s;}
+
+  .section-title{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;letter-spacing:0.3px;margin:0 0 12px;display:flex;align-items:center;gap:8px;color:var(--ink);}
+  .section-title .tick{width:3px;height:14px;background:var(--amber);display:inline-block;}
+  .panel{background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:6px;padding:18px;margin-bottom:20px;}
+
+  /* top movers */
+  .movers-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .mover-chip{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:20px;padding:6px 14px;font-size:12px;display:flex;align-items:center;gap:8px;}
+  .mover-chip .n{font-family:'IBM Plex Mono',monospace;color:var(--amber);font-weight:600;}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  thead th{
+    text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.9px;color:var(--ink-faint);
+    padding:8px 10px;border-bottom:1px solid var(--grid-line);font-weight:600;white-space:nowrap;
+  }
+  tbody td{padding:9px 10px;border-bottom:1px solid rgba(30,58,95,0.5);vertical-align:middle;}
+  tbody tr{transition:background .15s;}
+  tbody tr:hover{background:rgba(79,143,240,0.05);}
+  tbody tr.overdue{background:var(--red-bg);}
+  tbody tr.overdue:hover{background:rgba(229,85,92,0.2);}
+  .status-pill{padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:600;letter-spacing:0.3px;white-space:nowrap;display:inline-block;}
+  .status-Draft{background:rgba(142,160,184,0.15);color:var(--ink-dim);}
+  .status-Quoted{background:rgba(79,143,240,0.15);color:var(--blue);}
+  .status-Under-Negotiation{background:rgba(242,165,60,0.15);color:var(--amber);}
+  .status-Lost{background:rgba(229,85,92,0.15);color:var(--red);}
+  .status-Converted-to-LPO{background:rgba(63,184,142,0.15);color:var(--green);}
+  .overdue-flag{color:var(--red);font-size:10px;font-weight:700;letter-spacing:0.4px;margin-left:6px;}
+  .gap-pos{color:var(--amber);font-weight:600;}
+  .gap-neg{color:var(--ink-dim);}
+  .movement-legend{display:flex;gap:16px;align-items:center;font-size:10.5px;color:var(--ink-dim);margin-bottom:12px;}
+  .movement-legend .dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px;}
+  .movement-chart{display:flex;gap:5px;align-items:flex-end;}
+  .movement-bucket{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .movement-bars{display:flex;gap:2px;align-items:flex-end;height:28px;}
+  .bar-quoted{width:5px;background:var(--amber);border-radius:1px 1px 0 0;min-height:2px;}
+  .bar-converted{width:5px;background:var(--green);border-radius:1px 1px 0 0;min-height:2px;}
+  .movement-bucket .m-label{font-size:8px;color:var(--ink-faint);}
+  .movement-empty{font-size:10.5px;color:var(--ink-faint);}
+
+  .btn{
+    background:var(--navy-panel2);border:1px solid var(--grid-line);color:var(--ink);
+    padding:6px 12px;border-radius:var(--radius);font-size:11.5px;font-weight:600;cursor:pointer;
+    transition:all .15s;white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--amber);color:var(--amber);}
+  .btn-primary{background:var(--amber);border-color:var(--amber);color:#1a1206;}
+  .btn-primary:hover{background:#ffb956;color:#1a1206;}
+  .btn-danger{border-color:var(--red);color:var(--red);}
+  .btn-danger:hover{background:var(--red-bg);}
+  .btn-green{border-color:var(--green);color:var(--green);}
+  .btn-green:hover{background:rgba(63,184,142,0.12);}
+  .btn-sm{padding:4px 9px;font-size:10.5px;}
+  .btn:disabled{opacity:0.35;cursor:not-allowed;}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;}
+
+  .empty-state{padding:40px 20px;text-align:center;color:var(--ink-faint);font-size:12.5px;}
+  .empty-state .glyph{font-size:22px;margin-bottom:8px;color:var(--ink-faint);}
+
+  .table-wrap{overflow-x:auto;}
+
+  /* Modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,10,18,0.72);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:var(--navy-panel);border:1px solid var(--grid-line);border-radius:8px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto;padding:22px;}
+  .modal-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+  .modal-header h3{font-family:'Space Grotesk',sans-serif;font-size:16px;margin:0;}
+  .modal-close{background:none;border:none;color:var(--ink-faint);font-size:20px;cursor:pointer;line-height:1;padding:0 4px;}
+  .modal-close:hover{color:var(--ink);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+  .form-grid .full{grid-column:1/-1;}
+  .form-field label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-faint);margin-bottom:5px;}
+  .form-field select, .form-field input, .form-field textarea{width:100%;}
+  .audit-log{max-height:140px;overflow-y:auto;font-size:11px;color:var(--ink-dim);border-top:1px solid var(--grid-line);padding-top:10px;margin-top:10px;}
+  .audit-log div{padding:3px 0;}
+  .audit-log .who{color:var(--amber);}
+
+  /* Builder */
+  .builder-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;}
+  @media(max-width:900px){.builder-grid{grid-template-columns:1fr;}}
+  .line-item-row{display:grid;grid-template-columns:2fr 0.7fr 0.9fr 0.9fr 30px;gap:8px;align-items:center;margin-bottom:8px;}
+  .line-item-row .stock-note{font-size:9.5px;color:var(--ink-faint);grid-column:1/-1;margin-top:-4px;margin-bottom:2px;}
+  .remove-line{background:none;border:1px solid var(--grid-line);color:var(--ink-faint);border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:14px;}
+  .remove-line:hover{color:var(--red);border-color:var(--red);}
+  .totals-box{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:6px;padding:14px 16px;margin-top:10px;}
+  .totals-box .line{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;}
+  .totals-box .line.total{border-top:1px solid var(--grid-line);margin-top:6px;padding-top:8px;font-weight:700;font-size:14px;color:var(--amber);}
+
+  .quote-preview{background:#fff;color:#111;border-radius:4px;padding:0;font-size:12px;}
+  .permission-note{font-size:11px;color:var(--ink-faint);background:var(--navy-panel2);border:1px dashed var(--grid-line);border-radius:6px;padding:10px 14px;margin-bottom:16px;}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-track{background:var(--navy-panel);}
+  ::-webkit-scrollbar-thumb{background:var(--grid-line);border-radius:4px;}
+
+  #printArea{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{display:block;position:absolute;top:0;left:0;width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brandmark">
+      <div class="plug"><svg viewBox="0 0 24 24" fill="none" stroke="#f2a53c" stroke-width="2"><path d="M7 2v5M17 2v5M6 9h12l-1 5a5 5 0 0 1-10 0L6 9Z"/><path d="M12 16v6"/></svg></div>
+      <div>
+        <h1>BMTC Quotation & LPO Control</h1>
+        <div class="sub">Unified Tracker · Electrical Solutions · Abu Dhabi</div>
+      </div>
+    </div>
+    <div class="session-controls">
+      <div class="field-inline">
+        <label>Role</label>
+        <select id="roleSelect"></select>
+      </div>
+      <div class="field-inline" id="identityWrap">
+        <label>Signed in as</label>
+        <select id="identitySelect"></select>
+      </div>
+      <div class="save-indicator"><span class="save-dot" id="saveDot"></span><span id="saveText">Synced</span></div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabsNav"></div>
+
+  <!-- DASHBOARD -->
+  <div class="view" id="view-dashboard">
+    <div class="permission-note" id="dashNote"></div>
+    <div class="section-title"><span class="tick"></span>Performance — trailing <span id="dashPeriodLabel">6 months</span>
+      <span style="margin-left:auto;display:flex;gap:6px;">
+        <button class="btn btn-sm" data-period="3" onclick="setDashPeriod(3)">3M</button>
+        <button class="btn btn-sm" data-period="6" onclick="setDashPeriod(6)">6M</button>
+        <button class="btn btn-sm" data-period="0" onclick="setDashPeriod(0)">All time</button>
+      </span>
+    </div>
+    <div class="kpi-strip" id="kpiStrip"></div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Top-moving items</div>
+      <div class="movers-row" id="topMovers"></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Attention required — overdue quotations (7+ days untouched)</div>
+      <div class="table-wrap"><table id="overdueTable"><thead><tr><th>Quote No.</th><th>Brand</th><th>Salesman</th><th>Value</th><th>Status</th><th>Idle</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- QUOTATION TRACKER -->
+  <div class="view" id="view-quotations">
+    <div class="permission-note" id="quoteNote"></div>
+    <div class="kpi-strip" id="quoteKpiStrip"></div>
+    <div class="panel">
+      <div class="toolbar">
+        <div class="section-title" style="margin:0;"><span class="tick"></span>Quotation Tracker</div>
+        <div class="filters">
+          <select id="qFilterStatus"><option value="">All statuses</option></select>
+          <select id="qFilterBrand"><option value="">All brands</option></select>
+          <select id="qFilterSalesman"><option value="">All salesmen</option></select>
+          <button class="btn btn-primary" id="newQuoteBtn" onclick="goBuilder()">+ New Quotation</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table id="quoteTable">
+        <thead><tr><th>Quote No.</th><th>Brand</th><th>Value</th><th>GP%</th><th>Status</th><th>Salesman</th><th>Last edited by</th><th>Last edited</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- MATERIAL TRACKER -->
+  <div class="view" id="view-materials">
+    <div class="section-title"><span class="tick"></span>Material Tracker — quoted vs. converted, by item
+      <span style="margin-left:auto;display:flex;gap:6px;">
+        <button class="btn btn-sm" data-mperiod="3" onclick="setMatPeriod(3)">3M</button>
+        <button class="btn btn-sm" data-mperiod="6" onclick="setMatPeriod(6)">6M</button>
+        <button class="btn btn-sm" data-mperiod="0" onclick="setMatPeriod(0)">All time</button>
+      </span>
+    </div>
+    <div class="panel">
+      <div class="movement-legend" id="movementLegend">
+        <span><span class="dot" style="background:var(--amber);"></span>Quoted</span>
+        <span><span class="dot" style="background:var(--green);"></span>Converted to LPO</span>
+      </div>
+      <div class="table-wrap"><table id="materialTable">
+        <thead><tr><th>Item</th><th>Qty quoted</th><th>Qty converted (LPO)</th><th>Gap</th><th>Conversion rate</th><th>Stock on hand</th><th>Movement</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- BUILDER -->
+  <div class="view" id="view-builder">
+    <div class="permission-note" id="builderNote"></div>
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Quotation Builder</div>
+      <div class="builder-grid">
+        <div>
+          <div class="form-grid">
+            <div class="form-field"><label>Brand</label><select id="bBrand"></select></div>
+            <div class="form-field"><label>Customer</label><input id="bCustomer" placeholder="Customer / project name"></div>
+            <div class="form-field full"><label>Project reference</label><input id="bProject" placeholder="e.g. Reem Island Tower B — MEP Package 2"></div>
+            <div class="form-field"><label>Salesman</label><select id="bSalesman"></select></div>
+            <div class="form-field"><label>Quote No.</label><input id="bQuoteNo" class="mono" readonly></div>
+          </div>
+          <div id="lineItemsWrap"></div>
+          <button class="btn" onclick="addLineItem()">+ Add item</button>
+          <div class="totals-box">
+            <div class="line"><span>Line items value</span><span class="mono" id="bTotalValue">AED 0.00</span></div>
+            <div class="line"><span>Estimated cost basis</span><span class="mono" id="bTotalCost">AED 0.00</span></div>
+            <div class="line total"><span>Gross profit</span><span class="mono" id="bGP">0.0%</span></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="saveQuotation('Quoted')">Save & Mark Quoted</button>
+            <button class="btn" onclick="saveQuotation('Draft')">Save as Draft</button>
+            <button class="btn btn-green" onclick="generatePdf()">Generate PDF</button>
+          </div>
+        </div>
+        <div>
+          <div class="section-title" style="font-size:12.5px;"><span class="tick"></span>Live price & stock — Admin Panel feed</div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Item</th><th>Price</th><th>Stock</th></tr></thead>
+            <tbody id="livePriceFeed"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="view" id="view-admin">
+    <div class="permission-note" id="adminNote"></div>
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Admin Panel — price & stock master</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Item</th><th>Unit cost</th><th>Unit price</th><th>Stock on hand</th><th></th></tr></thead>
+        <tbody id="adminTable"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- APPROVALS -->
+  <div class="view" id="view-approvals">
+    <div class="permission-note" id="approvalsNote"></div>
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>GP Approval Queue</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Quote No.</th><th>Brand</th><th>Value</th><th>GP%</th><th>Routed to</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="approvalsTable"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- SYNERGY -->
+  <div class="view" id="view-synergy">
+    <div class="permission-note">Synergy Management — how work is balanced across the team, and where one customer's activity across multiple brands signals a cross-sell opportunity.</div>
+    <div class="kpi-strip" id="synergyKpiStrip"></div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Team workload — Quotation Officers</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Officer</th><th>Active quotations</th><th>Pipeline value</th><th>Overdue owned</th><th>Converted (all time)</th></tr></thead>
+        <tbody id="synergyOfficerTable"></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Team workload — Salesmen</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Salesman</th><th>Active quotations</th><th>Pipeline value</th><th>Win rate</th><th>Flagged Lost</th></tr></thead>
+        <tbody id="synergySalesmanTable"></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Cross-brand synergy — same customer, multiple brands</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Customer</th><th>Brands quoted</th><th>Quotations</th><th>Combined value</th><th>Signal</th></tr></thead>
+        <tbody id="synergyCrossBrandTable"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+/* ============================= STATE ============================= */
+let DATA = null;
+let currentTab = 'dashboard';
+let dashPeriod = 6;
+let matPeriod = 6;
+const SALESMEN = ['Salesman A','Salesman B','Salesman C'];
+const OFFICERS = ['Ahmed (Officer)','Fatima (Officer)'];
+const BRANDS = ['Legrand','Schneider','ABB','Eaton'];
+const ITEM_CATALOG = [
+  'RSC Coupler 25mm','RSC Coupler 32mm','Conduit Saddle 20mm','Conduit Saddle 25mm',
+  'GI Conduit Pipe 20mm','GI Conduit Pipe 25mm','Junction Box 4x4','Cable Gland M20',
+  'MCB 32A SP','MCCB 100A TP'
+];
+
+/* current role/identity */
+let role = 'Quotation Officer';
+let identity = OFFICERS[0];
+
+/* builder in-progress line items */
+let builderLines = [];
+
+/* ============================= STORAGE ============================= */
+async function loadData(){
+  try{
+    const res = await window.storage.get('bmtc-qlpo-data', true);
+    DATA = JSON.parse(res.value);
+  }catch(e){
+    DATA = seedData();
+    await persist();
+  }
+  render();
+}
+async function persist(){
+  document.getElementById('saveDot').style.background = '#f2a53c';
+  document.getElementById('saveText').textContent = 'Saving...';
+  try{
+    await window.storage.set('bmtc-qlpo-data', JSON.stringify(DATA), true);
+    document.getElementById('saveDot').style.background = '#3fb88e';
+    document.getElementById('saveText').textContent = 'Synced · shared across all users';
+  }catch(e){
+    document.getElementById('saveDot').style.background = '#e5555c';
+    document.getElementById('saveText').textContent = 'Save failed — retry';
+  }
+}
+
+function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString(); }
+
+function seedData(){
+  const priceList = {
+    'RSC Coupler 25mm': {cost:2.10, price:3.40, stock:4200},
+    'RSC Coupler 32mm': {cost:2.80, price:4.60, stock:3100},
+    'Conduit Saddle 20mm': {cost:0.65, price:1.20, stock:9800},
+    'Conduit Saddle 25mm': {cost:0.80, price:1.45, stock:8600},
+    'GI Conduit Pipe 20mm': {cost:9.20, price:14.50, stock:1800},
+    'GI Conduit Pipe 25mm': {cost:11.40, price:17.80, stock:1450},
+    'Junction Box 4x4': {cost:6.50, price:10.90, stock:920},
+    'Cable Gland M20': {cost:1.90, price:3.10, stock:5400},
+    'MCB 32A SP': {cost:14.00, price:22.50, stock:640},
+    'MCCB 100A TP': {cost:210.00, price:335.00, stock:78}
+  };
+
+  function mk(items){
+    return items.map(([name,qty])=>{
+      const p = priceList[name];
+      return {item:name, qty, unitPrice:p.price, unitCost:p.cost};
+    });
+  }
+  function val(lines){ return lines.reduce((s,l)=>s+l.qty*l.unitPrice,0); }
+  function cost(lines){ return lines.reduce((s,l)=>s+l.qty*l.unitCost,0); }
+  function gp(lines){ const v=val(lines), c=cost(lines); return v? ((v-c)/v*100):0; }
+
+  const rows = [
+    {no:'Q-2026-0142', brand:'Legrand', salesman:'Salesman A', status:'Quoted', edited:2, editor:'Ahmed (Officer)', items:mk([['RSC Coupler 25mm',800],['Conduit Saddle 20mm',1200]])},
+    {no:'Q-2026-0143', brand:'Schneider', salesman:'Salesman B', status:'Quoted', edited:9, editor:'Fatima (Officer)', items:mk([['MCB 32A SP',60],['Junction Box 4x4',40]]), rev:1},
+    {no:'Q-2026-0144', brand:'ABB', salesman:'Salesman A', status:'Converted to LPO', edited:15, editor:'Ahmed (Officer)', items:mk([['MCCB 100A TP',12],['Cable Gland M20',600]])},
+    {no:'Q-2026-0145', brand:'Eaton', salesman:'Salesman C', status:'Under Negotiation', edited:3, editor:'Fatima (Officer)', items:mk([['GI Conduit Pipe 20mm',300],['RSC Coupler 32mm',450]])},
+    {no:'Q-2026-0146', brand:'Legrand', salesman:'Salesman B', status:'Lost', edited:20, editor:'Ahmed (Officer)', items:mk([['Conduit Saddle 25mm',900]])},
+    {no:'Q-2026-0147', brand:'Schneider', salesman:'Salesman A', status:'Quoted', edited:10, editor:'Fatima (Officer)', items:mk([['GI Conduit Pipe 25mm',220],['Junction Box 4x4',65]])},
+    {no:'Q-2026-0148', brand:'ABB', salesman:'Salesman C', status:'Converted to LPO', edited:40, editor:'Ahmed (Officer)', items:mk([['MCB 32A SP',140],['RSC Coupler 25mm',1600]])},
+    {no:'Q-2026-0149', brand:'Eaton', salesman:'Salesman B', status:'Draft', edited:1, editor:'Fatima (Officer)', items:mk([['Cable Gland M20',300]])},
+    {no:'Q-2026-0150', brand:'Legrand', salesman:'Salesman A', status:'Converted to LPO', edited:60, editor:'Ahmed (Officer)', items:mk([['Conduit Saddle 20mm',3000],['RSC Coupler 32mm',700]])},
+    {no:'Q-2026-0151', brand:'Schneider', salesman:'Salesman C', status:'Quoted', edited:4, editor:'Fatima (Officer)', items:mk([['MCCB 100A TP',5],['GI Conduit Pipe 20mm',180]]), rev:2},
+    {no:'Q-2026-0152', brand:'ABB', salesman:'Salesman B', status:'Quoted', edited:8, editor:'Ahmed (Officer)', items:mk([['Junction Box 4x4',110],['Cable Gland M20',900]])},
+    {no:'Q-2026-0153', brand:'Eaton', salesman:'Salesman A', status:'Converted to LPO', edited:25, editor:'Fatima (Officer)', items:mk([['RSC Coupler 25mm',1200],['MCB 32A SP',80]])}
+  ];
+
+  const quotations = rows.map((r,i)=>({
+    id:'q'+(i+1),
+    quoteNo:r.no,
+    brand:r.brand,
+    customer:'Confidential — sample record',
+    project:'',
+    salesman:r.salesman,
+    status:r.status,
+    items:r.items,
+    value: val(r.items),
+    gp: gp(r.items),
+    createdAt: daysAgo(r.edited + Math.floor(Math.random()*20)),
+    lastEditedAt: daysAgo(r.edited),
+    lastEditedBy: r.editor,
+    revision: r.rev||0,
+    revisionHistory: r.rev ? Array.from({length:r.rev},(_,k)=>({revision:k, value: val(r.items)*(0.9+k*0.05), at:daysAgo(r.edited + (r.rev-k)*6)})) : [],
+    auditLog:[{who:r.editor, action:'Quotation created', at:daysAgo(r.edited+5)},
+      ...(r.rev?Array.from({length:r.rev},(_,k)=>({who:r.editor, action:'Revised to R'+(k+1), at:daysAgo(r.edited+(r.rev-k)*6)})):[]),
+      {who:r.editor, action:'Status set to '+r.status, at:daysAgo(r.edited)}]
+  }));
+
+  const approvals = [];
+  quotations.filter(q=>q.status==='Converted to LPO').forEach((q,idx)=>{
+    const tier = q.gp>=10?'Line Manager':(q.gp>=5?'GM':'CEO');
+    approvals.push({
+      id:'a'+q.id, quoteId:q.id, quoteNo:q.quoteNo, brand:q.brand, value:q.value, gp:q.gp,
+      tier, status: idx%3===0 ? 'Pending' : 'Approved', requestedAt:q.lastEditedAt
+    });
+  });
+
+  return { priceList, quotations, approvals, quoteSeq: 154 };
+}
+
+/* ============================= HELPERS ============================= */
+function fmtMoney(n){ return 'AED ' + n.toLocaleString('en-AE',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function statusClass(s){ return 'status-' + s.replace(/ /g,'-'); }
+function daysSince(iso){ return Math.floor((Date.now()-new Date(iso).getTime())/(1000*60*60*24)); }
+function isOverdue(q){ return !['Converted to LPO','Lost'].includes(q.status) && daysSince(q.lastEditedAt) >= 7; }
+function quoteSuffix(q){ if(q.status==='Converted to LPO') return 'LPO'; return (q.revision && q.revision>0) ? ('R'+q.revision) : 'Q'; }
+function quoteRef(q){ return q.quoteNo + '-' + quoteSuffix(q); }
+function withinPeriod(iso, months){ if(!months) return true; const cutoff=new Date(); cutoff.setMonth(cutoff.getMonth()-months); return new Date(iso) >= cutoff; }
+function getConvertedAt(q){ const entry = (q.auditLog||[]).slice().reverse().find(a=>a.action==='Converted to LPO'); return entry ? entry.at : q.lastEditedAt; }
+function monthBuckets(months){
+  const buckets = [];
+  for(let i=months-1;i>=0;i--){
+    const end = new Date(); end.setMonth(end.getMonth()-i);
+    const start = new Date(); start.setMonth(start.getMonth()-i-1);
+    buckets.push({start,end,label: end.toLocaleDateString('en-AE',{month:'short'})});
+  }
+  return buckets;
+}
+function itemMonthlySeries(name, months){
+  const buckets = monthBuckets(months);
+  return buckets.map(b=>{
+    let q=0,c=0;
+    DATA.quotations.forEach(quo=>{
+      if(quo.status==='Draft') return;
+      const created = new Date(quo.createdAt);
+      if(created>=b.start && created<b.end){
+        quo.items.forEach(it=>{ if(it.item===name) q+=it.qty; });
+      }
+      if(quo.status==='Converted to LPO'){
+        const convAt = new Date(getConvertedAt(quo));
+        if(convAt>=b.start && convAt<b.end){
+          quo.items.forEach(it=>{ if(it.item===name) c+=it.qty; });
+        }
+      }
+    });
+    return {label:b.label, q, c};
+  });
+}
+function movementChartHtml(series){
+  const max = Math.max(1, ...series.flatMap(s=>[s.q,s.c]));
+  return `<div class="movement-chart">${series.map(s=>`
+    <div class="movement-bucket" title="${s.label}: quoted ${s.q.toLocaleString()}, converted ${s.c.toLocaleString()}">
+      <div class="movement-bars">
+        <div class="bar-quoted" style="height:${Math.max(2,(s.q/max)*28)}px;"></div>
+        <div class="bar-converted" style="height:${Math.max(2,(s.c/max)*28)}px;"></div>
+      </div>
+      <div class="m-label">${s.label}</div>
+    </div>`).join('')}</div>`;
+}
+function gpTier(gp){ return gp>=10?'Line Manager':(gp>=5?'GM':'CEO'); }
+function canEditQuotes(){ return role==='Admin' || role==='Quotation Officer'; }
+function canAdmin(){ return role==='Admin'; }
+function canApprove(){ return ['Line Manager','GM','CEO'].includes(role); }
+function isSalesmanRole(){ return role==='Salesman'; }
+
+function logAudit(q, action){
+  q.auditLog.push({who: currentActor(), action, at: new Date().toISOString()});
+  q.lastEditedAt = new Date().toISOString();
+  q.lastEditedBy = currentActor();
+}
+function currentActor(){
+  if(role==='Admin') return 'Admin';
+  if(role==='Quotation Officer') return identity;
+  if(role==='Salesman') return identity;
+  return role;
+}
+
+/* ============================= ROLE / IDENTITY UI ============================= */
+function populateRoleUI(){
+  const roleSel = document.getElementById('roleSelect');
+  const roles = ['Admin','Quotation Officer','Salesman','Line Manager','GM','CEO'];
+  roleSel.innerHTML = roles.map(r=>`<option value="${r}">${r}</option>`).join('');
+  roleSel.value = role;
+  roleSel.onchange = ()=>{ role = roleSel.value; refreshIdentityOptions(); routeTabsForRole(); render(); };
+  refreshIdentityOptions();
+}
+function refreshIdentityOptions(){
+  const idSel = document.getElementById('identitySelect');
+  const wrap = document.getElementById('identityWrap');
+  let opts = [];
+  if(role==='Quotation Officer') opts = OFFICERS;
+  else if(role==='Salesman') opts = SALESMEN;
+  if(opts.length===0){ wrap.style.display='none'; identity = role; return; }
+  wrap.style.display='flex';
+  idSel.innerHTML = opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+  identity = opts[0];
+  idSel.value = identity;
+  idSel.onchange = ()=>{ identity = idSel.value; render(); };
+}
+
+const TAB_DEFS = [
+  {id:'dashboard', label:'Dashboard'},
+  {id:'quotations', label:'Quotation Tracker'},
+  {id:'materials', label:'Material Tracker'},
+  {id:'synergy', label:'Synergy'},
+  {id:'builder', label:'Quotation Builder', roles:['Admin','Quotation Officer']},
+  {id:'admin', label:'Admin Panel', roles:['Admin']},
+  {id:'approvals', label:'Approvals', roles:['Line Manager','GM','CEO','Admin']}
+];
+function routeTabsForRole(){
+  const nav = document.getElementById('tabsNav');
+  const visible = TAB_DEFS.filter(t=> !t.roles || t.roles.includes(role));
+  if(!visible.find(t=>t.id===currentTab)) currentTab = 'dashboard';
+  nav.innerHTML = visible.map(t=>{
+    let badge='';
+    if(t.id==='approvals' && DATA){
+      const pending = DATA.approvals.filter(a=>a.status==='Pending' && (role==='Admin' || a.tier===role)).length;
+      if(pending>0) badge = `<span class="badge">${pending}</span>`;
+    }
+    return `<button class="tab ${t.id===currentTab?'active':''}" onclick="switchTab('${t.id}')">${t.label}${badge}</button>`;
+  }).join('');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+currentTab).classList.add('active');
+}
+function switchTab(id){ currentTab = id; routeTabsForRole(); render(); }
+
+/* ============================= RENDER: DASHBOARD ============================= */
+function setDashPeriod(p){ dashPeriod = p; render(); }
+function setMatPeriod(p){ matPeriod = p; render(); }
+
+function renderDashboard(){
+  document.getElementById('dashPeriodLabel').textContent = dashPeriod ? dashPeriod+' months' : 'all time';
+  document.getElementById('dashNote').textContent = `Viewing as ${role}${identity!==role?' — '+identity:''}. This bar aggregates across every quotation and LPO in the system.`;
+
+  const inRange = DATA.quotations.filter(q=>withinPeriod(q.createdAt, dashPeriod));
+  const won = inRange.filter(q=>q.status==='Converted to LPO');
+  const lost = inRange.filter(q=>q.status==='Lost');
+  const decided = won.length + lost.length;
+  const winRate = decided ? (won.length/decided*100) : 0;
+  const quotedValue = inRange.reduce((s,q)=>s+q.value,0);
+  const soldValue = won.reduce((s,q)=>s+q.value,0);
+  const conversion = quotedValue ? (soldValue/quotedValue*100) : 0;
+  const overdueCount = DATA.quotations.filter(isOverdue).length;
+
+  const kpis = [
+    {label:'Win rate', value:winRate.toFixed(1)+'%', sub:`${won.length} won / ${lost.length} lost`, cls: winRate>=50?'green':'amber', gauge:winRate},
+    {label:'Quoted value', value:fmtMoney(quotedValue), sub:`${inRange.length} quotations`, cls:''},
+    {label:'Converted value (LPO)', value:fmtMoney(soldValue), sub:`${won.length} orders`, cls:'green'},
+    {label:'Quoted → sold conversion', value:conversion.toFixed(1)+'%', sub:'value-weighted', cls: conversion>=40?'green':'amber', gauge:conversion},
+    {label:'Overdue quotations', value:overdueCount, sub:'untouched 7+ days', cls: overdueCount>0?'red':'green'}
+  ];
+  document.getElementById('kpiStrip').innerHTML = kpis.map(k=>`
+    <div class="kpi-card">
+      <div class="label">${k.label}</div>
+      <div class="value ${k.cls}">${k.value}</div>
+      <div class="subtext">${k.sub}</div>
+      ${k.gauge!==undefined?`<div class="gauge-track"><div class="gauge-fill" style="width:${Math.min(100,k.gauge)}%"></div></div>`:''}
+    </div>`).join('');
+
+  // top movers
+  const qtyMap = {};
+  inRange.forEach(q=>q.items.forEach(it=>{ qtyMap[it.item] = (qtyMap[it.item]||0) + it.qty; }));
+  const top = Object.entries(qtyMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  document.getElementById('topMovers').innerHTML = top.length ? top.map(([name,qty])=>
+    `<div class="mover-chip">${name} <span class="n">${qty.toLocaleString()}</span></div>`
+  ).join('') : `<div class="empty-state">No item activity in this period.</div>`;
+
+  // overdue table
+  const overdueRows = DATA.quotations.filter(isOverdue).sort((a,b)=>daysSince(b.lastEditedAt)-daysSince(a.lastEditedAt));
+  document.getElementById('overdueTable').querySelector('tbody').innerHTML = overdueRows.length ? overdueRows.map(q=>`
+    <tr class="overdue">
+      <td class="mono">${quoteRef(q)}</td><td>${q.brand}</td><td>${q.salesman}</td>
+      <td class="mono">${fmtMoney(q.value)}</td>
+      <td><span class="status-pill ${statusClass(q.status)}">${q.status}</span></td>
+      <td class="mono">${daysSince(q.lastEditedAt)}d</td>
+    </tr>`).join('') : `<tr><td colspan="6" class="empty-state">Nothing overdue — every active quotation was touched within 7 days.</td></tr>`;
+}
+
+/* ============================= RENDER: QUOTATION TRACKER ============================= */
+function renderQuotations(){
+  const note = isSalesmanRole()
+    ? `View-only. As a salesman you can flag your own quotations as Under Negotiation or Lost — all other fields are managed by Quotation Officers.`
+    : canEditQuotes()
+      ? `Full access — create, edit, and convert quotations. Every change is logged with your name and timestamp.`
+      : `View-only access.`;
+  document.getElementById('quoteNote').textContent = note;
+
+  // filters populate once
+  const statusSel = document.getElementById('qFilterStatus');
+  if(statusSel.options.length<=1){
+    ['Draft','Quoted','Under Negotiation','Lost','Converted to LPO'].forEach(s=>statusSel.add(new Option(s,s)));
+    document.getElementById('qFilterBrand').append(...BRANDS.map(b=>new Option(b,b)));
+    document.getElementById('qFilterSalesman').append(...SALESMEN.map(s=>new Option(s,s)));
+    [statusSel, document.getElementById('qFilterBrand'), document.getElementById('qFilterSalesman')].forEach(el=>el.onchange=renderQuotations);
+  }
+  document.getElementById('newQuoteBtn').style.display = canEditQuotes() ? '' : 'none';
+
+  const fs = statusSel.value, fb = document.getElementById('qFilterBrand').value, fsm = document.getElementById('qFilterSalesman').value;
+  let rows = DATA.quotations.filter(q => (!fs||q.status===fs) && (!fb||q.brand===fb) && (!fsm||q.salesman===fsm));
+  rows = rows.slice().sort((a,b)=> new Date(b.lastEditedAt)-new Date(a.lastEditedAt));
+
+  document.getElementById('quoteTable').querySelector('tbody').innerHTML = rows.length ? rows.map(q=>{
+    const overdue = isOverdue(q);
+    const isOwn = q.salesman === identity;
+    let actions = `<button class="btn btn-sm" onclick="openDetail('${q.id}')">View</button>`;
+    if(canEditQuotes() && ['Quoted','Under Negotiation'].includes(q.status)){
+      actions += ` <button class="btn btn-sm" onclick="openRevise('${q.id}')">Revise</button>`;
+    }
+    if(canEditQuotes() && !['Converted to LPO','Lost'].includes(q.status)){
+      actions += ` <button class="btn btn-sm btn-primary" onclick="convertToLpo('${q.id}')">Convert to LPO</button>`;
+    }
+    if(isSalesmanRole() && isOwn && !['Converted to LPO','Lost'].includes(q.status)){
+      actions += ` <button class="btn btn-sm" onclick="flagStatus('${q.id}','Under Negotiation')">Negotiating</button>`;
+      actions += ` <button class="btn btn-sm btn-danger" onclick="flagStatus('${q.id}','Lost')">Lost</button>`;
+    }
+    return `<tr class="${overdue?'overdue':''}">
+      <td class="mono">${quoteRef(q)}</td>
+      <td>${q.brand}</td>
+      <td class="mono">${fmtMoney(q.value)}</td>
+      <td class="mono">${q.gp.toFixed(1)}%</td>
+      <td><span class="status-pill ${statusClass(q.status)}">${q.status}</span>${overdue?'<span class="overdue-flag">● OVERDUE</span>':''}</td>
+      <td>${q.salesman}</td>
+      <td>${q.lastEditedBy}</td>
+      <td class="mono">${daysSince(q.lastEditedAt)}d ago</td>
+      <td><div class="row-actions">${actions}</div></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="9" class="empty-state">No quotations match these filters.</td></tr>`;
+
+  // secondary KPI strip scoped to filtered set
+  const won = rows.filter(q=>q.status==='Converted to LPO').length;
+  const lost = rows.filter(q=>q.status==='Lost').length;
+  const decided = won+lost;
+  const wr = decided? (won/decided*100):0;
+  document.getElementById('quoteKpiStrip').innerHTML = [
+    {label:'Filtered results', value:rows.length},
+    {label:'Combined value', value:fmtMoney(rows.reduce((s,q)=>s+q.value,0))},
+    {label:'Win rate (filtered)', value:wr.toFixed(1)+'%'},
+    {label:'Overdue in view', value:rows.filter(isOverdue).length}
+  ].map(k=>`<div class="kpi-card"><div class="label">${k.label}</div><div class="value">${k.value}</div></div>`).join('');
+}
+
+function flagStatus(id, status){
+  const q = DATA.quotations.find(x=>x.id===id);
+  if(!q) return;
+  q.status = status;
+  logAudit(q, `Salesman flagged status as ${status}`);
+  persist().then(render);
+}
+
+function convertToLpo(id){
+  const q = DATA.quotations.find(x=>x.id===id);
+  if(!q || !canEditQuotes()) return;
+  q.status = 'Converted to LPO';
+  logAudit(q, 'Converted to LPO');
+  const tier = gpTier(q.gp);
+  DATA.approvals.push({
+    id:'a'+q.id+'-'+Date.now(), quoteId:q.id, quoteNo:q.quoteNo, brand:q.brand,
+    value:q.value, gp:q.gp, tier, status:'Pending', requestedAt:new Date().toISOString()
+  });
+  persist().then(()=>{ routeTabsForRole(); render(); openDetail(id, true); });
+}
+
+/* ============================= DETAIL MODAL ============================= */
+function openDetail(id, justConverted){
+  const q = DATA.quotations.find(x=>x.id===id);
+  const rows = q.items.map(it=>`<tr><td>${it.item}</td><td class="mono">${it.qty.toLocaleString()}</td><td class="mono">${fmtMoney(it.unitPrice)}</td><td class="mono">${fmtMoney(it.qty*it.unitPrice)}</td></tr>`).join('');
+  const revRows = (q.revisionHistory||[]).slice().reverse().map(r=>`<div>Revision <span class="who">${r.revision===0?'Q (original)':'R'+r.revision}</span> — ${fmtMoney(r.value)} <span style="color:var(--ink-faint);">(superseded ${new Date(r.at).toLocaleDateString('en-AE')})</span></div>`).join('');
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-header">
+      <div><h3 class="mono">${quoteRef(q)}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${q.brand} · ${q.salesman} ${q.revision>0?'· revision '+q.revision:''}</div></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    ${justConverted?`<div class="permission-note" style="border-color:var(--green);color:var(--green);">Converted to LPO. Routed to <b>${gpTier(q.gp)}</b> for GP approval (${q.gp.toFixed(1)}% margin).</div>`:''}
+    <div class="table-wrap"><table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Line total</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="totals-box">
+      <div class="line"><span>Total value</span><span class="mono">${fmtMoney(q.value)}</span></div>
+      <div class="line total"><span>Gross profit</span><span class="mono">${q.gp.toFixed(1)}%</span></div>
+    </div>
+    ${revRows?`<div class="audit-log"><div style="color:var(--ink-faint);text-transform:uppercase;font-size:9.5px;letter-spacing:0.8px;margin-bottom:4px;">Revision history</div>${revRows}</div>`:''}
+    <div class="audit-log">${q.auditLog.slice().reverse().map(a=>`<div><span class="who">${a.who}</span> — ${a.action} <span style="color:var(--ink-faint);">(${new Date(a.at).toLocaleString('en-AE')})</span></div>`).join('')}</div>
+    ${canEditQuotes() && !['Converted to LPO','Lost'].includes(q.status) ? `
+    <div style="display:flex;gap:8px;margin-top:16px;border-top:1px solid var(--grid-line);padding-top:14px;">
+      <button class="btn btn-primary" onclick="convertToLpo('${q.id}')">Convert to LPO</button>
+      ${['Quoted','Under Negotiation'].includes(q.status) ? `<button class="btn" onclick="openRevise('${q.id}')">Revise</button>` : ''}
+    </div>` : ''}
+  `;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+/* ============================= REVISE ============================= */
+let reviseId = null;
+let reviseLines = [];
+function openRevise(id){
+  const q = DATA.quotations.find(x=>x.id===id);
+  if(!q || !canEditQuotes()) return;
+  reviseId = id;
+  reviseLines = q.items.map(it=>({item:it.item, qty:it.qty}));
+  renderReviseModal();
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function reviseAddLine(){ reviseLines.push({item:ITEM_CATALOG[0], qty:1}); renderReviseModal(); }
+function reviseRemoveLine(idx){ reviseLines.splice(idx,1); renderReviseModal(); }
+function reviseUpdateLine(idx, field, val){ reviseLines[idx][field] = field==='qty'?(parseFloat(val)||0):val; renderReviseModal(); }
+function renderReviseModal(){
+  const q = DATA.quotations.find(x=>x.id===reviseId);
+  const nextSuffix = 'R' + ((q.revision||0)+1);
+  const rows = reviseLines.map((l,idx)=>{
+    const p = DATA.priceList[l.item];
+    return `<div class="line-item-row">
+      <select onchange="reviseUpdateLine(${idx},'item',this.value)">${ITEM_CATALOG.map(n=>`<option ${n===l.item?'selected':''}>${n}</option>`).join('')}</select>
+      <input type="number" min="1" class="mono" value="${l.qty}" onchange="reviseUpdateLine(${idx},'qty',this.value)">
+      <div class="mono" style="align-self:center;">${fmtMoney(p.price)}</div>
+      <div class="mono" style="align-self:center;">${fmtMoney(p.price*l.qty)}</div>
+      <button class="remove-line" onclick="reviseRemoveLine(${idx})">×</button>
+    </div>`;
+  }).join('');
+  const value = reviseLines.reduce((s,l)=>s+DATA.priceList[l.item].price*l.qty,0);
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-header">
+      <div><h3 class="mono">${q.quoteNo}-${nextSuffix}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">Revising ${quoteRef(q)} — current value ${fmtMoney(q.value)}</div></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="permission-note">Saving will supersede the current version, bump the reference to <b>${nextSuffix}</b>, reset the 7-day idle timer, and log this edit under your name.</div>
+    ${rows}
+    <button class="btn btn-sm" onclick="reviseAddLine()">+ Add item</button>
+    <div class="totals-box"><div class="line total"><span>New total value</span><span class="mono">${fmtMoney(value)}</span></div></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-primary" onclick="saveRevision()">Save as ${nextSuffix}</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  `;
+}
+function saveRevision(){
+  const q = DATA.quotations.find(x=>x.id===reviseId);
+  if(!q) return;
+  q.revisionHistory = q.revisionHistory || [];
+  q.revisionHistory.push({revision:q.revision||0, value:q.value, at:q.lastEditedAt});
+  const items = reviseLines.map(l=>({item:l.item, qty:l.qty, unitPrice:DATA.priceList[l.item].price, unitCost:DATA.priceList[l.item].cost}));
+  const value = items.reduce((s,l)=>s+l.qty*l.unitPrice,0);
+  const cost = items.reduce((s,l)=>s+l.qty*l.unitCost,0);
+  q.items = items;
+  q.value = value;
+  q.gp = value ? (value-cost)/value*100 : 0;
+  q.revision = (q.revision||0) + 1;
+  logAudit(q, 'Revised to R'+q.revision);
+  persist().then(()=>{ closeModal(); render(); });
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); }
+
+/* ============================= RENDER: MATERIAL TRACKER ============================= */
+function renderMaterials(){
+  const quoted = {}, converted = {};
+  DATA.quotations.filter(q=>withinPeriod(q.createdAt, matPeriod) && q.status!=='Draft').forEach(q=>{
+    q.items.forEach(it=>{ quoted[it.item] = (quoted[it.item]||0) + it.qty; });
+  });
+  DATA.quotations.filter(q=>q.status==='Converted to LPO' && withinPeriod(q.createdAt, matPeriod)).forEach(q=>{
+    q.items.forEach(it=>{ converted[it.item] = (converted[it.item]||0) + it.qty; });
+  });
+  const rows = ITEM_CATALOG.map(name=>{
+    const q = quoted[name]||0, c = converted[name]||0;
+    const gap = q-c;
+    const rate = q ? (c/q*100) : 0;
+    const stock = DATA.priceList[name].stock;
+    return {name,q,c,gap,rate,stock};
+  }).filter(r=>r.q>0 || r.c>0).sort((a,b)=>b.gap-a.gap);
+
+  document.getElementById('movementLegend').style.display = matPeriod ? 'flex' : 'none';
+  document.getElementById('movementLegend').innerHTML = `<span>Movement = average units quoted per month over the selected window — use it as your reorder run-rate.</span>`;
+  document.getElementById('materialTable').querySelector('tbody').innerHTML = rows.length ? rows.map(r=>{
+    const runRate = matPeriod ? Math.round(r.q / matPeriod) : null;
+    return `<tr>
+      <td>${r.name}</td>
+      <td class="mono">${r.q.toLocaleString()}</td>
+      <td class="mono">${r.c.toLocaleString()}</td>
+      <td class="mono ${r.gap>0?'gap-pos':'gap-neg'}">${r.gap>0?'+':''}${r.gap.toLocaleString()}</td>
+      <td class="mono">${r.rate.toFixed(0)}%</td>
+      <td class="mono">${r.stock.toLocaleString()}</td>
+      <td class="mono">${runRate!==null ? runRate.toLocaleString()+'/mo' : '<span class="movement-empty">Select 3M or 6M</span>'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="7" class="empty-state">No quoted or converted activity for this period.</td></tr>`;
+}
+
+/* ============================= RENDER: ADMIN ============================= */
+function renderAdmin(){
+  document.getElementById('adminNote').textContent = canAdmin()
+    ? 'You are the sole Admin. Edits here flow live into the Quotation Builder price feed.'
+    : 'View-only. Only the designated Admin user can edit price and stock.';
+  document.getElementById('adminTable').innerHTML = ITEM_CATALOG.map(name=>{
+    const p = DATA.priceList[name];
+    if(canAdmin()){
+      return `<tr>
+        <td>${name}</td>
+        <td><input class="mono" style="width:90px" type="number" step="0.01" value="${p.cost}" onchange="updatePrice('${name}','cost',this.value)"></td>
+        <td><input class="mono" style="width:90px" type="number" step="0.01" value="${p.price}" onchange="updatePrice('${name}','price',this.value)"></td>
+        <td><input class="mono" style="width:90px" type="number" value="${p.stock}" onchange="updatePrice('${name}','stock',this.value)"></td>
+        <td style="color:var(--ink-faint);font-size:10.5px;">GP ${(((p.price-p.cost)/p.price)*100).toFixed(1)}%</td>
+      </tr>`;
+    }
+    return `<tr><td>${name}</td><td class="mono">${fmtMoney(p.cost)}</td><td class="mono">${fmtMoney(p.price)}</td><td class="mono">${p.stock.toLocaleString()}</td><td></td></tr>`;
+  }).join('');
+}
+function updatePrice(name, field, val){
+  DATA.priceList[name][field] = parseFloat(val)||0;
+  persist();
+}
+
+/* ============================= RENDER: APPROVALS ============================= */
+function renderApprovals(){
+  document.getElementById('approvalsNote').textContent = canApprove()
+    ? `Showing GP approval requests routed to ${role}. ≥10% GP → Line Manager · 5–10% → GM · <5% → CEO.`
+    : (canAdmin() ? 'Admin oversight view of all approval tiers.' : 'Not applicable to your role.');
+  const rows = DATA.approvals.filter(a => canAdmin() ? true : a.tier===role).slice().sort((a,b)=>new Date(b.requestedAt)-new Date(a.requestedAt));
+  document.getElementById('approvalsTable').innerHTML = rows.length ? rows.map(a=>{
+    const linkedQ = DATA.quotations.find(x=>x.id===a.quoteId);
+    return `
+    <tr>
+      <td class="mono">${linkedQ?quoteRef(linkedQ):a.quoteNo}</td><td>${a.brand}</td><td class="mono">${fmtMoney(a.value)}</td>
+      <td class="mono">${a.gp.toFixed(1)}%</td><td>${a.tier}</td>
+      <td class="mono">${new Date(a.requestedAt).toLocaleDateString('en-AE')}</td>
+      <td>
+        <span class="status-pill ${a.status==='Pending'?'status-Under-Negotiation':a.status==='Approved'?'status-Converted-to-LPO':'status-Lost'}">${a.status}</span>
+        ${a.status==='Rejected' && a.comment ? `<div style="font-size:10.5px;color:var(--ink-dim);margin-top:4px;max-width:220px;">“${a.comment}” <span style="color:var(--ink-faint);">— ${a.decidedBy}</span></div>` : ''}
+      </td>
+      <td>${a.status==='Pending' && canApprove() && a.tier===role ? `
+        <div class="row-actions">
+          <button class="btn btn-sm btn-green" onclick="decideApproval('${a.id}','Approved')">Approve</button>
+          <button class="btn btn-sm btn-danger" onclick="openRejectModal('${a.id}')">Reject</button>
+        </div>` : '—'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="8" class="empty-state">No approval requests in this queue.</td></tr>`;
+}
+function decideApproval(id, decision, comment){
+  const a = DATA.approvals.find(x=>x.id===id);
+  if(!a) return;
+  a.status = decision;
+  a.decidedBy = role;
+  a.decidedAt = new Date().toISOString();
+  if(comment) a.comment = comment;
+  const q = DATA.quotations.find(x=>x.id===a.quoteId);
+  if(q) logAudit(q, `LPO GP approval ${decision.toLowerCase()} by ${role}${comment?`: "${comment}"`:''}`);
+  persist().then(()=>{ routeTabsForRole(); render(); });
+}
+function openRejectModal(id){
+  const a = DATA.approvals.find(x=>x.id===id);
+  if(!a) return;
+  const linkedQ = DATA.quotations.find(x=>x.id===a.quoteId);
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-header">
+      <div><h3 class="mono">Reject ${linkedQ?quoteRef(linkedQ):a.quoteNo}</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${a.brand} · ${a.gp.toFixed(1)}% GP · routed to ${a.tier}</div></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="permission-note">A reason is required so the Quotation Officer and salesman know what to fix before resubmitting.</div>
+    <div class="form-field"><label>Reason for rejection</label><textarea id="rejectComment" rows="4" style="width:100%;" placeholder="e.g. Margin too thin given current steel pricing — renegotiate before resubmitting."></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-danger" onclick="confirmReject('${a.id}')">Confirm Reject</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function confirmReject(id){
+  const text = document.getElementById('rejectComment').value.trim();
+  if(!text){ alert('Please enter a reason for rejection.'); return; }
+  decideApproval(id, 'Rejected', text);
+  closeModal();
+}
+
+/* ============================= BUILDER ============================= */
+function goBuilder(){ switchTab('builder'); }
+function initBuilderStatics(){
+  document.getElementById('bBrand').innerHTML = BRANDS.map(b=>`<option>${b}</option>`).join('');
+  document.getElementById('bSalesman').innerHTML = SALESMEN.map(s=>`<option>${s}</option>`).join('');
+  document.getElementById('bQuoteNo').value = 'Q-2026-' + String(DATA.quoteSeq).padStart(4,'0');
+  builderLines = [{item:ITEM_CATALOG[0], qty:1}];
+  renderLineItems();
+  renderLivePriceFeed();
+}
+function renderLivePriceFeed(){
+  document.getElementById('livePriceFeed').innerHTML = ITEM_CATALOG.map(name=>{
+    const p = DATA.priceList[name];
+    return `<tr><td>${name}</td><td class="mono">${fmtMoney(p.price)}</td><td class="mono">${p.stock.toLocaleString()}</td></tr>`;
+  }).join('');
+}
+function addLineItem(){ builderLines.push({item:ITEM_CATALOG[0], qty:1}); renderLineItems(); }
+function removeLineItem(idx){ builderLines.splice(idx,1); renderLineItems(); }
+function updateLineItem(idx, field, val){
+  builderLines[idx][field] = field==='qty' ? (parseFloat(val)||0) : val;
+  renderLineItems();
+}
+function renderLineItems(){
+  const wrap = document.getElementById('lineItemsWrap');
+  wrap.innerHTML = builderLines.map((l,idx)=>{
+    const p = DATA.priceList[l.item];
+    const lineTotal = p.price * l.qty;
+    const short = l.qty > p.stock;
+    return `
+    <div class="line-item-row">
+      <select onchange="updateLineItem(${idx},'item',this.value)">${ITEM_CATALOG.map(n=>`<option ${n===l.item?'selected':''}>${n}</option>`).join('')}</select>
+      <input type="number" min="1" class="mono" value="${l.qty}" onchange="updateLineItem(${idx},'qty',this.value)">
+      <div class="mono" style="align-self:center;">${fmtMoney(p.price)}</div>
+      <div class="mono" style="align-self:center;">${fmtMoney(lineTotal)}</div>
+      <button class="remove-line" onclick="removeLineItem(${idx})">×</button>
+      ${short?`<div class="stock-note" style="color:var(--red);">⚠ requested qty exceeds stock on hand (${p.stock.toLocaleString()})</div>`:''}
+    </div>`;
+  }).join('');
+  const value = builderLines.reduce((s,l)=>s+ DATA.priceList[l.item].price*l.qty,0);
+  const cost = builderLines.reduce((s,l)=>s+ DATA.priceList[l.item].cost*l.qty,0);
+  const gp = value ? (value-cost)/value*100 : 0;
+  document.getElementById('bTotalValue').textContent = fmtMoney(value);
+  document.getElementById('bTotalCost').textContent = fmtMoney(cost);
+  document.getElementById('bGP').textContent = gp.toFixed(1)+'%';
+}
+
+function saveQuotation(status){
+  if(!canEditQuotes()){ alert('Only the Admin or a Quotation Officer can save quotations.'); return; }
+  const brand = document.getElementById('bBrand').value;
+  const customer = document.getElementById('bCustomer').value || 'Unnamed customer';
+  const project = document.getElementById('bProject').value;
+  const salesman = document.getElementById('bSalesman').value;
+  const quoteNo = document.getElementById('bQuoteNo').value;
+  const items = builderLines.map(l=>({item:l.item, qty:l.qty, unitPrice:DATA.priceList[l.item].price, unitCost:DATA.priceList[l.item].cost}));
+  const value = items.reduce((s,l)=>s+l.qty*l.unitPrice,0);
+  const cost = items.reduce((s,l)=>s+l.qty*l.unitCost,0);
+  const gp = value ? (value-cost)/value*100 : 0;
+
+  const q = {
+    id:'q'+Date.now(), quoteNo, brand, customer, project, salesman, status, items, value, gp,
+    createdAt:new Date().toISOString(), lastEditedAt:new Date().toISOString(), lastEditedBy:currentActor(),
+    auditLog:[{who:currentActor(), action:'Quotation created ('+status+')', at:new Date().toISOString()}]
+  };
+  DATA.quotations.push(q);
+  DATA.quoteSeq += 1;
+  persist().then(()=>{
+    switchTab('quotations');
+    initBuilderStatics();
+  });
+}
+
+/* ============================= PDF ============================= */
+function generatePdf(){
+  const brand = document.getElementById('bBrand').value;
+  const customer = document.getElementById('bCustomer').value || 'Customer name pending';
+  const project = document.getElementById('bProject').value;
+  const salesman = document.getElementById('bSalesman').value;
+  const quoteNo = document.getElementById('bQuoteNo').value;
+  const rows = builderLines.map((l,i)=>{
+    const p = DATA.priceList[l.item];
+    return `<tr><td style="padding:6px 8px;border:1px solid #ccc;">${i+1}</td><td style="padding:6px 8px;border:1px solid #ccc;">${l.item}</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${l.qty.toLocaleString()}</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${p.price.toFixed(2)}</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(p.price*l.qty).toFixed(2)}</td></tr>`;
+  }).join('');
+  const total = builderLines.reduce((s,l)=>s+DATA.priceList[l.item].price*l.qty,0);
+  document.getElementById('printArea').innerHTML = `
+    <div style="font-family:Arial,sans-serif;padding:40px;color:#111;">
+      <div style="display:flex;justify-content:space-between;border-bottom:3px solid #16243a;padding-bottom:14px;margin-bottom:20px;">
+        <div><div style="font-size:20px;font-weight:bold;">Al Bahri & Al Mazroei Trading Co. (BMTC)</div><div style="font-size:11px;color:#555;">Electrical Solutions Division — Abu Dhabi, UAE</div></div>
+        <div style="text-align:right;font-size:12px;"><b>Quotation No:</b> ${quoteNo}-Q<br><b>Date:</b> ${new Date().toLocaleDateString('en-AE')}<br><b>Brand:</b> ${brand}</div>
+      </div>
+      <div style="margin-bottom:14px;font-size:12px;"><b>Customer:</b> ${customer}<br>${project?`<b>Project:</b> ${project}<br>`:''}<b>Prepared by:</b> ${salesman} / ${identity}</div>
+      <table style="border-collapse:collapse;width:100%;font-size:12px;margin-bottom:16px;">
+        <thead><tr style="background:#16243a;color:#fff;"><th style="padding:6px 8px;">#</th><th style="padding:6px 8px;">Item Description</th><th style="padding:6px 8px;">Qty</th><th style="padding:6px 8px;">Unit Price (AED)</th><th style="padding:6px 8px;">Total (AED)</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="text-align:right;font-size:14px;font-weight:bold;margin-bottom:24px;">Grand Total: AED ${total.toFixed(2)}</div>
+      <div style="font-size:10.5px;color:#555;border-top:1px solid #ccc;padding-top:10px;">Terms: Prices valid for 30 days from date of issue. Delivery subject to stock availability at time of order confirmation. This document was generated by the BMTC Quotation & LPO Control system.</div>
+    </div>`;
+  window.print();
+}
+
+/* ============================= MAIN RENDER ============================= */
+/* ============================= RENDER: SYNERGY ============================= */
+function renderSynergy(){
+  const active = q => !['Converted to LPO','Lost'].includes(q.status);
+
+  // Officer workload — attribute by lastEditedBy when it's a known officer
+  const officerRows = OFFICERS.map(officer=>{
+    const owned = DATA.quotations.filter(q=>q.lastEditedBy===officer);
+    const activeOwned = owned.filter(active);
+    const overdueOwned = activeOwned.filter(isOverdue).length;
+    const converted = owned.filter(q=>q.status==='Converted to LPO').length;
+    return {
+      name: officer,
+      activeCount: activeOwned.length,
+      value: activeOwned.reduce((s,q)=>s+q.value,0),
+      overdue: overdueOwned,
+      converted
+    };
+  });
+  document.getElementById('synergyOfficerTable').innerHTML = officerRows.map(r=>`
+    <tr>
+      <td>${r.name}</td>
+      <td class="mono">${r.activeCount}</td>
+      <td class="mono">${fmtMoney(r.value)}</td>
+      <td class="mono ${r.overdue>0?'gap-pos':''}">${r.overdue}</td>
+      <td class="mono">${r.converted}</td>
+    </tr>`).join('');
+
+  // Salesman workload
+  const salesmanRows = SALESMEN.map(sm=>{
+    const owned = DATA.quotations.filter(q=>q.salesman===sm);
+    const activeOwned = owned.filter(active);
+    const won = owned.filter(q=>q.status==='Converted to LPO').length;
+    const lost = owned.filter(q=>q.status==='Lost').length;
+    const decided = won+lost;
+    const wr = decided ? (won/decided*100) : 0;
+    return {
+      name: sm,
+      activeCount: activeOwned.length,
+      value: activeOwned.reduce((s,q)=>s+q.value,0),
+      winRate: wr,
+      lost
+    };
+  });
+  document.getElementById('synergySalesmanTable').innerHTML = salesmanRows.map(r=>`
+    <tr>
+      <td>${r.name}</td>
+      <td class="mono">${r.activeCount}</td>
+      <td class="mono">${fmtMoney(r.value)}</td>
+      <td class="mono">${r.winRate.toFixed(0)}%</td>
+      <td class="mono">${r.lost}</td>
+    </tr>`).join('');
+
+  // Cross-brand synergy — group by customer
+  const byCustomer = {};
+  DATA.quotations.forEach(q=>{
+    const key = q.customer || 'Unnamed customer';
+    if(!byCustomer[key]) byCustomer[key] = [];
+    byCustomer[key].push(q);
+  });
+  const crossRows = Object.entries(byCustomer).map(([customer, qs])=>{
+    const brands = [...new Set(qs.map(q=>q.brand))];
+    return {
+      customer,
+      brands,
+      count: qs.length,
+      value: qs.reduce((s,q)=>s+q.value,0),
+      multiBrand: brands.length >= 2
+    };
+  }).filter(r=>r.multiBrand).sort((a,b)=>b.value-a.value);
+
+  document.getElementById('synergyCrossBrandTable').innerHTML = crossRows.length ? crossRows.map(r=>`
+    <tr>
+      <td>${r.customer}</td>
+      <td>${r.brands.join(' + ')}</td>
+      <td class="mono">${r.count}</td>
+      <td class="mono">${fmtMoney(r.value)}</td>
+      <td><span class="status-pill status-Under-Negotiation">Cross-sell opportunity</span></td>
+    </tr>`).join('') : `<tr><td colspan="5" class="empty-state">No single customer has been quoted across two or more brands yet — this fills in as real customer names are entered through the Builder.</td></tr>`;
+
+  // KPI strip
+  const totalActive = DATA.quotations.filter(active).length;
+  const avgPerOfficer = OFFICERS.length ? (officerRows.reduce((s,r)=>s+r.activeCount,0)/OFFICERS.length) : 0;
+  const busiest = officerRows.slice().sort((a,b)=>b.activeCount-a.activeCount)[0];
+  document.getElementById('synergyKpiStrip').innerHTML = [
+    {label:'Active quotations in system', value:totalActive},
+    {label:'Avg. load per officer', value:avgPerOfficer.toFixed(1)},
+    {label:'Busiest officer right now', value:busiest?busiest.name.split(' ')[0]:'—', sub:busiest?busiest.activeCount+' active':''},
+    {label:'Cross-sell customers found', value:crossRows.length}
+  ].map(k=>`<div class="kpi-card"><div class="label">${k.label}</div><div class="value">${k.value}</div>${k.sub?`<div class="subtext">${k.sub}</div>`:''}</div>`).join('');
+}
+
+function render(){
+  routeTabsForRole();
+  if(currentTab==='dashboard') renderDashboard();
+  if(currentTab==='quotations') renderQuotations();
+  if(currentTab==='materials') renderMaterials();
+  if(currentTab==='synergy') renderSynergy();
+  if(currentTab==='builder') initBuilderStatics();
+  if(currentTab==='admin') renderAdmin();
+  if(currentTab==='approvals') renderApprovals();
+}
+
+/* ============================= INIT ============================= */
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') closeModal(); });
+populateRoleUI();
+routeTabsForRole();
+loadData();
+</script>
+</body>
+</html>
