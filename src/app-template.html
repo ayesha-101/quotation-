@@ -119,6 +119,14 @@
   .movement-legend{display:flex;gap:16px;align-items:center;font-size:10.5px;color:var(--ink-dim);margin-bottom:12px;}
   .movement-legend .dot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:5px;}
 
+  .trism-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;}
+  .trism-card{background:var(--navy-panel2);border:1px solid var(--grid-line);border-radius:6px;padding:14px 16px;}
+  .trism-card .t-label{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:var(--brand);margin-bottom:6px;}
+  .trism-card .t-desc{font-size:12px;color:var(--ink-dim);line-height:1.55;margin-bottom:10px;}
+  .trism-card .t-here{font-size:11px;color:var(--ink-faint);border-top:1px dashed var(--grid-line);padding-top:8px;}
+  .trism-card .t-here b{color:var(--ink);font-weight:600;}
+  .status-Fixed{background:rgba(63,184,142,0.15);color:var(--green);}
+
   .btn{
     background:var(--navy-panel2);border:1px solid var(--grid-line);color:var(--ink);
     padding:6px 12px;border-radius:var(--radius);font-size:11.5px;font-weight:600;cursor:pointer;
@@ -415,6 +423,48 @@
     </div>
   </div>
 
+  <!-- SECURITY & TRUST -->
+  <div class="view" id="view-security">
+    <div class="permission-note">Security & Trust Agent — positioned against Gartner AI TRiSM (AI Trust, Risk and Security Management): the live audit trail below, plus the standing result of the last code-security review of this system.</div>
+    <div class="kpi-strip" id="securityKpiStrip"></div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Positioning — Gartner AI TRiSM</div>
+      <div class="section-note" style="font-size:12px;color:var(--ink-faint);margin:-6px 0 14px;">Each pillar mapped to what this system actually has today, not aspirational.</div>
+      <div class="trism-grid" id="trismGrid"></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Audit trail — every transaction, live</div>
+      <div class="toolbar">
+        <div style="font-size:11.5px;color:var(--ink-dim);">Every create, revise, convert, and approval decision across every quotation — pulled from the same audit log shown on each quote's Detail view.</div>
+        <select id="secAuditFilter"><option value="">All actors</option></select>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Quote Ref.</th><th>Actor</th><th>Action</th><th>When</th></tr></thead>
+        <tbody id="securityAuditTable"></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Code security review — last pass</div>
+      <div class="section-note" style="font-size:12px;color:var(--ink-faint);margin:-6px 0 14px;">A point-in-time review of this codebase, not a live scanner — each finding was independently re-verified before being counted, then fixed in the same pass.</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Status</th><th>Severity</th><th>Category</th><th>Location</th><th>Finding</th></tr></thead>
+        <tbody id="securityFindingsTable"></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel" style="border-left:3px solid var(--amber);">
+      <div class="section-title"><span class="tick" style="background:var(--amber);"></span>Not built yet — needs the real backend</div>
+      <ul style="margin:10px 0 0;padding-left:18px;color:var(--ink-dim);font-size:13px;line-height:1.8;">
+        <li><b style="color:var(--ink);">Snyk MCP.</b> Scans dependencies for known vulnerabilities. This app has none today (single static file, no packages) — becomes essential once the real backend has a package.json.</li>
+        <li><b style="color:var(--ink);">PII masking.</b> Customer names and contacts flow unmasked through this audit log and any export. Apply masking at the point data leaves the system — logs, exports, and the Zoho/SAP integration layer.</li>
+        <li><b style="color:var(--ink);">Continuous monitoring.</b> This review is a point-in-time snapshot. A real deployment re-runs it on every change (CI-gated), not on request.</li>
+      </ul>
+    </div>
+  </div>
+
 </div>
 
 <!-- MODAL -->
@@ -694,7 +744,8 @@ const TAB_DEFS = [
   {id:'materials', label:'Material Tracker'},
   {id:'builder', label:'Quotation Builder', roles:['Admin','Quotation Officer']},
   {id:'admin', label:'Admin Panel', roles:['Admin']},
-  {id:'approvals', label:'Approvals', roles:['Line Manager','GM','CEO','Admin']}
+  {id:'approvals', label:'Approvals', roles:['Line Manager','GM','CEO','Admin']},
+  {id:'security', label:'Security & Trust', roles:['Admin','Line Manager','GM','CEO']}
 ];
 function routeTabsForRole(){
   const nav = document.getElementById('tabsNav');
@@ -1124,6 +1175,68 @@ function confirmReject(id){
   closeModal();
 }
 
+/* ============================= RENDER: SECURITY & TRUST ============================= */
+const TRISM_PILLARS = [
+  {label:'Explainability & Monitoring', desc:'Every automated decision (block/confirm, approval routing) has a traceable reason, not a black-box output.', here:'This audit log, and GP approval routing rules that show their own math'},
+  {label:'ModelOps', desc:'Governance over how AI components are deployed, versioned, and changed over time.', here:'Not yet formalized — informal via this project’s git history'},
+  {label:'Application Security', desc:'The system itself — code, integrations, data flow — is scanned for vulnerabilities, not just the model.', here:'Last review below — 7 findings, all fixed'},
+  {label:'Data Protection & Privacy', desc:'Customer and financial data is identified, classified, and protected in transit and at rest.', here:'PII masking — not yet implemented (see roadmap below)'}
+];
+const SECURITY_FINDINGS = [
+  {severity:'High', category:'stored xss', location:'admin catalog fields', description:'Catalog code/description/brand rendered unescaped in the datalist, Admin table, Dashboard, Material Tracker and Approvals.'},
+  {severity:'High', category:'stored xss', location:'quotation header fields', description:'"To", Attention, Project, Consultant, Client, Subject etc. rendered unescaped in the Quotation Tracker, Detail modal, and the PDF preview/download.'},
+  {severity:'High', category:'stored xss', location:'manual line items', description:'Free-text description/brand/uom on non-catalog line items rendered unescaped across the Detail modal, Dashboard, Material Tracker and Approvals.'},
+  {severity:'High', category:'stored xss', location:'approval rejection comments', description:'GP-approval rejection reasons rendered unescaped in the Approvals queue and folded unescaped into the audit log.'},
+  {severity:'High', category:'attribute-breakout xss', location:'revise modal', description:'Code/description interpolated into input value attributes with zero escaping — could inject autofocus/onfocus with no click required.'},
+  {severity:'Medium', category:'attribute-breakout xss', location:'admin brand-tab onclick', description:'Brand name only had single-quotes escaped against a double-quote-delimited attribute, allowing a new event handler to be injected.'},
+  {severity:'Medium', category:'data integrity', location:'renderDocument() self-publish', description:'String.replace() with a dynamic replacement string honors $`/$\' patterns even against a plain-string search, risking corruption of the shared published state.'}
+];
+function renderSecurity(){
+  const allEvents = [];
+  DATA.quotations.forEach(q=>{
+    (q.auditLog||[]).forEach(a=>allEvents.push({ref:quoteRef(q), who:a.who, action:a.action, at:a.at}));
+  });
+  allEvents.sort((a,b)=>new Date(b.at)-new Date(a.at));
+
+  const filterSel = document.getElementById('secAuditFilter');
+  if(filterSel.options.length<=1){
+    const actors = [...new Set(allEvents.map(e=>e.who))].sort();
+    actors.forEach(a=>filterSel.add(new Option(a,a)));
+    filterSel.onchange = renderSecurity;
+  }
+  const fActor = filterSel.value;
+  const events = fActor ? allEvents.filter(e=>e.who===fActor) : allEvents;
+
+  const highCount = SECURITY_FINDINGS.filter(f=>f.severity==='High').length;
+  const medCount = SECURITY_FINDINGS.filter(f=>f.severity==='Medium').length;
+  document.getElementById('securityKpiStrip').innerHTML = [
+    {label:'Audit events logged', value:allEvents.length, sub:'across every quotation, live', cls:''},
+    {label:'Findings found & fixed', value:SECURITY_FINDINGS.length, sub:`${highCount} high · ${medCount} medium`, cls:'green'},
+    {label:'Open findings', value:0, sub:'all fixed and shipped', cls:'green'},
+    {label:'PII fields in scope', value:8, sub:'not yet masked', cls:'amber'}
+  ].map(k=>`<div class="kpi-card"><div class="label">${k.label}</div><div class="value ${k.cls}">${k.value}</div><div class="subtext">${k.sub}</div></div>`).join('');
+
+  document.getElementById('trismGrid').innerHTML = TRISM_PILLARS.map(t=>`
+    <div class="trism-card">
+      <div class="t-label">${t.label}</div>
+      <div class="t-desc">${t.desc}</div>
+      <div class="t-here">Where this system stands: <b>${t.here}</b></div>
+    </div>`).join('');
+
+  document.getElementById('securityAuditTable').innerHTML = events.length ? events.slice(0,200).map(e=>`
+    <tr><td class="mono">${esc(e.ref)}</td><td class="who" style="color:var(--brand);">${esc(e.who)}</td><td>${esc(e.action)}</td><td class="mono">${new Date(e.at).toLocaleString('en-AE')}</td></tr>
+  `).join('') : `<tr><td colspan="4" class="empty-state">No audit events yet.</td></tr>`;
+
+  document.getElementById('securityFindingsTable').innerHTML = SECURITY_FINDINGS.map(f=>`
+    <tr>
+      <td><span class="status-pill status-Fixed">✓ Fixed</span></td>
+      <td><span class="status-pill ${f.severity==='High'?'status-Lost':'status-Under-Negotiation'}">${f.severity}</span></td>
+      <td>${f.category}</td>
+      <td class="mono">${f.location}</td>
+      <td>${f.description}</td>
+    </tr>`).join('');
+}
+
 /* ============================= BUILDER ============================= */
 function goBuilder(){ switchTab('builder'); }
 function initBuilderStatics(){
@@ -1482,6 +1595,7 @@ function render(){
   if(currentTab==='builder') initBuilderStatics();
   if(currentTab==='admin') renderAdmin();
   if(currentTab==='approvals') renderApprovals();
+  if(currentTab==='security') renderSecurity();
 }
 
 /* ============================= INIT ============================= */
