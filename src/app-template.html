@@ -381,8 +381,7 @@
       <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-primary" onclick="saveQuotation('Quoted')">Save & Mark Quoted</button>
         <button class="btn" onclick="saveQuotation('Draft')">Save as Draft</button>
-        <button class="btn btn-green" onclick="generatePdf()">Print / Download PDF</button>
-        <span id="pdfStatus" style="font-size:11px;color:var(--ink-dim);"></span>
+        <button class="btn btn-green" onclick="previewQuotation()">Preview Quotation</button>
       </div>
     </div>
   </div>
@@ -946,7 +945,7 @@ function saveRevision(){
   logAudit(q, 'Revised to R'+q.revision);
   persist().then(()=>{ closeModal(); render(); });
 }
-function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); document.getElementById('modalBody').style.maxWidth = ''; }
 
 /* ============================= RENDER: MATERIAL TRACKER ============================= */
 function renderMaterials(){
@@ -1249,98 +1248,159 @@ function setPdfStatus(text, isError){
   el.textContent = text;
   el.style.color = isError ? 'var(--red)' : 'var(--ink-dim)';
 }
-async function generatePdf(){
+const QUOTE_FONT_LINK = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">';
+function qField(label, value, span){
+  return `<div${span?' style="grid-column:span '+span+';"':''}>
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.7px;color:#8a96a3;margin-bottom:3px;">${label}</div>
+    <div style="font-size:12.5px;color:#1a2233;">${value||'&nbsp;'}</div>
+  </div>`;
+}
+function buildQuotationDoc(){
   recalcAllLines();
   const h = collectHeaderFields();
   const quoteNo = document.getElementById('bQuoteNo').value;
   const dateStr = document.getElementById('bDate').value;
-  const rows = builderLines.filter(l=>l.description).map((l,i)=>`
-    <tr>
-      <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">${i+1}</td>
-      <td style="padding:6px 8px;border:1px solid #ccc;">${l.code||''}</td>
-      <td style="padding:6px 8px;border:1px solid #ccc;">${l.description}</td>
-      <td style="padding:6px 8px;border:1px solid #ccc;">${l.brand||''}</td>
-      <td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">${l.uom||''}</td>
-      <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(l.qty||0).toLocaleString()}</td>
-      <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(l.unitSell||0).toFixed(2)}</td>
-      <td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">${(l.lineTotal||0).toFixed(2)}</td>
+  const lines = builderLines.filter(l=>l.description);
+  const rows = lines.map((l,i)=>`
+    <tr style="border-bottom:1px solid #eef1f5;">
+      <td style="padding:10px 6px;color:#8a96a3;font-size:11.5px;">${i+1}</td>
+      <td style="padding:10px 6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4a5568;">${l.code||'—'}</td>
+      <td style="padding:10px 6px;">${l.description}</td>
+      <td style="padding:10px 6px;color:#4a5568;">${l.brand||''}</td>
+      <td style="padding:10px 6px;text-align:center;color:#4a5568;">${l.uom||''}</td>
+      <td style="padding:10px 6px;text-align:right;font-variant-numeric:tabular-nums;">${(l.qty||0).toLocaleString()}</td>
+      <td style="padding:10px 6px;text-align:right;font-variant-numeric:tabular-nums;">${(l.unitSell||0).toFixed(2)}</td>
+      <td style="padding:10px 6px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;">${(l.lineTotal||0).toFixed(2)}</td>
     </tr>`).join('');
-  const quoteValue = round2(builderLines.reduce((s,l)=>s+l.lineTotal,0));
+  const quoteValue = round2(lines.reduce((s,l)=>s+l.lineTotal,0));
   const vat = round2(quoteValue*0.05);
   const total = round2(quoteValue+vat);
-  const termsRows = TERMS_CONDITIONS.map((t,i)=>`<tr><td style="vertical-align:top;padding:2px 6px 2px 0;font-weight:bold;">${i+1}-</td><td style="padding:2px 0;">${t}</td></tr>`).join('');
+  const termsItems = TERMS_CONDITIONS.map((t,i)=>`<div style="display:flex;gap:8px;margin-bottom:6px;"><span style="color:#2e86de;font-weight:700;flex-shrink:0;">${i+1}</span><span>${t}</span></div>`).join('');
 
   const docBody = `
-    <div style="font-family:Arial,sans-serif;padding:36px;color:#111;font-size:12px;">
-      <table style="border-collapse:collapse;width:100%;border:1px solid #999;margin-bottom:14px;">
-        <tr><td colspan="4" style="text-align:center;font-weight:bold;font-size:13px;border:1px solid #999;padding:4px;background:#f2f2f2;">QUOTATION</td></tr>
-        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;width:14%;">To</td><td style="border:1px solid #999;padding:4px 8px;width:36%;">${h.to||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;width:14%;">Our Ref .:</td><td style="border:1px solid #999;padding:4px 8px;width:36%;">${quoteNo}</td></tr>
-        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Attention</td><td style="border:1px solid #999;padding:4px 8px;">${h.attention||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Date .:</td><td style="border:1px solid #999;padding:4px 8px;">${dateStr}</td></tr>
-        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Reference</td><td style="border:1px solid #999;padding:4px 8px;">${h.reference||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Tel No .:</td><td style="border:1px solid #999;padding:4px 8px;">${h.telNo||''}</td></tr>
-        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Project</td><td style="border:1px solid #999;padding:4px 8px;">${h.project||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Fax No .:</td><td style="border:1px solid #999;padding:4px 8px;">${h.faxNo||''}</td></tr>
-        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Consultant</td><td style="border:1px solid #999;padding:4px 8px;">${h.consultant||''}</td><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Mob No .:</td><td style="border:1px solid #999;padding:4px 8px;">${h.mobNo||''}</td></tr>
-        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Client</td><td style="border:1px solid #999;padding:4px 8px;" colspan="3"></td></tr>
-        <tr><td style="border:1px solid #999;padding:4px 8px;font-weight:bold;">Subject .:</td><td style="border:1px solid #999;padding:4px 8px;" colspan="3">${h.subject||''}</td></tr>
-      </table>
-      <div style="margin-bottom:8px;">We thank you for the referred enquiry and are pleased to offer the following quote:</div>
-      <table style="border-collapse:collapse;width:100%;font-size:11.5px;margin-bottom:6px;">
-        <thead><tr style="background:#16243a;color:#fff;">
-          <th style="padding:6px 8px;border:1px solid #999;">S.#.</th><th style="padding:6px 8px;border:1px solid #999;">Cat. Ref.</th>
-          <th style="padding:6px 8px;border:1px solid #999;">Description</th><th style="padding:6px 8px;border:1px solid #999;">Brand</th>
-          <th style="padding:6px 8px;border:1px solid #999;">UOM</th><th style="padding:6px 8px;border:1px solid #999;">Qty.</th>
-          <th style="padding:6px 8px;border:1px solid #999;">U.Price</th><th style="padding:6px 8px;border:1px solid #999;">Total AED.</th>
+    <div style="font-family:'Inter',Arial,sans-serif;color:#1a2233;max-width:800px;margin:0 auto;padding:48px 44px;background:#fff;line-height:1.5;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #2e86de;padding-bottom:18px;margin-bottom:28px;">
+        <div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:#0b1524;letter-spacing:0.3px;">BMTC</div>
+          <div style="font-size:10.5px;color:#6b7785;letter-spacing:0.4px;margin-top:2px;">Al Bahri &amp; Al Mazroei Trading Co. — Electrical Solutions</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;color:#2e86de;letter-spacing:2px;">QUOTATION</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6b7785;margin-top:3px;">${quoteNo}</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px 20px;margin-bottom:28px;">
+        ${qField('To', h.to, 2)}
+        ${qField('Date', dateStr)}
+        ${qField('Our Ref.', quoteNo)}
+        ${qField('Attention', h.attention)}
+        ${qField('Tel No.', h.telNo)}
+        ${qField('Reference', h.reference)}
+        ${qField('Fax No.', h.faxNo)}
+        ${qField('Project', h.project, 2)}
+        ${qField('Mob No.', h.mobNo)}
+        ${qField('Consultant', h.consultant)}
+        ${qField('Client', h.client)}
+        ${qField('Subject', h.subject, 4)}
+      </div>
+
+      <div style="font-size:12.5px;color:#4a5568;margin-bottom:14px;">We thank you for the referred enquiry and are pleased to offer the following quote:</div>
+
+      <table style="border-collapse:collapse;width:100%;font-size:12px;margin-bottom:4px;">
+        <thead><tr style="border-bottom:2px solid #0b1524;">
+          <th style="text-align:left;padding:0 6px 8px;font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#8a96a3;">#</th>
+          <th style="text-align:left;padding:0 6px 8px;font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#8a96a3;">Cat. Ref.</th>
+          <th style="text-align:left;padding:0 6px 8px;font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#8a96a3;">Description</th>
+          <th style="text-align:left;padding:0 6px 8px;font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#8a96a3;">Brand</th>
+          <th style="text-align:center;padding:0 6px 8px;font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#8a96a3;">UOM</th>
+          <th style="text-align:right;padding:0 6px 8px;font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#8a96a3;">Qty</th>
+          <th style="text-align:right;padding:0 6px 8px;font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#8a96a3;">U.Price</th>
+          <th style="text-align:right;padding:0 6px 8px;font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#8a96a3;">Total AED</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <table style="border-collapse:collapse;width:100%;font-size:12px;margin-bottom:18px;">
-        <tr><td style="width:80%;"></td><td style="padding:4px 8px;font-weight:bold;text-align:right;border:1px solid #999;">Quote Value AED</td><td style="padding:4px 8px;text-align:right;border:1px solid #999;width:12%;">${quoteValue.toFixed(2)}</td></tr>
-        <tr><td></td><td style="padding:4px 8px;font-weight:bold;text-align:right;border:1px solid #999;">VAT 5%</td><td style="padding:4px 8px;text-align:right;border:1px solid #999;">${vat.toFixed(2)}</td></tr>
-        <tr><td></td><td style="padding:4px 8px;font-weight:bold;text-align:right;border:1px solid #999;background:#f2f2f2;">Total Value AED</td><td style="padding:4px 8px;text-align:right;border:1px solid #999;background:#f2f2f2;font-weight:bold;">${total.toFixed(2)}</td></tr>
-      </table>
 
-      <div style="font-weight:bold;text-decoration:underline;margin-bottom:6px;">Terms & Conditions:</div>
-      <div style="font-weight:bold;margin-bottom:4px;">Price Offer:</div>
-      <table style="font-size:11px;margin-bottom:10px;">${termsRows}</table>
-
-      <div style="font-size:11.5px;line-height:1.7;">
-        <div><b>Currency:</b> Arab Emirates Dirham (AED)</div>
-        <div><b>Delivery :</b> ${h.delivery||'To be confirmed'}</div>
-        <div><b>Delivery Place:</b> ${h.deliveryPlace||''}</div>
-        <div><b>Validity:</b> ${h.validity||''}</div>
-        <div><b>Payment Terms:</b> ${h.paymentTerms||'To be confirmed'}</div>
+      <div style="display:flex;justify-content:flex-end;margin:18px 0 30px;">
+        <div style="width:280px;">
+          <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px;color:#4a5568;"><span>Quote Value AED</span><span style="font-variant-numeric:tabular-nums;">${quoteValue.toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px;color:#4a5568;"><span>VAT 5%</span><span style="font-variant-numeric:tabular-nums;">${vat.toFixed(2)}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:6px;border-top:2px solid #0b1524;font-weight:700;font-size:15px;color:#2e86de;"><span>Total Value AED</span><span style="font-variant-numeric:tabular-nums;">${total.toFixed(2)}</span></div>
+        </div>
       </div>
 
-      <div style="margin-top:14px;font-size:11.5px;">
-        We look forward to meeting your expectations and to conducting long term business relationship.<br>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12.5px;color:#0b1524;margin-bottom:10px;letter-spacing:0.2px;">Terms &amp; Conditions</div>
+      <div style="font-size:11px;color:#4a5568;margin-bottom:18px;">${termsItems}</div>
+
+      <div style="font-size:11.5px;color:#4a5568;line-height:1.8;margin-bottom:20px;">
+        <div><b style="color:#1a2233;">Currency:</b> Arab Emirates Dirham (AED)</div>
+        <div><b style="color:#1a2233;">Delivery:</b> ${h.delivery||'To be confirmed'}</div>
+        <div><b style="color:#1a2233;">Delivery Place:</b> ${h.deliveryPlace||''}</div>
+        <div><b style="color:#1a2233;">Validity:</b> ${h.validity||''}</div>
+        <div><b style="color:#1a2233;">Payment Terms:</b> ${h.paymentTerms||'To be confirmed'}</div>
+      </div>
+
+      <div style="font-size:11.5px;color:#4a5568;margin-bottom:26px;">
+        We look forward to meeting your expectations and to conducting a long-term business relationship.<br>
         Thanking you and assuring you of our best services at all times.
       </div>
 
-      <div style="margin-top:22px;font-size:11.5px;">
-        <div style="font-weight:bold;">For AL BAHRI AND AL MAZROEI TRADING COM. LLC</div>
-        <div style="height:34px;"></div>
-        <div style="font-weight:bold;">${h.prepName||identity}</div>
-        <div>${h.prepTitle||''}</div>
-        <div>${h.prepMobile?('MOBILE: '+h.prepMobile):''}</div>
+      <div style="font-size:11.5px;margin-bottom:36px;">
+        <div style="font-weight:600;color:#1a2233;">For AL BAHRI AND AL MAZROEI TRADING COM. LLC</div>
+        <div style="height:32px;"></div>
+        <div style="font-weight:700;color:#1a2233;">${h.prepName||identity}</div>
+        <div style="color:#6b7785;">${h.prepTitle||''}</div>
+        <div style="color:#6b7785;">${h.prepMobile?('MOBILE: '+h.prepMobile):''}</div>
       </div>
 
-      <div style="margin-top:30px;border-top:1px solid #ccc;padding-top:10px;font-size:10px;color:#555;">
-        <div>شركة البحري والمزروعي التجارية ذ.م.م.-ش.ش.و</div>
-        <div style="font-weight:bold;">Al Bahri & Al Mazroei Trading Company L.L.C.- S.P.C</div>
-        <div>P.O. Box 72901, Abu Dhabi, United Arab Emirates</div>
-        <div>00971 2 550 6700 | info@bmtc.ae | www.bmtc.ae</div>
+      <div style="border-top:1px solid #eef1f5;padding-top:14px;font-size:9.5px;color:#8a96a3;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+        <div>
+          <div>شركة البحري والمزروعي التجارية ذ.م.م.-ش.ش.و</div>
+          <div>Al Bahri &amp; Al Mazroei Trading Company L.L.C.- S.P.C</div>
+        </div>
+        <div style="text-align:right;">
+          <div>P.O. Box 72901, Abu Dhabi, United Arab Emirates</div>
+          <div>00971 2 550 6700 &nbsp;|&nbsp; info@bmtc.ae &nbsp;|&nbsp; www.bmtc.ae</div>
+        </div>
       </div>
     </div>`;
+  return { docBody, quoteNo };
+}
 
+let lastQuotationDoc = null;
+
+function previewQuotation(){
+  const { docBody, quoteNo } = buildQuotationDoc();
+  lastQuotationDoc = { docBody, quoteNo };
   document.getElementById('printArea').innerHTML = docBody;
-
+  document.getElementById('modalBody').style.maxWidth = '860px';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-header">
+      <div><h3>Quotation Preview</h3><div class="subtext" style="color:var(--ink-faint);font-size:11px;margin-top:4px;">${quoteNo}</div></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div style="border-radius:8px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.45);max-height:60vh;overflow-y:auto;">${docBody}</div>
+    <div style="display:flex;gap:8px;margin-top:16px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="printQuotation()">🖨 Print</button>
+      <button class="btn btn-green" onclick="downloadQuotationFile()">⬇ Download</button>
+      <span id="pdfStatus" style="font-size:11px;color:var(--ink-dim);"></span>
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function printQuotation(){
   setPdfStatus('Opening print dialog…');
-  let printWorked = true;
-  try{ window.print(); }catch(e){ printWorked = false; }
-
-  const standaloneDoc = '<!doctype html>\n<html><head><meta charset="utf-8"><title>'+quoteNo+'</title></head><body>'+docBody+'</body></html>';
+  try{ window.print(); }
+  catch(e){ setPdfStatus('Printing is unavailable in this view — use Download instead.', true); }
+}
+async function downloadQuotationFile(){
+  if(!lastQuotationDoc) return;
+  const { docBody, quoteNo } = lastQuotationDoc;
+  const standaloneDoc = '<!doctype html>\n<html><head><meta charset="utf-8"><title>'+quoteNo+'</title>'+QUOTE_FONT_LINK+'</head><body>'+docBody+'</body></html>';
+  setPdfStatus('Preparing download…');
   const dl = await getDownloadsCap();
   if(!dl){
-    setPdfStatus(printWorked ? 'Print dialog opened. If nothing appeared, printing is unavailable in this view.' : 'Printing is unavailable in this view.', !printWorked);
+    setPdfStatus('Download is unavailable in this view — use Print instead.', true);
     return;
   }
   try{
@@ -1350,7 +1410,7 @@ async function generatePdf(){
   }catch(e){
     const code = e && e.code;
     if(code === 'declined'){ setPdfStatus('Download cancelled.'); }
-    else { setPdfStatus('Could not offer the file for download (' + (code||'unknown error') + '). Try the print dialog instead.', true); }
+    else { setPdfStatus('Could not offer the file for download (' + (code||'unknown error') + '). Try Print instead.', true); }
   }
 }
 
