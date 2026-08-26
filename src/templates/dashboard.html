@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MindForge Pipeline</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #161925;
+    --text: #e8e9ee;
+    --muted: #9198ac;
+    --claude: #d97757;
+    --chatgpt: #74aa9c;
+    --fugu: #6ea8fe;
+    --kimi: #c792ea;
+    --line: #2a2f42;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px 16px 64px;
+  }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  .task { color: var(--muted); margin: 0 0 32px; font-size: 0.95rem; }
+
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    max-width: 1000px;
+    margin: 0 auto 40px;
+  }
+  .node {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--accent, var(--line));
+    border-radius: 10px;
+    padding: 16px;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: rise 0.6s ease forwards;
+  }
+  .node h2 { font-size: 1rem; margin: 0 0 2px; color: var(--accent); }
+  .node .role { color: var(--muted); font-size: 0.78rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .node .source { display: inline-block; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; background: #232842; color: var(--muted); margin-bottom: 8px; }
+  .node pre { white-space: pre-wrap; font-size: 0.82rem; line-height: 1.4; color: var(--text); margin: 0; max-height: 220px; overflow: auto; }
+
+  .connector {
+    flex: 0 0 40px;
+    position: relative;
+    align-self: center;
+    height: 2px;
+    background: var(--line);
+    overflow: visible;
+  }
+  .connector .pulse {
+    position: absolute;
+    top: -3px;
+    left: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pulse-color, #fff);
+    animation: travel 1.8s ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+  @keyframes rise {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes travel {
+    0% { left: -4px; opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { left: 36px; opacity: 0; }
+  }
+
+  @media (max-width: 900px) {
+    .pipeline { flex-direction: column; }
+    .connector { width: 2px; height: 24px; flex-basis: 24px; align-self: center; }
+  }
+</style>
+</head>
+<body>
+  <h1>MindForge — multi-LLM pipeline</h1>
+  <p class="task">__TASK__</p>
+
+  <div class="pipeline" id="pipeline">
+    __NODES__
+  </div>
+
+  <script>
+    document.querySelectorAll('.node').forEach((el, i) => {
+      el.style.animationDelay = (i * 0.15) + 's';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "mindforge",
+  "version": "0.1.0",
+  "description": "Multi-LLM orchestration CLI: Claude implements, ChatGPT does QA, Fugu architects the system, Kimi K3 designs an animated interface for it.",
+  "type": "module",
+  "bin": {
+    "mindforge": "./bin/mindforge.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT"
+}
