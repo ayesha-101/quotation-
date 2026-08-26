@@ -70,10 +70,11 @@ immediately, then use **Manage users** to add everyone else.
 ## Security notes for anyone touching this code
 
 - Every `"use server"` action re-verifies auth/role itself
-  (`requireUser()` / `requireAdmin()`) — `proxy.ts` is a fast redirect
-  layer only, not a trust boundary. Next.js's own docs are explicit that
-  a proxy matcher can silently stop covering a route after a refactor, so
-  don't rely on it alone. See `proxy.ts`'s own comment.
+  (`requireUser()` / `requireAdmin()`) — `middleware.ts` is a fast
+  redirect layer only, not a trust boundary. Next.js's own docs are
+  explicit that a middleware matcher can silently stop covering a route
+  after a refactor, so don't rely on it alone. See `middleware.ts`'s own
+  comment.
 - The "last Admin" protections in `app/admin/users/actions.ts` run inside
   a Serializable transaction, not a plain read-then-write — two admins
   concurrently removing the other two remaining admins would otherwise

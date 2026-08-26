@@ -4,9 +4,9 @@ import { verifySessionToken, SESSION_COOKIE } from "@/lib/session";
 // Fast-path check only: verifies the session JWT's signature and expiry.
 // It does NOT touch the database, so it cannot see a deleted/deactivated
 // user — that authoritative check happens in lib/auth-guard.ts on every
-// server component and action. See the note in proxy.ts's own docs:
-// never rely on proxy as the only auth layer.
-export async function proxy(request: NextRequest) {
+// server component and action. Never rely on middleware as the only auth
+// layer (a matcher change can silently stop covering a route).
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/login")) {
