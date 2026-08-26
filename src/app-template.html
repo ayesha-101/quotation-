@@ -426,7 +426,7 @@
 
   <!-- SECURITY & TRUST -->
   <div class="view" id="view-security">
-    <div class="permission-note">Security & Trust Agent — positioned against Gartner AI TRiSM (AI Trust, Risk and Security Management): the live audit trail below, plus the standing result of the last code-security review of this system.</div>
+    <div class="permission-note">BMTC Security Agent — Cyberimmunity & CTEM. Positioned against Gartner AI TRiSM and Gartner CTEM: the live hash-chained audit log below, plus the standing result of the last code-security review of this system.</div>
     <div class="kpi-strip" id="securityKpiStrip"></div>
 
     <div class="panel">
@@ -436,13 +436,22 @@
     </div>
 
     <div class="panel">
-      <div class="section-title"><span class="tick"></span>Audit trail — every transaction, live</div>
-      <div class="toolbar">
-        <div style="font-size:11.5px;color:var(--ink-dim);">Every create, revise, convert, and approval decision across every quotation — pulled from the same audit log shown on each quote's Detail view.</div>
-        <select id="secAuditFilter"><option value="">All actors</option></select>
+      <div class="section-title"><span class="tick"></span>Positioning — Gartner CTEM lifecycle</div>
+      <div class="section-note" style="font-size:12px;color:var(--ink-faint);margin:-6px 0 14px;">Continuous Threat Exposure Management's 5 stages, each mapped to what this system actually has today.</div>
+      <div class="trism-grid" id="ctemGrid"></div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title"><span class="tick"></span>Audit Log — hash-chained, append-only</div>
+      <div class="section-note" style="font-size:12px;color:var(--ink-faint);margin:-6px 0 14px;">Every transaction the system has performed — create, revise, convert, LPO match, approval decision — chained by SHA-256 so any edited or reordered record breaks the chain. Every actor/action value below has already passed through PII masking before being hashed and stored.</div>
+      <div class="toolbar" id="chainIntegrityPanel" style="display:flex;align-items:center;gap:10px;"></div>
+      <div class="toolbar" style="margin-top:10px;">
+        <input id="secAuditFilterAction" placeholder="Filter by action (e.g. converted)" style="flex:1;min-width:180px;">
+        <select id="secAuditFilterActor"><option value="">All actors</option></select>
+        <button class="btn" onclick="renderSecurity()">Refresh</button>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Quote Ref.</th><th>Actor</th><th>Action</th><th>When</th></tr></thead>
+        <thead><tr><th>Seq</th><th>Time</th><th>Actor</th><th>Action</th><th>Resource</th><th>Outcome</th><th>Hash</th></tr></thead>
         <tbody id="securityAuditTable"></tbody>
       </table></div>
     </div>
@@ -461,7 +470,8 @@
       <ul style="margin:10px 0 0;padding-left:18px;color:var(--ink-dim);font-size:13px;line-height:1.8;">
         <li><b style="color:var(--ink);">Snyk MCP.</b> Scans dependencies for known vulnerabilities. This app has none today (single static file, no packages) — becomes essential once the real backend has a package.json.</li>
         <li><b style="color:var(--ink);">Malware scanning on uploaded customer LPO files.</b> Snyk does not cover this — it scans source code and dependencies, not arbitrary uploaded documents. Today the customer LPO upload keeps only the filename and size as an audit record; the file's actual bytes are never stored or transmitted, specifically because there is no backend yet to safely receive and scan them. A real deployment needs a proper file-scanning service (e.g. ClamAV or VirusTotal) sitting behind the upload endpoint, quarantining any file until it's confirmed clean before it touches storage.</li>
-        <li><b style="color:var(--ink);">PII masking.</b> Customer names and contacts flow unmasked through this audit log and any export. Apply masking at the point data leaves the system — logs, exports, and the Zoho/SAP integration layer.</li>
+        <li><b style="color:var(--ink);">Server-signed chain of custody.</b> The hash chain above proves internal consistency as shipped, but runs entirely client-side with no server-held secret — it doesn't stop someone with devtools access from regenerating a whole new consistent chain. Real tamper-evidence needs a server that appends and signs each record independently of the client.</li>
+        <li><b style="color:var(--ink);">System-wide PII masking.</b> Masking now covers actor/action text entering the audit chain (emails, phone numbers). Customer names/contacts in exports and the future Zoho/SAP integration layer still flow unmasked.</li>
         <li><b style="color:var(--ink);">Continuous monitoring.</b> This review is a point-in-time snapshot. A real deployment re-runs it on every change (CI-gated), not on request.</li>
       </ul>
     </div>
@@ -578,12 +588,14 @@ async function loadData(){
   let embedded = null;
   try{ embedded = JSON.parse(document.getElementById('bmtc-state').textContent); }catch(e){ embedded = null; }
   DATA = (embedded && embedded.catalog && embedded.catalog.length) ? embedded : seedData();
+  await bootstrapChainFromHistory();
   refreshCatalogDatalist();
   render();
 }
 async function persist(){
   document.getElementById('saveDot').style.background = '#f2a53c';
   document.getElementById('saveText').textContent = 'Saving...';
+  await flushChainEvents();
   const cap = await getArtifactCap();
   if(!cap){
     document.getElementById('saveDot').style.background = '#8ea0b8';
@@ -709,6 +721,64 @@ function logAudit(q, action){
   q.auditLog.push({who: currentActor(), action, at: new Date().toISOString()});
   q.lastEditedAt = new Date().toISOString();
   q.lastEditedBy = currentActor();
+  queueChainEvent(currentActor(), action, 'quotation:'+q.id, 'success');
+}
+
+/* ============================= HASH-CHAINED AUDIT (Security & Trust) =============================
+   Every transaction is appended to DATA.securityChain as a hash-linked record (like the reference
+   BMTC Security Agent audit log): each record's hash covers its own fields + the previous record's
+   hash, so re-verifying the chain from record 1 detects any edited/inserted/reordered entry.
+   Caveat (disclosed in the UI, not hidden): this all runs client-side with no server-held secret —
+   it proves internal consistency of the log as shipped, not that a user with devtools access
+   couldn't regenerate a whole new consistent chain from scratch. Real tamper-evidence needs a
+   server that appends and signs independently of the client — Phase 2, same as everything else here.
+*/
+function maskPII(s){
+  if(s==null) return s;
+  return String(s)
+    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, m=>{ const at=m.indexOf('@'); return m.slice(0,1)+'***'+m.slice(at); })
+    .replace(/\b\d{7,}\b/g, m=>m.slice(0,2)+'*'.repeat(m.length-2));
+}
+async function sha256Hex(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+let pendingChainEvents = [];
+function queueChainEvent(actor, action, resource, outcome){
+  pendingChainEvents.push({actor:maskPII(actor), action:maskPII(action), resource, outcome, at:new Date().toISOString()});
+}
+async function flushChainEvents(){
+  if(!DATA.securityChain) DATA.securityChain = [];
+  for(const ev of pendingChainEvents){
+    const seq = DATA.securityChain.length+1;
+    const prevHash = DATA.securityChain.length ? DATA.securityChain[DATA.securityChain.length-1].hash : '0'.repeat(64);
+    const rec = {seq, at:ev.at, actor:ev.actor, action:ev.action, resource:ev.resource, outcome:ev.outcome, prevHash};
+    rec.hash = await sha256Hex(JSON.stringify(rec));
+    DATA.securityChain.push(rec);
+  }
+  pendingChainEvents = [];
+}
+async function bootstrapChainFromHistory(){
+  if(DATA.securityChain && DATA.securityChain.length) return;
+  const events = [];
+  (DATA.quotations||[]).forEach(q=>{
+    (q.auditLog||[]).forEach(a=>events.push({who:a.who, action:a.action, at:a.at, resource:'quotation:'+q.id}));
+  });
+  events.sort((a,b)=>new Date(a.at)-new Date(b.at));
+  DATA.securityChain = [];
+  pendingChainEvents = events.map(e=>({actor:maskPII(e.who), action:maskPII(e.action), resource:e.resource, outcome:'success', at:e.at}));
+  await flushChainEvents();
+}
+async function verifyChainIntegrity(){
+  const chain = DATA.securityChain||[];
+  let prevHash = '0'.repeat(64);
+  for(const rec of chain){
+    if(rec.prevHash !== prevHash) return {valid:false, brokenAt:rec.seq, total:chain.length};
+    const expected = await sha256Hex(JSON.stringify({seq:rec.seq, at:rec.at, actor:rec.actor, action:rec.action, resource:rec.resource, outcome:rec.outcome, prevHash:rec.prevHash}));
+    if(expected !== rec.hash) return {valid:false, brokenAt:rec.seq, total:chain.length};
+    prevHash = rec.hash;
+  }
+  return {valid:true, brokenAt:null, total:chain.length};
 }
 function currentActor(){
   if(role==='Admin') return 'Admin';
@@ -1353,7 +1423,14 @@ const TRISM_PILLARS = [
   {label:'Explainability & Monitoring', desc:'Every automated decision (block/confirm, approval routing) has a traceable reason, not a black-box output.', here:'This audit log, and GP approval routing rules that show their own math'},
   {label:'ModelOps', desc:'Governance over how AI components are deployed, versioned, and changed over time.', here:'Not yet formalized — informal via this project’s git history'},
   {label:'Application Security', desc:'The system itself — code, integrations, data flow — is scanned for vulnerabilities, not just the model.', here:'Last review below — 7 findings, all fixed'},
-  {label:'Data Protection & Privacy', desc:'Customer and financial data is identified, classified, and protected in transit and at rest.', here:'PII masking — not yet implemented (see roadmap below)'}
+  {label:'Data Protection & Privacy', desc:'Customer and financial data is identified, classified, and protected in transit and at rest.', here:'Emails/phone numbers are masked before entering the audit chain below; full system-wide masking (exports, Zoho/SAP layer) is still roadmap'}
+];
+const CTEM_LIFECYCLE = [
+  {n:1, label:'Scoping', desc:'Define what is in scope for exposure management.', here:'This app\'s own data and access surface: quotations, pricing/margins, customer LPO matching, and the six roles that touch them.'},
+  {n:2, label:'Discovery', desc:'Find exposures across the scoped surface — assets, vulnerabilities, misconfigurations.', here:'The code-security review below (7 findings, all XSS/data-integrity) — a point-in-time pass, not a running scanner.'},
+  {n:3, label:'Prioritization', desc:'Rank discovered exposures by real exploitability and business impact, not raw severity.', here:'Findings are tagged High/Medium by exploitability (stored XSS reaching other users\' sessions vs. a narrower data-integrity bug).'},
+  {n:4, label:'Validation', desc:'Confirm an exposure is real and that the fix actually closes it, before calling it done.', here:'Each finding was independently re-verified against a false-positive checklist, then confirmed fixed via targeted payload-injection tests.'},
+  {n:5, label:'Mobilization', desc:'Route validated findings to the owners who fix them, and track it through to closure.', here:'Not yet formalized — fixes shipped directly in this session\'s own commits; no ticketing/ownership workflow exists yet.'}
 ];
 const SECURITY_FINDINGS = [
   {severity:'High', category:'stored xss', location:'admin catalog fields', description:'Catalog code/description/brand rendered unescaped in the datalist, Admin table, Dashboard, Material Tracker and Approvals.'},
@@ -1364,29 +1441,29 @@ const SECURITY_FINDINGS = [
   {severity:'Medium', category:'attribute-breakout xss', location:'admin brand-tab onclick', description:'Brand name only had single-quotes escaped against a double-quote-delimited attribute, allowing a new event handler to be injected.'},
   {severity:'Medium', category:'data integrity', location:'renderDocument() self-publish', description:'String.replace() with a dynamic replacement string honors $`/$\' patterns even against a plain-string search, risking corruption of the shared published state.'}
 ];
+let chainVerifyState = null; // null = not yet checked, else {valid, brokenAt, total}
 function renderSecurity(){
-  const allEvents = [];
-  DATA.quotations.forEach(q=>{
-    (q.auditLog||[]).forEach(a=>allEvents.push({ref:quoteRef(q), who:a.who, action:a.action, at:a.at}));
-  });
-  allEvents.sort((a,b)=>new Date(b.at)-new Date(a.at));
+  const chain = (DATA.securityChain||[]).slice().reverse(); // newest first
 
-  const filterSel = document.getElementById('secAuditFilter');
-  if(filterSel.options.length<=1){
-    const actors = [...new Set(allEvents.map(e=>e.who))].sort();
-    actors.forEach(a=>filterSel.add(new Option(a,a)));
-    filterSel.onchange = renderSecurity;
+  const actorSel = document.getElementById('secAuditFilterActor');
+  if(actorSel.options.length<=1){
+    const actors = [...new Set((DATA.securityChain||[]).map(e=>e.actor))].sort();
+    actors.forEach(a=>actorSel.add(new Option(a,a)));
+    actorSel.onchange = renderSecurity;
   }
-  const fActor = filterSel.value;
-  const events = fActor ? allEvents.filter(e=>e.who===fActor) : allEvents;
+  const actionInput = document.getElementById('secAuditFilterAction');
+  actionInput.oninput = ()=>renderSecurity();
+  const fActor = actorSel.value;
+  const fAction = actionInput.value.trim().toLowerCase();
+  const events = chain.filter(e=>(!fActor || e.actor===fActor) && (!fAction || e.action.toLowerCase().includes(fAction)));
 
   const highCount = SECURITY_FINDINGS.filter(f=>f.severity==='High').length;
   const medCount = SECURITY_FINDINGS.filter(f=>f.severity==='Medium').length;
   document.getElementById('securityKpiStrip').innerHTML = [
-    {label:'Audit events logged', value:allEvents.length, sub:'across every quotation, live', cls:''},
+    {label:'Chain records', value:(DATA.securityChain||[]).length, sub:'hash-linked, append-only', cls:''},
     {label:'Findings found & fixed', value:SECURITY_FINDINGS.length, sub:`${highCount} high · ${medCount} medium`, cls:'green'},
     {label:'Open findings', value:0, sub:'all fixed and shipped', cls:'green'},
-    {label:'PII fields in scope', value:8, sub:'not yet masked', cls:'amber'}
+    {label:'Chain integrity', value:chainVerifyState===null?'—':(chainVerifyState.valid?'Valid':'BROKEN'), sub:chainVerifyState===null?'click Re-verify below':(chainVerifyState.valid?'re-hashed and matched, record 1 to '+chainVerifyState.total:'mismatch at seq '+chainVerifyState.brokenAt), cls:chainVerifyState===null?'amber':(chainVerifyState.valid?'green':'')}
   ].map(k=>`<div class="kpi-card"><div class="label">${k.label}</div><div class="value ${k.cls}">${k.value}</div><div class="subtext">${k.sub}</div></div>`).join('');
 
   document.getElementById('trismGrid').innerHTML = TRISM_PILLARS.map(t=>`
@@ -1396,9 +1473,27 @@ function renderSecurity(){
       <div class="t-here">Where this system stands: <b>${t.here}</b></div>
     </div>`).join('');
 
+  document.getElementById('ctemGrid').innerHTML = CTEM_LIFECYCLE.map(c=>`
+    <div class="trism-card">
+      <div class="t-label">${c.n}. ${c.label}</div>
+      <div class="t-desc">${c.desc}</div>
+      <div class="t-here">Where this system stands: <b>${esc(c.here)}</b></div>
+    </div>`).join('');
+
+  const chainBadge = chainVerifyState===null
+    ? `<span class="status-pill status-Under-Negotiation">Not yet checked</span>`
+    : chainVerifyState.valid
+      ? `<span class="status-pill status-Fixed">✓ Valid</span>`
+      : `<span class="status-pill status-Lost">✗ Broken at seq ${chainVerifyState.brokenAt}</span>`;
+  document.getElementById('chainIntegrityPanel').innerHTML = `
+    ${chainBadge}
+    <span class="mono" style="color:var(--ink-faint);font-size:12px;">${(DATA.securityChain||[]).length} records, last seq ${(DATA.securityChain||[]).length}</span>
+    <button class="btn" style="margin-left:auto;" onclick="reverifyChain()">Re-verify</button>
+  `;
+
   document.getElementById('securityAuditTable').innerHTML = events.length ? events.slice(0,200).map(e=>`
-    <tr><td class="mono">${esc(e.ref)}</td><td class="who" style="color:var(--brand);">${esc(e.who)}</td><td>${esc(e.action)}</td><td class="mono">${new Date(e.at).toLocaleString('en-AE')}</td></tr>
-  `).join('') : `<tr><td colspan="4" class="empty-state">No audit events yet.</td></tr>`;
+    <tr><td class="mono">${e.seq}</td><td class="mono">${new Date(e.at).toLocaleString('en-AE')}</td><td class="who" style="color:var(--brand);">${esc(e.actor)}</td><td>${esc(e.action)}</td><td class="mono">${esc(e.resource)}</td><td><span class="status-pill status-Fixed">${esc(e.outcome)}</span></td><td class="mono" style="color:var(--ink-faint);" title="${esc(e.hash)}">${esc(e.hash.slice(0,10))}…</td></tr>
+  `).join('') : `<tr><td colspan="7" class="empty-state">No audit events yet.</td></tr>`;
 
   document.getElementById('securityFindingsTable').innerHTML = SECURITY_FINDINGS.map(f=>`
     <tr>
@@ -1408,6 +1503,11 @@ function renderSecurity(){
       <td class="mono">${f.location}</td>
       <td>${f.description}</td>
     </tr>`).join('');
+}
+async function reverifyChain(){
+  document.getElementById('chainIntegrityPanel').innerHTML = `<span class="status-pill status-Under-Negotiation">Re-hashing every record…</span>`;
+  chainVerifyState = await verifyChainIntegrity();
+  renderSecurity();
 }
 
 /* ============================= BUILDER ============================= */
