@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BMTC Submittal Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -12,8 +15,8 @@
 <body>
 
 <div class="topbar">
-    <div class="brand">BMTC <span>Submittal</span> Generator</div>
-    <div class="version">v6 — 2026</div>
+    <div class="brand"><span class="brand-mark">B</span>BMTC <span>Submittal</span> Generator</div>
+    <div class="version">v7 — 2026</div>
 </div>
 
 <div class="tab-nav">
@@ -143,10 +146,6 @@
         <div class="onedrive-card">
             <h3>☁️ OneDrive Integration <span class="required-tag">PENDING SETUP</span></h3>
             <p>Connect to your company OneDrive to automatically pull files by Brand or BOQ into your submittal folders.</p>
-            <div class="onedrive-status">
-                <div class="status-dot pending"></div>
-                <span>Awaiting Azure App Registration from IT Admin</span>
-            </div>
             <ul class="onedrive-info-list">
                 <li>Pull files by Brand — select BAHRA, MK, Barton → files imported automatically into matching folders</li>
                 <li>Pull files by BOQ — upload BOQ Excel → system reads items and fetches matching documents from OneDrive</li>
