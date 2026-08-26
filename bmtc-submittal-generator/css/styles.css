@@ -216,7 +216,6 @@ body {
 
 body.printing-active .tab-nav,
 body.printing-active .topbar,
-body.printing-active .apikey-card,
 body.printing-active #generator-view .section-card,
 body.printing-active #generator-view .action-bar,
 body.printing-active #folder-preview-section,
@@ -230,7 +229,6 @@ body.printing-active #document-preview { display: block !important; margin: 0; }
     .page { margin: 0; box-shadow: none; page-break-after: always; width: 210mm; height: 297mm; }
     .tab-nav,
     .topbar,
-    .apikey-card,
     .section-card,
     .action-bar,
     #folder-preview-section,
