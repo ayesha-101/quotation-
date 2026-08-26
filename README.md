@@ -1,4 +1,15 @@
-# MindForge
+# quotation-
+
+This repo has two independent projects:
+
+- **[`bmtc-submittal-generator/`](bmtc-submittal-generator/)** — a static,
+  client-only web app for preparing BMTC material submittal packages
+  (cover page, index, folder ZIP export) and tracking their approval
+  status. See that folder's own README for details.
+- **MindForge** (this file, root of the repo) — a multi-LLM orchestration
+  CLI, described below.
+
+## MindForge
 
 A multi-LLM orchestration CLI. One task goes through four roles, each one a
 pluggable adapter over "each mind's" own CLI:

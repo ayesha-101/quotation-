@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMTC Submittal Generator</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="brand">BMTC <span>Submittal</span> Generator</div>
+    <div class="version">v6 — 2026</div>
+</div>
+
+<div class="tab-nav">
+    <button id="tab-ai" class="active">🤖 Agent</button>
+    <button id="tab-generator">⚙️ Generator</button>
+    <button id="tab-tracker">📋 Submittal Tracker</button>
+</div>
+
+<div class="container">
+
+    <!-- ═══════════════════════════════════════ API KEY CARD (all views) ═══ -->
+    <div class="apikey-card">
+        <h3>🔑 Claude API Key <span id="apikey-status" class="apikey-status"><span class="dot"></span><span id="apikey-status-text">Not set</span></span></h3>
+        <div class="apikey-row">
+            <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-...">
+            <button class="btn btn-ghost btn-sm" id="toggleApiKeyVisibility">👁️ Show</button>
+            <button class="btn btn-primary btn-sm" id="saveApiKeyBtn">💾 Save Key</button>
+            <button class="btn btn-danger btn-sm" id="clearApiKeyBtn">🗑️ Remove</button>
+        </div>
+        <p class="apikey-note">Required for the Agent to work (reading images, generating the index, chat). The key is stored only in your browser (localStorage) and goes straight to Anthropic — nowhere else. Don't share this file with anyone while the key is saved in it.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════ GENERATOR VIEW ═══ -->
+    <div id="generator-view" class="view-content">
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <span class="action-bar-title">BUILD & EXPORT</span>
+            <button class="btn btn-success" id="generateBtn">⚡ Generate Document</button>
+            <button class="btn btn-primary" id="printBtn">🖨️ Print to PDF</button>
+            <button class="btn btn-accent" id="downloadZipBtn" disabled title="Generate document first">📦 Download Folders as ZIP</button>
+        </div>
+
+        <!-- 1. Project Details -->
+        <div class="section-card">
+            <h2>Project & Cover Details</h2>
+            <div class="form-grid">
+                <div class="field"><label>Material Name</label><input type="text" id="materialName" value="G.I. CONDUITS & ACCESSORIES"></div>
+                <div class="field"><label>Brand Name</label><input type="text" id="brandName" value="BMTC"></div>
+                <div class="field"><label>Submittal Ref.</label>
+                    <div class="input-row"><input type="text" id="submittalRef" value=""><button id="incrementRefBtn" class="btn btn-ghost btn-sm" title="Increment number">+1</button></div>
+                </div>
+                <div class="field"><label>Brand / Manufacturer Logo</label>
+                    <div class="file-upload-row"><label for="brandLogoInput" class="file-btn">Choose File</label><span id="brandLogoFilename" class="file-name">No file chosen</span><input type="file" id="brandLogoInput" accept="image/*"></div>
+                </div>
+                <div class="field"><label>Project</label><input type="text" id="projectName" value="SAAD TOWER, ABU DHABI"></div>
+                <div class="field removable-field">
+                    <div class="label-row"><label>Client</label><button class="btn-icon remove-btn">🗑️</button></div>
+                    <input type="text" id="employerName" value="">
+                </div>
+                <div class="field removable-field">
+                    <div class="label-row"><label>Consultant</label><button class="btn-icon remove-btn">🗑️</button></div>
+                    <input type="text" id="consultantName" value="POOLENG ARCHITECTURE & ENGINEERING CONSULTANTS L.L.C">
+                </div>
+                <div class="field removable-field">
+                    <div class="label-row"><label>Main Contractor</label><button class="btn-icon remove-btn">🗑️</button></div>
+                    <input type="text" id="mainContractor" value="">
+                </div>
+                <div class="field removable-field">
+                    <div class="label-row"><label>MEP Contractor</label><button class="btn-icon remove-btn">🗑️</button></div>
+                    <input type="text" id="mepContractor" value="">
+                </div>
+            </div>
+            <div id="customFieldsContainer"></div>
+            <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+                <button id="addFieldBtn" class="btn btn-teal btn-sm">+ Custom Field</button>
+                <button id="restoreFieldsBtn">↩ Restore Fields</button>
+            </div>
+        </div>
+
+        <!-- 2. Submitter Details -->
+        <div class="section-card">
+            <h2>Your Company Details</h2>
+            <div class="form-grid">
+                <div class="field"><label>Salesman Name (for tracker)</label><input type="text" id="salesmanName" value=""></div>
+                <div class="field"><label>Company Logo</label>
+                    <div class="file-upload-row"><label for="logoFileInput" class="file-btn">Choose File</label><span id="logoFilename" class="file-name">No file chosen</span><input type="file" id="logoFileInput" accept="image/*"></div>
+                </div>
+                <div class="field"><label>Tagline / Slogan</label><input type="text" id="submitterTagline" value="ELECTRICAL SOLUTIONS"></div>
+                <div class="field"><label>Address</label><input type="text" id="submitterAddress" value="PO BOX 72901, ABU DHABI, UNITED ARAB EMIRATES"></div>
+                <div class="field"><label>Telephone</label><input type="text" id="submitterTel" value="+ 971 2 550 6700"></div>
+                <div class="field"><label>Fax</label><input type="text" id="submitterFax" value="+ 971 4 266 4627"></div>
+                <div class="field"><label>Website</label><input type="text" id="submitterWeb" value="www.bmtc.ae"></div>
+                <div class="field"><label>Email</label><input type="text" id="submitterEmail" value="info@bmtc.ae"></div>
+            </div>
+        </div>
+
+        <!-- 3. Index / Folder Structure -->
+        <div class="section-card">
+            <h2>Table of Contents & Folder Structure</h2>
+            <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                <button id="addIndexItemBtn" class="btn btn-primary btn-sm">➕ Add Item</button>
+            </div>
+            <div id="index-items-container"></div>
+
+            <div style="margin-top:18px; padding-top:18px; border-top:1px solid var(--border);">
+                <div class="field">
+                    <label>Quick Add (one item per line)</label>
+                    <textarea id="quickAddList" placeholder="Compliance Statement&#10;Project Specification&#10;Test Certificates&#10;Catalogue Pages"></textarea>
+                </div>
+                <button id="addFromListBtn" class="btn btn-teal btn-sm" style="margin-top:10px;">Add From List</button>
+            </div>
+
+            <div style="margin-top:18px; padding-top:18px; border-top:1px solid var(--border);">
+                <div class="field">
+                    <label>Or Read From a File (Custom Table of Contents)</label>
+                    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Upload an image or PDF of your custom index/table of contents and it will be read automatically and added below — no need to retype it.</p>
+                    <div class="file-upload-row">
+                        <input type="file" id="indexFileInput" accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.pdf,image/*,application/pdf" style="display:none;">
+                        <label for="indexFileInput" class="file-btn" id="indexFileBtnLabel">📎 Choose Image / PDF</label>
+                        <span id="indexFileFilename" class="file-name">No file chosen</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Folder Preview -->
+        <div id="folder-preview-section" class="section-card">
+            <h2>📁 Folder Structure Preview</h2>
+            <div class="folder-tree" id="folder-tree-display"></div>
+            <div style="margin-top:14px;">
+                <button class="btn btn-accent" id="downloadZipBtn2">📦 Download as ZIP</button>
+            </div>
+        </div>
+
+        <!-- 5. OneDrive Integration (Future) -->
+        <div class="onedrive-card">
+            <h3>☁️ OneDrive Integration <span class="required-tag">PENDING SETUP</span></h3>
+            <p>Connect to your company OneDrive to automatically pull files by Brand or BOQ into your submittal folders.</p>
+            <div class="onedrive-status">
+                <div class="status-dot pending"></div>
+                <span>Awaiting Azure App Registration from IT Admin</span>
+            </div>
+            <ul class="onedrive-info-list">
+                <li>Pull files by Brand — select BAHRA, MK, Barton → files imported automatically into matching folders</li>
+                <li>Pull files by BOQ — upload BOQ Excel → system reads items and fetches matching documents from OneDrive</li>
+                <li>Requires: Azure App ID, Tenant ID, and OneDrive folder permissions from your IT Admin (Haroon)</li>
+            </ul>
+        </div>
+
+        <!-- Document Preview -->
+        <div id="document-preview"></div>
+
+    </div><!-- /generator-view -->
+
+
+    <!-- ═══════════════════════════════════════ AGENT VIEW ═══ -->
+    <div id="ai-view" class="view-content active">
+
+        <div class="agent-shell">
+            <!-- Pinned logo slots -->
+            <div class="agent-logos">
+                <div class="agent-logo-slot">
+                    <label for="agentBrandLogoInput" class="agent-logo-btn">
+                        <span id="agentBrandLogoPreviewWrap" class="agent-logo-preview-wrap"><span id="agentBrandLogoIcon">🏷️</span><img id="agentBrandLogoPreview" style="display:none;"></span>
+                        <span class="agent-logo-text">Brand Logo<br><small id="agentBrandLogoName">Click to upload</small></span>
+                    </label>
+                    <input type="file" id="agentBrandLogoInput" accept="image/*" style="display:none;">
+                </div>
+                <div class="agent-logo-slot">
+                    <label for="agentCompanyLogoInput" class="agent-logo-btn">
+                        <span id="agentCompanyLogoPreviewWrap" class="agent-logo-preview-wrap"><span id="agentCompanyLogoIcon">🏢</span><img id="agentCompanyLogoPreview" style="display:none;"></span>
+                        <span class="agent-logo-text">Company Logo<br><small id="agentCompanyLogoName">Click to upload</small></span>
+                    </label>
+                    <input type="file" id="agentCompanyLogoInput" accept="image/*" style="display:none;">
+                </div>
+            </div>
+
+            <!-- Chat transcript -->
+            <div class="agent-chat" id="agentChat">
+                <div class="agent-msg agent-msg-bot">
+                    <div class="agent-avatar">🤖</div>
+                    <div class="agent-bubble">
+                        Hi! I'm BMTC's Submittal preparation agent.<br><br>
+                        Just tell me what you need — for example: <i>"Prepare a general submittal for Saad Tower project, brand Barton, material GI Conduits"</i> — and I'll handle everything: fill in the fields, build the index, put together the cover page, and generate the finished file + ZIP folders.<br><br>
+                        If you have the brand logo or our company logo, upload them above ↑ and I'll drop them into the document automatically.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading indicator -->
+            <div class="agent-typing" id="agentTyping" style="display:none;">
+                <div class="agent-avatar">🤖</div>
+                <div class="agent-typing-dots"><span></span><span></span><span></span></div>
+            </div>
+
+            <!-- Attachment preview (shown once a file is selected) -->
+            <div class="agent-attachment-chip" id="agentAttachmentChip" style="display:none;">
+                <span class="chip-icon" id="agentAttachmentIcon">📎</span>
+                <span class="chip-name" id="agentAttachmentName"></span>
+                <button class="chip-remove" id="agentAttachmentRemove" title="Remove attachment">✕</button>
+            </div>
+
+            <!-- Input row -->
+            <div class="agent-input-row">
+                <input type="file" id="agentFileInput" accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.pdf,image/*,application/pdf" style="display:none;">
+                <button class="agent-attach-btn" id="agentAttachBtn" title="Attach a catalogue image or PDF">📎</button>
+                <textarea id="agentInput" class="agent-input" placeholder="Type your request here... e.g. Prepare a general submittal for project X, brand Y" rows="1"></textarea>
+                <button class="btn btn-success" id="agentSendBtn" style="padding:12px 22px;">➤ Send</button>
+            </div>
+            <div class="agent-hint">Enter to send · Shift+Enter for a new line · 📎 to attach a catalogue image or PDF so I can read it. The agent uses the API key saved above.</div>
+        </div>
+
+    </div><!-- /ai-view -->
+
+
+    <!-- ═══════════════════════════════════════ TRACKER VIEW ═══ -->
+    <div id="tracker-view" class="view-content">
+        <div class="section-card">
+            <h2>Submittal Tracker</h2>
+            <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+                <button id="clearTrackerBtn" class="btn btn-danger btn-sm">🗑️ Clear All</button>
+                <button id="exportTrackerBtn" class="btn btn-ghost btn-sm">📊 Export Excel</button>
+            </div>
+            <div class="tracker-table-wrap">
+                <table class="tracker-table">
+                    <thead>
+                        <tr>
+                            <th>Salesman</th>
+                            <th>Date</th>
+                            <th>Ref. No.</th>
+                            <th>Material</th>
+                            <th>Brand</th>
+                            <th>Contractor</th>
+                            <th>Consultant</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                            <th>Remark</th>
+                            <th style="min-width:50px;">Del</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tracker-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /container -->
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
