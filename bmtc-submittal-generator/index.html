@@ -11,36 +11,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
 <div class="topbar">
     <div class="brand"><span class="brand-mark">B</span>BMTC <span>Submittal</span> Generator</div>
-    <div class="version">v7 — 2026</div>
+    <div class="version">v8 — 2026</div>
 </div>
 
 <div class="tab-nav">
-    <button id="tab-ai" class="active">🤖 Agent</button>
-    <button id="tab-generator">⚙️ Generator</button>
+    <button id="tab-generator" class="active">⚙️ Generator</button>
     <button id="tab-tracker">📋 Submittal Tracker</button>
 </div>
 
 <div class="container">
 
-    <!-- ═══════════════════════════════════════ API KEY CARD (all views) ═══ -->
-    <div class="apikey-card">
-        <h3>🔑 Claude API Key <span id="apikey-status" class="apikey-status"><span class="dot"></span><span id="apikey-status-text">Not set</span></span></h3>
-        <div class="apikey-row">
-            <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-...">
-            <button class="btn btn-ghost btn-sm" id="toggleApiKeyVisibility">👁️ Show</button>
-            <button class="btn btn-primary btn-sm" id="saveApiKeyBtn">💾 Save Key</button>
-            <button class="btn btn-danger btn-sm" id="clearApiKeyBtn">🗑️ Remove</button>
-        </div>
-        <p class="apikey-note">Required for the Agent to work (reading images, generating the index, chat). The key is stored only in your browser (localStorage) and goes straight to Anthropic — nowhere else. Don't share this file with anyone while the key is saved in it.</p>
-    </div>
-
     <!-- ═══════════════════════════════════════ GENERATOR VIEW ═══ -->
-    <div id="generator-view" class="view-content">
+    <div id="generator-view" class="view-content active">
 
         <!-- Action Bar -->
         <div class="action-bar">
@@ -109,6 +98,7 @@
             <h2>Table of Contents & Folder Structure</h2>
             <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
                 <button id="addIndexItemBtn" class="btn btn-primary btn-sm">➕ Add Item</button>
+                <button id="useStandardIndexBtn" class="btn btn-ghost btn-sm">📑 Use Standard Index (11 items)</button>
             </div>
             <div id="index-items-container"></div>
 
@@ -122,13 +112,14 @@
 
             <div style="margin-top:18px; padding-top:18px; border-top:1px solid var(--border);">
                 <div class="field">
-                    <label>Or Read From a File (Custom Table of Contents)</label>
-                    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Upload an image or PDF of your custom index/table of contents and it will be read automatically and added below — no need to retype it.</p>
+                    <label>Or Scan From a File (Custom Table of Contents)</label>
+                    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">Upload a photo/scan or a PDF of your custom index/table of contents — it's read locally in your browser (OCR for images, text extraction for PDFs) and added below. No account or internet service is involved.</p>
                     <div class="file-upload-row">
                         <input type="file" id="indexFileInput" accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.pdf,image/*,application/pdf" style="display:none;">
                         <label for="indexFileInput" class="file-btn" id="indexFileBtnLabel">📎 Choose Image / PDF</label>
                         <span id="indexFileFilename" class="file-name">No file chosen</span>
                     </div>
+                    <div id="indexScanStatus" class="scan-status"></div>
                 </div>
             </div>
         </div>
@@ -157,66 +148,6 @@
         <div id="document-preview"></div>
 
     </div><!-- /generator-view -->
-
-
-    <!-- ═══════════════════════════════════════ AGENT VIEW ═══ -->
-    <div id="ai-view" class="view-content active">
-
-        <div class="agent-shell">
-            <!-- Pinned logo slots -->
-            <div class="agent-logos">
-                <div class="agent-logo-slot">
-                    <label for="agentBrandLogoInput" class="agent-logo-btn">
-                        <span id="agentBrandLogoPreviewWrap" class="agent-logo-preview-wrap"><span id="agentBrandLogoIcon">🏷️</span><img id="agentBrandLogoPreview" style="display:none;"></span>
-                        <span class="agent-logo-text">Brand Logo<br><small id="agentBrandLogoName">Click to upload</small></span>
-                    </label>
-                    <input type="file" id="agentBrandLogoInput" accept="image/*" style="display:none;">
-                </div>
-                <div class="agent-logo-slot">
-                    <label for="agentCompanyLogoInput" class="agent-logo-btn">
-                        <span id="agentCompanyLogoPreviewWrap" class="agent-logo-preview-wrap"><span id="agentCompanyLogoIcon">🏢</span><img id="agentCompanyLogoPreview" style="display:none;"></span>
-                        <span class="agent-logo-text">Company Logo<br><small id="agentCompanyLogoName">Click to upload</small></span>
-                    </label>
-                    <input type="file" id="agentCompanyLogoInput" accept="image/*" style="display:none;">
-                </div>
-            </div>
-
-            <!-- Chat transcript -->
-            <div class="agent-chat" id="agentChat">
-                <div class="agent-msg agent-msg-bot">
-                    <div class="agent-avatar">🤖</div>
-                    <div class="agent-bubble">
-                        Hi! I'm BMTC's Submittal preparation agent.<br><br>
-                        Just tell me what you need — for example: <i>"Prepare a general submittal for Saad Tower project, brand Barton, material GI Conduits"</i> — and I'll handle everything: fill in the fields, build the index, put together the cover page, and generate the finished file + ZIP folders.<br><br>
-                        If you have the brand logo or our company logo, upload them above ↑ and I'll drop them into the document automatically.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Loading indicator -->
-            <div class="agent-typing" id="agentTyping" style="display:none;">
-                <div class="agent-avatar">🤖</div>
-                <div class="agent-typing-dots"><span></span><span></span><span></span></div>
-            </div>
-
-            <!-- Attachment preview (shown once a file is selected) -->
-            <div class="agent-attachment-chip" id="agentAttachmentChip" style="display:none;">
-                <span class="chip-icon" id="agentAttachmentIcon">📎</span>
-                <span class="chip-name" id="agentAttachmentName"></span>
-                <button class="chip-remove" id="agentAttachmentRemove" title="Remove attachment">✕</button>
-            </div>
-
-            <!-- Input row -->
-            <div class="agent-input-row">
-                <input type="file" id="agentFileInput" accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.pdf,image/*,application/pdf" style="display:none;">
-                <button class="agent-attach-btn" id="agentAttachBtn" title="Attach a catalogue image or PDF">📎</button>
-                <textarea id="agentInput" class="agent-input" placeholder="Type your request here... e.g. Prepare a general submittal for project X, brand Y" rows="1"></textarea>
-                <button class="btn btn-success" id="agentSendBtn" style="padding:12px 22px;">➤ Send</button>
-            </div>
-            <div class="agent-hint">Enter to send · Shift+Enter for a new line · 📎 to attach a catalogue image or PDF so I can read it. The agent uses the API key saved above.</div>
-        </div>
-
-    </div><!-- /ai-view -->
 
 
     <!-- ═══════════════════════════════════════ TRACKER VIEW ═══ -->

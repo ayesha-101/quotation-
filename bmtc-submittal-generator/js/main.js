@@ -1,5 +1,4 @@
 import { state } from './state.js';
-import { setupApiKeyUI } from './api.js';
 import { setupFileInput } from './utils.js';
 import { setupTabs } from './tabs.js';
 import { setupFieldControls } from './fields.js';
@@ -9,7 +8,6 @@ import { showFolderPreview } from './folderPreview.js';
 import { setupZipBtn } from './zip.js';
 import { setupPrint } from './print.js';
 import { loadTracker, renderTracker, setupTrackerEvents, addToTracker } from './tracker.js';
-import { setupAgentView } from './agent.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const now = new Date();
@@ -21,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFileInput('brandLogoInput', 'brandLogoFilename', url => state.brandLogoDataUrl = url);
     setupFileInput('logoFileInput', 'logoFilename', url => state.logoDataUrl = url);
 
-    setupApiKeyUI();
     loadTracker();
     renderTracker();
     setupTabs();
@@ -30,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFieldControls();
     setupIndexControls();
     setupZipBtn();
-    setupAgentView();
 
     document.getElementById('generateBtn').addEventListener('click', () => {
         generateDocument();

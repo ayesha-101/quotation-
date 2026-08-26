@@ -1,8 +1,11 @@
-import { state } from './state.js';
-import { callClaude, requireApiKey } from './api.js';
+import { state, GENERAL_INDEX } from './state.js';
+import { extractIndexItemsFromFile } from './ocr.js';
 
 export function setupIndexControls() {
     document.getElementById('addIndexItemBtn').addEventListener('click', () => addIndexItem());
+    document.getElementById('useStandardIndexBtn').addEventListener('click', () => {
+        GENERAL_INDEX.forEach(item => addIndexItem(item));
+    });
     document.getElementById('addFromListBtn').addEventListener('click', () => {
         const lines = document.getElementById('quickAddList').value.trim().split('\n').filter(Boolean);
         lines.forEach(l => addIndexItem(l.trim()));
@@ -37,6 +40,8 @@ async function handleIndexFileUpload(e) {
 
     const isPdf = file.type === 'application/pdf';
     const isImage = file.type.startsWith('image/');
+    const statusEl = document.getElementById('indexScanStatus');
+
     if (!isPdf && !isImage) {
         alert('Please choose an image (JPG/PNG) or a PDF file.');
         e.target.value = '';
@@ -49,64 +54,31 @@ async function handleIndexFileUpload(e) {
         return;
     }
 
-    const apiKey = requireApiKey();
-    if (!apiKey) { e.target.value = ''; return; }
-
     const filenameSpan = document.getElementById('indexFileFilename');
     const btnLabel = document.getElementById('indexFileBtnLabel');
     const originalLabel = btnLabel.textContent;
     filenameSpan.textContent = file.name;
-    btnLabel.textContent = '⏳ Reading...';
     btnLabel.style.pointerEvents = 'none';
+    statusEl.className = 'scan-status busy';
 
     try {
-        const base64 = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = ev => resolve(ev.target.result.split(',')[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
+        const items = await extractIndexItemsFromFile(file, percent => {
+            btnLabel.textContent = `🔎 Scanning...`;
+            statusEl.textContent = `Reading locally in your browser… ${percent}%`;
         });
-
-        const fileBlock = isPdf
-            ? { type: 'document', source: { type: 'base64', media_type: file.type, data: base64 } }
-            : { type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } };
-
-        const data = await callClaude({
-            max_tokens: 1000,
-            system: 'You extract table-of-contents / index lists from documents for a submittal preparation tool. Read the attached file and call the extract_index_items tool with the list of item titles, in the same order as shown in the file, with any leading numbering stripped and the wording preserved as written.',
-            messages: [{
-                role: 'user',
-                content: [fileBlock, { type: 'text', text: 'Extract the table of contents / index items from this file, in order.' }]
-            }],
-            tools: [{
-                name: 'extract_index_items',
-                description: 'Return the extracted table-of-contents / index items, in order.',
-                input_schema: {
-                    type: 'object',
-                    properties: {
-                        items: {
-                            type: 'array', items: { type: 'string' },
-                            description: 'Ordered list of index item titles, with leading numbers stripped.'
-                        }
-                    },
-                    required: ['items']
-                }
-            }],
-            tool_choice: { type: 'tool', name: 'extract_index_items' }
-        });
-
-        const toolUse = (data.content || []).find(b => b.type === 'tool_use' && b.name === 'extract_index_items');
-        const items = (toolUse && Array.isArray(toolUse.input.items)) ? toolUse.input.items.map(s => String(s).trim()).filter(Boolean) : [];
 
         if (items.length === 0) {
-            alert('⚠️ Could not find a table of contents / index list in this file. Please check the file or add items manually.');
+            statusEl.className = 'scan-status error';
+            statusEl.textContent = 'Could not find a readable table of contents in this file. Try a clearer photo or add items manually.';
         } else {
             document.getElementById('index-items-container').innerHTML = '';
             items.forEach(item => addIndexItem(item));
-            alert(`✅ Added ${items.length} item(s) read from "${file.name}".`);
+            statusEl.className = 'scan-status';
+            statusEl.textContent = `✅ Added ${items.length} item(s) read from "${file.name}".`;
         }
     } catch (err) {
-        // callClaude already shows an alert for API/auth errors
+        statusEl.className = 'scan-status error';
+        statusEl.textContent = 'Could not read this file. Try a clearer image or a different PDF.';
     } finally {
         btnLabel.textContent = originalLabel;
         btnLabel.style.pointerEvents = '';
