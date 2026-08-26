@@ -460,6 +460,7 @@
       <div class="section-title"><span class="tick" style="background:var(--amber);"></span>Not built yet — needs the real backend</div>
       <ul style="margin:10px 0 0;padding-left:18px;color:var(--ink-dim);font-size:13px;line-height:1.8;">
         <li><b style="color:var(--ink);">Snyk MCP.</b> Scans dependencies for known vulnerabilities. This app has none today (single static file, no packages) — becomes essential once the real backend has a package.json.</li>
+        <li><b style="color:var(--ink);">Malware scanning on uploaded customer LPO files.</b> Snyk does not cover this — it scans source code and dependencies, not arbitrary uploaded documents. Today the customer LPO upload keeps only the filename and size as an audit record; the file's actual bytes are never stored or transmitted, specifically because there is no backend yet to safely receive and scan them. A real deployment needs a proper file-scanning service (e.g. ClamAV or VirusTotal) sitting behind the upload endpoint, quarantining any file until it's confirmed clean before it touches storage.</li>
         <li><b style="color:var(--ink);">PII masking.</b> Customer names and contacts flow unmasked through this audit log and any export. Apply masking at the point data leaves the system — logs, exports, and the Zoho/SAP integration layer.</li>
         <li><b style="color:var(--ink);">Continuous monitoring.</b> This review is a point-in-time snapshot. A real deployment re-runs it on every change (CI-gated), not on request.</li>
       </ul>
