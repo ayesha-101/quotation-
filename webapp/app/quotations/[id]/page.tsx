@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
 import LpoMatchForm from "./lpo-match-form";
 import FlagStatusButtons from "./flag-status-buttons";
+import ReviseForm from "./revise-form";
 
 function fmtMoney(n: number): string {
   return "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -32,6 +33,7 @@ export default async function QuotationDetailPage({
       lines: { orderBy: { position: "asc" } },
       auditLog: { orderBy: { at: "asc" } },
       approvals: { orderBy: { requestedAt: "desc" }, include: { decidedBy: true } },
+      revisions: { orderBy: { revision: "desc" } },
     },
   });
   if (!q) notFound();
@@ -39,6 +41,10 @@ export default async function QuotationDetailPage({
   const isOpen = OPEN_STATUSES.includes(q.status);
   const canConvert = canEditQuotes(user.role) && isOpen;
   const canFlag = user.role === "SALESMAN" && user.id === q.salesmanId && isOpen;
+  const canRevise = canEditQuotes(user.role) && ["QUOTED", "UNDER_NEGOTIATION"].includes(q.status);
+  const catalog = canRevise
+    ? await prisma.catalogItem.findMany({ orderBy: [{ brand: "asc" }, { code: "asc" }] })
+    : [];
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: "60px 24px" }}>
@@ -77,9 +83,31 @@ export default async function QuotationDetailPage({
         </div>
       )}
 
-      {(canConvert || canFlag) && (
+      {(canConvert || canFlag || canRevise) && (
         <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
           {canConvert && <LpoMatchForm quotationId={q.id} lines={q.lines} />}
+          {canRevise && (
+            <ReviseForm
+              quotationId={q.id}
+              quoteNo={q.quoteNo}
+              currentRevision={q.revision}
+              currentValue={q.quoteValue}
+              initialLines={q.lines.map((l) => ({
+                code: l.code,
+                description: l.description,
+                brand: l.brand,
+                uom: l.uom,
+                qty: l.qty,
+                speDiscPct: l.speDiscPct,
+                marginPct: l.marginPct,
+                unitLanded: l.unitLanded,
+                unitSell: l.unitSell,
+                lineTotal: l.lineTotal,
+                manual: l.manual,
+              }))}
+              catalog={catalog}
+            />
+          )}
           {canFlag && <FlagStatusButtons quotationId={q.id} />}
         </div>
       )}
@@ -155,6 +183,23 @@ export default async function QuotationDetailPage({
               {a.comment && <div style={{ color: "var(--ink-dim)", marginTop: 2 }}>&quot;{a.comment}&quot;</div>}
             </div>
           ))}
+        </div>
+      )}
+
+      {q.revisions.length > 0 && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h2 style={{ fontSize: 14, marginBottom: 12 }}>Revision history</h2>
+          <div className="audit-log">
+            {q.revisions.map((r) => (
+              <div key={r.id} style={{ marginBottom: 4 }}>
+                Revision <b>{r.revision === 0 ? "original" : `R${r.revision}`}</b> —{" "}
+                {fmtMoney(r.value)}{" "}
+                <span style={{ color: "var(--ink-faint)" }}>
+                  (superseded {r.at.toLocaleDateString("en-AE")})
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

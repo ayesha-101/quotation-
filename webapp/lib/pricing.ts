@@ -65,3 +65,92 @@ export function gpTier(gp: number): "LINE_MANAGER" | "GM" | "CEO" {
   if (gp >= 5) return "GM";
   return "CEO";
 }
+
+export interface RawLineInput {
+  code?: string;
+  description?: string;
+  brand?: string;
+  uom?: string;
+  qty?: number;
+  speDiscPct?: number;
+  marginPct?: number;
+  unitSell?: number;
+}
+
+export interface ComputedLine {
+  code: string;
+  description: string;
+  brand: string;
+  uom: string;
+  qty: number;
+  speDiscPct: number;
+  marginPct: number;
+  unitLanded: number;
+  unitSell: number;
+  lineTotal: number;
+  manual: boolean;
+}
+
+export interface ComputedTotals {
+  quoteValue: number;
+  vat: number;
+  totalValue: number;
+  gp: number;
+}
+
+// Server-side authoritative recomputation, shared by quotation creation
+// and revision: given raw line inputs, the real catalog (keyed by
+// uppercased code), and the global pricing controls, resolve each line
+// against the catalog (or keep it manual if the code doesn't match) and
+// total everything up. Never trust client-computed pricing directly.
+export function computeQuotationLines(
+  rawLines: RawLineInput[],
+  catalogByCode: Map<string, CatalogPricingInput>,
+  ctl: PricingControls
+): { lines: ComputedLine[]; totals: ComputedTotals } {
+  const lines: ComputedLine[] = rawLines.map((l) => {
+    const cat = l.code ? catalogByCode.get(l.code.trim().toUpperCase()) : undefined;
+    const qty = Number.isFinite(l.qty) ? (l.qty as number) : 0;
+    const speDiscPct = Number.isFinite(l.speDiscPct) ? (l.speDiscPct as number) : 0;
+    const marginPct = Number.isFinite(l.marginPct) ? (l.marginPct as number) : DEFAULT_MARGIN_PCT;
+
+    if (cat) {
+      const p = computeLinePricing(cat, { speDiscPct, marginPct, ctl });
+      return {
+        code: l.code!.trim(),
+        description: l.description || "",
+        brand: l.brand || "",
+        uom: l.uom || "",
+        qty,
+        speDiscPct,
+        marginPct,
+        unitLanded: p.landedUnit,
+        unitSell: p.sellUnit,
+        lineTotal: round2(qty * p.sellUnit),
+        manual: false,
+      };
+    }
+    const unitSell = Number.isFinite(l.unitSell) ? (l.unitSell as number) : 0;
+    return {
+      code: l.code || "",
+      description: l.description || "",
+      brand: l.brand || "",
+      uom: l.uom || "",
+      qty,
+      speDiscPct,
+      marginPct,
+      unitLanded: 0,
+      unitSell,
+      lineTotal: round2(qty * unitSell),
+      manual: true,
+    };
+  });
+
+  const quoteValue = round2(lines.reduce((s, l) => s + l.lineTotal, 0));
+  const vat = round2(quoteValue * 0.05);
+  const totalValue = round2(quoteValue + vat);
+  const landedTotal = lines.reduce((s, l) => s + l.unitLanded * l.qty, 0);
+  const gp = quoteValue ? ((quoteValue - landedTotal) / quoteValue) * 100 : 0;
+
+  return { lines, totals: { quoteValue, vat, totalValue, gp } };
+}

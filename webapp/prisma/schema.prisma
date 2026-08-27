@@ -114,6 +114,19 @@ model Quotation {
   lines      QuotationLine[]
   auditLog   QuotationAuditEntry[]
   approvals  Approval[]
+  revisions  RevisionSnapshot[]
+}
+
+// A lightweight record of what a quotation's value was before each
+// revision superseded it — not a full line-item snapshot, just enough
+// for the "Revision history" list (mirrors the original Artifact).
+model RevisionSnapshot {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  revision    Int
+  value       Float
+  at          DateTime
 }
 
 model QuotationLine {

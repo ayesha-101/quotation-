@@ -5,12 +5,20 @@ import { requireUser } from "@/lib/auth-guard";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
-  computeLinePricing,
-  round2,
-  gpTier,
-  DEFAULT_MARGIN_PCT,
+  computeQuotationLines,
+  defaultPricingControls,
   type PricingControls,
+  type RawLineInput,
+  gpTier,
 } from "@/lib/pricing";
+import type { CatalogItem } from "@prisma/client";
+
+async function lookupCatalogByCode(codes: (string | undefined)[]): Promise<Map<string, CatalogItem>> {
+  const cleaned = codes.map((c) => c?.trim().toUpperCase()).filter((c): c is string => !!c);
+  if (cleaned.length === 0) return new Map();
+  const items = await prisma.catalogItem.findMany({ where: { code: { in: cleaned } } });
+  return new Map(items.map((c) => [c.code.toUpperCase(), c]));
+}
 
 export interface ActionResult {
   error?: string;
@@ -212,55 +220,9 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
 
   // Recompute pricing server-side from the real catalog — never trust the
   // client's numbers for anything that feeds GP/approval routing later.
-  const codes = nonEmpty.map((l) => l.code?.trim().toUpperCase()).filter(Boolean);
-  const catalogItems = codes.length
-    ? await prisma.catalogItem.findMany({ where: { code: { in: codes } } })
-    : [];
-  const catalogByCode = new Map(catalogItems.map((c) => [c.code.toUpperCase(), c]));
-
-  const computedLines = nonEmpty.map((l) => {
-    const cat = l.code ? catalogByCode.get(l.code.trim().toUpperCase()) : undefined;
-    const qty = Number.isFinite(l.qty) ? l.qty : 0;
-    const speDiscPct = Number.isFinite(l.speDiscPct) ? l.speDiscPct : 0;
-    const marginPct = Number.isFinite(l.marginPct) ? l.marginPct : DEFAULT_MARGIN_PCT;
-
-    if (cat) {
-      const p = computeLinePricing(cat, { speDiscPct, marginPct, ctl });
-      return {
-        code: cat.code,
-        description: cat.description,
-        brand: cat.brand,
-        uom: cat.uom,
-        qty,
-        speDiscPct,
-        marginPct,
-        unitLanded: p.landedUnit,
-        unitSell: p.sellUnit,
-        lineTotal: round2(qty * p.sellUnit),
-        manual: false,
-      };
-    }
-    const unitSell = Number.isFinite(l.unitSell) ? l.unitSell : 0;
-    return {
-      code: l.code || "",
-      description: l.description || "",
-      brand: l.brand || "",
-      uom: l.uom || "",
-      qty,
-      speDiscPct,
-      marginPct,
-      unitLanded: 0,
-      unitSell,
-      lineTotal: round2(qty * unitSell),
-      manual: true,
-    };
-  });
-
-  const quoteValue = round2(computedLines.reduce((s, l) => s + l.lineTotal, 0));
-  const vat = round2(quoteValue * 0.05);
-  const totalValue = round2(quoteValue + vat);
-  const landedTotal = computedLines.reduce((s, l) => s + l.unitLanded * l.qty, 0);
-  const gp = quoteValue ? ((quoteValue - landedTotal) / quoteValue) * 100 : 0;
+  const catalogByCode = await lookupCatalogByCode(nonEmpty.map((l) => l.code));
+  const { lines: computedLines, totals } = computeQuotationLines(nonEmpty, catalogByCode, ctl);
+  const { quoteValue, vat, totalValue, gp } = totals;
 
   const headerFieldNames = [
     "to",
@@ -318,4 +280,76 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
   });
 
   redirect(`/quotations/${quotationId}`);
+}
+
+const REVISABLE_STATUSES = ["QUOTED", "UNDER_NEGOTIATION"];
+
+export async function reviseQuotationAction(
+  quotationId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const user = await requireUser();
+  if (!canEditQuotes(user.role)) {
+    return { error: "Only the Admin or a Quotation Officer can revise a quotation." };
+  }
+
+  const quotation = await prisma.quotation.findUnique({ where: { id: quotationId } });
+  if (!quotation) return { error: "Quotation not found." };
+  if (!REVISABLE_STATUSES.includes(quotation.status)) {
+    return { error: "Only a Quoted or Under Negotiation quotation can be revised." };
+  }
+
+  let rawLines: RawLineInput[];
+  try {
+    rawLines = JSON.parse(String(formData.get("lines") || "[]"));
+  } catch {
+    return { error: "Malformed line items." };
+  }
+  const nonEmpty = rawLines.filter((l) => l.code || l.description);
+  if (nonEmpty.length === 0) {
+    return { error: "Add at least one line item." };
+  }
+
+  // Matches the original Artifact: revising recalculates against default
+  // (zeroed) global pricing controls, not whatever the quotation was
+  // originally saved with — each revision starts from a clean baseline.
+  const catalogByCode = await lookupCatalogByCode(nonEmpty.map((l) => l.code));
+  const { lines: computedLines, totals } = computeQuotationLines(
+    nonEmpty,
+    catalogByCode,
+    defaultPricingControls()
+  );
+
+  const nextRevision = quotation.revision + 1;
+
+  await prisma.$transaction([
+    prisma.revisionSnapshot.create({
+      data: {
+        quotationId,
+        revision: quotation.revision,
+        value: quotation.quoteValue,
+        at: quotation.lastEditedAt,
+      },
+    }),
+    prisma.quotationLine.deleteMany({ where: { quotationId } }),
+    prisma.quotation.update({
+      where: { id: quotationId },
+      data: {
+        revision: nextRevision,
+        quoteValue: totals.quoteValue,
+        vat: totals.vat,
+        totalValue: totals.totalValue,
+        gp: totals.gp,
+        pricingControls: defaultPricingControls() as object,
+        lines: { create: computedLines.map((l, position) => ({ ...l, position })) },
+      },
+    }),
+    prisma.quotationAuditEntry.create({
+      data: { quotationId, who: user.name, action: `Revised to R${nextRevision}` },
+    }),
+  ]);
+
+  revalidatePath(`/quotations/${quotationId}`);
+  revalidatePath("/quotations");
+  return { success: true };
 }
