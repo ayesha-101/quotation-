@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createCatalogItemAction } from "./actions";
+import { createCatalogItemAction, importMasterCatalogAction } from "./actions";
 import CatalogItemRow, { type CatalogItemData } from "./catalog-item-row";
 
 export default function CatalogManager({ items }: { items: CatalogItemData[] }) {
@@ -9,6 +9,17 @@ export default function CatalogManager({ items }: { items: CatalogItemData[] }) 
   const [activeBrand, setActiveBrand] = useState<string | null>(brands[0] || null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+
+  function handleImport() {
+    setError(null);
+    setImportMsg(null);
+    startTransition(async () => {
+      const res = await importMasterCatalogAction();
+      if (res.error) setError(res.error);
+      else setImportMsg(`Imported ${res.imported} new item(s). Already-present codes were left untouched.`);
+    });
+  }
 
   const brand = activeBrand && brands.includes(activeBrand) ? activeBrand : brands[0] || null;
   const brandItems = brand ? items.filter((i) => i.brand === brand) : [];
@@ -56,9 +67,13 @@ export default function CatalogManager({ items }: { items: CatalogItemData[] }) 
         <button className="btn" onClick={addBrand} disabled={pending}>
           + New brand
         </button>
+        <button className="btn" onClick={handleImport} disabled={pending} style={{ marginLeft: "auto" }}>
+          Import BMTC master catalog (3,128 items)
+        </button>
       </div>
 
       {error && <div className="error-note" style={{ marginBottom: 14 }}>{error}</div>}
+      {importMsg && <div className="success-note" style={{ marginBottom: 14 }}>{importMsg}</div>}
 
       {brand ? (
         <>

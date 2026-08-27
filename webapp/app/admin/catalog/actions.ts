@@ -3,10 +3,35 @@
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
+import catalogSeed from "@/prisma/catalog-seed.json";
 
 export interface ActionResult {
   error?: string;
   success?: boolean;
+  imported?: number;
+}
+
+const IMPORT_BATCH_SIZE = 500;
+
+// One-time bulk import of the real BMTC master price catalog (3,128 items
+// across 19 brands, sourced from the company's cost sheet). Safe to run
+// more than once: skipDuplicates means an item already present for its
+// [code, brand] is left untouched, never overwritten.
+export async function importMasterCatalogAction(): Promise<ActionResult> {
+  await requireAdmin();
+
+  let imported = 0;
+  for (let i = 0; i < catalogSeed.length; i += IMPORT_BATCH_SIZE) {
+    const batch = catalogSeed.slice(i, i + IMPORT_BATCH_SIZE);
+    const result = await prisma.catalogItem.createMany({
+      data: batch,
+      skipDuplicates: true,
+    });
+    imported += result.count;
+  }
+
+  revalidatePath("/admin/catalog");
+  return { success: true, imported };
 }
 
 function parseNum(formData: FormData, key: string): number {
