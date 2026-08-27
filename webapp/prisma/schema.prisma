@@ -32,6 +32,7 @@ model User {
 
   quotationsAsSalesman Quotation[] @relation("QuotationSalesman")
   quotationsCreated    Quotation[] @relation("QuotationCreatedBy")
+  approvalDecisions    Approval[]  @relation("ApprovalDecidedBy")
 }
 
 // The pricing catalog: one row per sellable item. Landed cost and sell
@@ -103,13 +104,16 @@ model Quotation {
   vat             Float
   totalValue      Float
   gp              Float
+  customerLpoNo   String          @default("")
+  lpoMismatch     Boolean         @default(false)
   createdAt       DateTime        @default(now())
   lastEditedAt    DateTime        @updatedAt
   createdById     String
   createdBy       User            @relation("QuotationCreatedBy", fields: [createdById], references: [id])
 
-  lines    QuotationLine[]
-  auditLog QuotationAuditEntry[]
+  lines      QuotationLine[]
+  auditLog   QuotationAuditEntry[]
+  approvals  Approval[]
 }
 
 model QuotationLine {
@@ -128,6 +132,33 @@ model QuotationLine {
   unitSell    Float     @default(0)
   lineTotal   Float     @default(0)
   manual      Boolean   @default(false)
+  custQty     Float?
+  custPrice   Float?
+}
+
+enum ApprovalTier {
+  LINE_MANAGER
+  GM
+  CEO
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Approval {
+  id          String         @id @default(cuid())
+  quotationId String
+  quotation   Quotation      @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  tier        ApprovalTier
+  status      ApprovalStatus @default(PENDING)
+  requestedAt DateTime       @default(now())
+  decidedAt   DateTime?
+  decidedById String?
+  decidedBy   User?          @relation("ApprovalDecidedBy", fields: [decidedById], references: [id])
+  comment     String?
 }
 
 model QuotationAuditEntry {

@@ -3,9 +3,11 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth-guard";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import {
   computeLinePricing,
   round2,
+  gpTier,
   DEFAULT_MARGIN_PCT,
   type PricingControls,
 } from "@/lib/pricing";
@@ -17,6 +19,144 @@ export interface ActionResult {
 
 function canEditQuotes(role: string): boolean {
   return role === "ADMIN" || role === "QUOTATION_OFFICER";
+}
+
+export interface MismatchInfo {
+  label: string;
+  detail: string;
+}
+
+export interface ConvertToLpoResult extends ActionResult {
+  mismatches?: MismatchInfo[];
+}
+
+function fmtMoney(n: number): string {
+  return "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export async function convertToLpoAction(
+  quotationId: string,
+  formData: FormData
+): Promise<ConvertToLpoResult> {
+  const user = await requireUser();
+  if (!canEditQuotes(user.role)) {
+    return { error: "Only the Admin or a Quotation Officer can convert a quotation to an LPO." };
+  }
+
+  const quotation = await prisma.quotation.findUnique({
+    where: { id: quotationId },
+    include: { lines: { orderBy: { position: "asc" } } },
+  });
+  if (!quotation) return { error: "Quotation not found." };
+  if (quotation.status === "CONVERTED_TO_LPO" || quotation.status === "LOST") {
+    return { error: "This quotation can't be converted from its current status." };
+  }
+
+  const customerLpoNo = String(formData.get("customerLpoNo") || "").trim();
+  let matches: Array<{ lineId: string; custQty: number; custPrice: number }>;
+  try {
+    matches = JSON.parse(String(formData.get("matches") || "[]"));
+  } catch {
+    return { error: "Malformed match data." };
+  }
+  const matchByLineId = new Map(matches.map((m) => [m.lineId, m]));
+
+  const mismatches: MismatchInfo[] = [];
+  for (const line of quotation.lines) {
+    const m = matchByLineId.get(line.id);
+    const custQty = m ? Number(m.custQty) : line.qty;
+    const custPrice = m ? Number(m.custPrice) : line.unitSell;
+    const label = line.description || line.code || "line item";
+    if (custQty !== line.qty) {
+      mismatches.push({
+        label,
+        detail: `Qty — quoted ${line.qty.toLocaleString()}, customer LPO shows ${custQty.toLocaleString()}`,
+      });
+    }
+    if (Math.abs(custPrice - line.unitSell) > 0.01) {
+      mismatches.push({
+        label,
+        detail: `Unit price — quoted ${fmtMoney(line.unitSell)}, customer LPO shows ${fmtMoney(custPrice)}`,
+      });
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await Promise.all(
+      quotation.lines.map((line) => {
+        const m = matchByLineId.get(line.id);
+        if (!m) return Promise.resolve();
+        return tx.quotationLine.update({
+          where: { id: line.id },
+          data: { custQty: Number(m.custQty), custPrice: Number(m.custPrice) },
+        });
+      })
+    );
+
+    if (mismatches.length > 0) {
+      await tx.quotation.update({
+        where: { id: quotationId },
+        data: { customerLpoNo, lpoMismatch: true },
+      });
+      await tx.quotationAuditEntry.create({
+        data: {
+          quotationId,
+          who: user.name,
+          action:
+            `LPO match check failed (customer ref ${customerLpoNo || "—"}): ` +
+            mismatches.map((m) => `${m.label} — ${m.detail}`).join("; "),
+        },
+      });
+      return;
+    }
+
+    const tier = gpTier(quotation.gp);
+    await tx.quotation.update({
+      where: { id: quotationId },
+      data: { customerLpoNo, lpoMismatch: false, status: "CONVERTED_TO_LPO" },
+    });
+    await tx.quotationAuditEntry.create({
+      data: {
+        quotationId,
+        who: user.name,
+        action: `Converted to LPO — matched against customer LPO ${customerLpoNo || "(no reference given)"}`,
+      },
+    });
+    await tx.approval.create({
+      data: { quotationId, tier },
+    });
+  });
+
+  revalidatePath(`/quotations/${quotationId}`);
+  if (mismatches.length > 0) return { mismatches };
+  return { success: true };
+}
+
+export async function flagStatusAction(
+  quotationId: string,
+  status: "UNDER_NEGOTIATION" | "LOST"
+): Promise<ActionResult> {
+  const user = await requireUser();
+
+  const quotation = await prisma.quotation.findUnique({ where: { id: quotationId } });
+  if (!quotation) return { error: "Quotation not found." };
+  if (user.role !== "SALESMAN" || quotation.salesmanId !== user.id) {
+    return { error: "Only the salesman this quotation is assigned to can flag its status." };
+  }
+  if (quotation.status === "CONVERTED_TO_LPO" || quotation.status === "LOST") {
+    return { error: "This quotation can't be flagged from its current status." };
+  }
+
+  await prisma.$transaction([
+    prisma.quotation.update({ where: { id: quotationId }, data: { status } }),
+    prisma.quotationAuditEntry.create({
+      data: { quotationId, who: user.name, action: `Flagged as ${status.replace(/_/g, " ")}` },
+    }),
+  ]);
+
+  revalidatePath(`/quotations/${quotationId}`);
+  revalidatePath("/quotations");
+  return { success: true };
 }
 
 interface LineInput {

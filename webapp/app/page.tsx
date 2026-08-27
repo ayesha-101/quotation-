@@ -71,6 +71,27 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
+      {(["LINE_MANAGER", "GM", "CEO", "ADMIN"] as string[]).includes(user.role) && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h2 style={{ fontSize: 15, marginBottom: 6 }}>GP approvals</h2>
+          <p
+            style={{
+              fontSize: 12.5,
+              color: "var(--ink-faint)",
+              marginBottom: 16,
+              lineHeight: 1.5,
+            }}
+          >
+            {user.role === "ADMIN"
+              ? "Oversight view of every approval tier."
+              : "Decide GP approval requests routed to you."}
+          </p>
+          <Link href="/approvals" className="btn primary">
+            GP Approval Queue →
+          </Link>
+        </div>
+      )}
+
       {user.role === "ADMIN" && (
         <div className="card" style={{ marginBottom: 20 }}>
           <h2 style={{ fontSize: 15, marginBottom: 6 }}>User access control</h2>
@@ -126,11 +147,12 @@ export default async function DashboardPage() {
           }}
         >
           Real authentication, hashed passwords, session cookies, Admin-only
-          user management, the pricing catalog, and quotation creation —
-          all backed by a real Postgres database, with pricing recomputed
-          server-side from the real catalog on every save. GP approval
-          routing and LPO matching still live in the published Artifact;
-          porting those is the next phase.
+          user management, the pricing catalog, quotation creation, LPO
+          matching, and GP approval routing — all backed by a real Postgres
+          database, with pricing recomputed server-side from the real
+          catalog on every save. Quotation revisions and a printable PDF
+          preview still live in the published Artifact; porting those is
+          next.
         </p>
       </div>
     </div>

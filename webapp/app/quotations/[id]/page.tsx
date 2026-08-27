@@ -2,10 +2,18 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
+import LpoMatchForm from "./lpo-match-form";
+import FlagStatusButtons from "./flag-status-buttons";
 
 function fmtMoney(n: number): string {
   return "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+function canEditQuotes(role: string): boolean {
+  return role === "ADMIN" || role === "QUOTATION_OFFICER";
+}
+
+const OPEN_STATUSES = ["DRAFT", "QUOTED", "UNDER_NEGOTIATION"];
 
 export default async function QuotationDetailPage({
   params,
@@ -23,9 +31,14 @@ export default async function QuotationDetailPage({
       createdBy: true,
       lines: { orderBy: { position: "asc" } },
       auditLog: { orderBy: { at: "asc" } },
+      approvals: { orderBy: { requestedAt: "desc" }, include: { decidedBy: true } },
     },
   });
   if (!q) notFound();
+
+  const isOpen = OPEN_STATUSES.includes(q.status);
+  const canConvert = canEditQuotes(user.role) && isOpen;
+  const canFlag = user.role === "SALESMAN" && user.id === q.salesmanId && isOpen;
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: "60px 24px" }}>
@@ -50,6 +63,21 @@ export default async function QuotationDetailPage({
           {q.status.replace(/_/g, " ")}
         </span>
       </div>
+
+      {q.lpoMismatch && (
+        <div className="error-note">
+          Unresolved LPO mismatch — the customer&apos;s LPO reference {q.customerLpoNo || "(none given)"}{" "}
+          doesn&apos;t match this quotation. See the audit log below for details, then use Convert
+          to LPO again to correct and re-check.
+        </div>
+      )}
+
+      {(canConvert || canFlag) && (
+        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+          {canConvert && <LpoMatchForm quotationId={q.id} lines={q.lines} />}
+          {canFlag && <FlagStatusButtons quotationId={q.id} />}
+        </div>
+      )}
 
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 14, marginBottom: 12 }}>Line items</h2>
@@ -103,6 +131,27 @@ export default async function QuotationDetailPage({
           </div>
         </div>
       </div>
+
+      {q.approvals.length > 0 && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h2 style={{ fontSize: 14, marginBottom: 12 }}>GP approval</h2>
+          {q.approvals.map((a) => (
+            <div key={a.id} style={{ fontSize: 12.5, marginBottom: 6 }}>
+              Routed to <b>{a.tier.replace(/_/g, " ")}</b> —{" "}
+              <span className={`status-pill status-${a.status === "PENDING" ? "QUOTED" : a.status === "APPROVED" ? "CONVERTED-TO-LPO" : "LOST"}`}>
+                {a.status}
+              </span>
+              {a.decidedBy && (
+                <span style={{ color: "var(--ink-faint)" }}>
+                  {" "}
+                  by {a.decidedBy.name} on {a.decidedAt?.toLocaleDateString("en-AE")}
+                </span>
+              )}
+              {a.comment && <div style={{ color: "var(--ink-dim)", marginTop: 2 }}>&quot;{a.comment}&quot;</div>}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="card">
         <h2 style={{ fontSize: 14, marginBottom: 12 }}>Audit log</h2>
