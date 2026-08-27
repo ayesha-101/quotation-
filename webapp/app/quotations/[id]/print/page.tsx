@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
@@ -12,14 +13,42 @@ const TERMS_CONDITIONS = [
   "Prices quoted are based on current market conditions and are subject to change in the event of fluctuations in raw material costs, manufacturer pricing, currency exchange rates, freight charges, or other external factors beyond our control.",
 ];
 
-function QField({ label, value, span }: { label: string; value?: string | null; span?: number }) {
+const LABEL_COLOR = "#C00000";
+const CELL_BORDER = "1px solid #000";
+
+function FieldRow({
+  cells,
+}: {
+  cells: Array<{ label: string; value?: string | null; colSpan?: number }>;
+}) {
   return (
-    <div style={span ? { gridColumn: `span ${span}` } : undefined}>
-      <div style={{ fontSize: 9, textTransform: "uppercase", letterSpacing: 0.7, color: "#8a96a3", marginBottom: 3 }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 12.5, color: "#1a2233" }}>{value || " "}</div>
-    </div>
+    <tr>
+      {cells.map((c, i) => (
+        <Fragment key={i}>
+          <td
+            key={`l${i}`}
+            style={{
+              border: CELL_BORDER,
+              padding: "4px 8px",
+              fontWeight: 700,
+              color: LABEL_COLOR,
+              fontSize: 11,
+              whiteSpace: "nowrap",
+              width: 1,
+            }}
+          >
+            {c.label}
+          </td>
+          <td
+            key={`v${i}`}
+            colSpan={c.colSpan || 1}
+            style={{ border: CELL_BORDER, padding: "4px 8px", fontSize: 11.5, color: "#1a2233" }}
+          >
+            {c.value || " "}
+          </td>
+        </Fragment>
+      ))}
+    </tr>
   );
 }
 
@@ -38,8 +67,11 @@ export default async function QuotationPrintPage({
   });
   if (!q) notFound();
 
-  const dateStr = q.createdAt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" }).replace(/ /g, "-");
+  const dateStr = q.createdAt
+    .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })
+    .replace(/ /g, "-");
   const preparedByName = q.prepName || q.createdBy.name;
+  const quoteRef = q.quoteNo + (q.revision > 0 ? `-R${q.revision}` : "");
 
   return (
     <>
@@ -48,83 +80,72 @@ export default async function QuotationPrintPage({
           .no-print { display: none !important; }
           body { background: #fff !important; }
         }
+        .print-doc table, .print-doc th, .print-doc td {
+          color: #1a2233;
+        }
       `}</style>
       <div style={{ background: "#f0f2f5", minHeight: "100vh", padding: "24px 0" }}>
         <div className="no-print" style={{ maxWidth: 800, margin: "0 auto 16px", display: "flex", gap: 10 }}>
           <PrintButton />
         </div>
         <div
+          className="print-doc"
           style={{
             fontFamily: "var(--font-inter), Arial, sans-serif",
             color: "#1a2233",
             maxWidth: 800,
             margin: "0 auto",
-            padding: "48px 44px",
+            padding: "40px 44px",
             background: "#fff",
             lineHeight: 1.5,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-end",
-              borderBottom: "3px solid #2e86de",
-              paddingBottom: 18,
-              marginBottom: 28,
-            }}
-          >
-            <div>
-              <div style={{ fontFamily: "var(--font-space-grotesk), sans-serif", fontSize: 24, fontWeight: 700, color: "#0b1524", letterSpacing: 0.3 }}>
-                BMTC
-              </div>
-              <div style={{ fontSize: 10.5, color: "#6b7785", letterSpacing: 0.4, marginTop: 2 }}>
-                Al Bahri &amp; Al Mazroei Trading Co. — Electrical Solutions
-              </div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "var(--font-space-grotesk), sans-serif", fontSize: 19, fontWeight: 700, color: "#2e86de", letterSpacing: 2 }}>
-                QUOTATION
-              </div>
-              <div style={{ fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 11, color: "#6b7785", marginTop: 3 }}>
-                {q.quoteNo}
-                {q.revision > 0 ? `-R${q.revision}` : ""}
-              </div>
-            </div>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/bmtc-logo.png" alt="BMTC" style={{ height: 56, marginBottom: 18 }} />
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px 20px", marginBottom: 28 }}>
-            <QField label="To" value={q.to} span={2} />
-            <QField label="Date" value={dateStr} />
-            <QField label="Our Ref." value={q.quoteNo} />
-            <QField label="Attention" value={q.attention} />
-            <QField label="Tel No." value={q.telNo} />
-            <QField label="Reference" value={q.reference} />
-            <QField label="Fax No." value={q.faxNo} />
-            <QField label="Project" value={q.project} span={2} />
-            <QField label="Mob No." value={q.mobNo} />
-            <QField label="Consultant" value={q.consultant} />
-            <QField label="Client" value={q.client} />
-            <QField label="Subject" value={q.subject} span={4} />
-          </div>
+          <table style={{ borderCollapse: "collapse", width: "100%", marginBottom: 4 }}>
+            <tbody>
+              <tr>
+                <td
+                  colSpan={4}
+                  style={{
+                    border: CELL_BORDER,
+                    padding: "6px 8px",
+                    textAlign: "center",
+                    fontWeight: 700,
+                    fontSize: 14,
+                    letterSpacing: 2,
+                  }}
+                >
+                  QUOTATION
+                </td>
+              </tr>
+              <FieldRow cells={[{ label: "To", value: q.to }, { label: "Our Ref .:", value: quoteRef }]} />
+              <FieldRow cells={[{ label: "Attention", value: q.attention }, { label: "Date .:", value: dateStr }]} />
+              <FieldRow cells={[{ label: "Reference", value: q.reference }, { label: "Tel No .:", value: q.telNo }]} />
+              <FieldRow cells={[{ label: "Project", value: q.project }, { label: "Fax No .:", value: q.faxNo }]} />
+              <FieldRow cells={[{ label: "Consultant", value: q.consultant }, { label: "Mob No .:", value: q.mobNo }]} />
+              <FieldRow cells={[{ label: "Client", value: q.client }, { label: " ", value: "" }]} />
+              <FieldRow cells={[{ label: "Subject .:", value: q.subject, colSpan: 3 }]} />
+            </tbody>
+          </table>
 
-          <div style={{ fontSize: 12.5, color: "#4a5568", marginBottom: 14 }}>
+          <div style={{ fontSize: 11.5, color: "#1a2233", margin: "10px 0" }}>
             We thank you for the referred enquiry and are pleased to offer the following quote:
           </div>
 
-          <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12, marginBottom: 4 }}>
+          <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 11 }}>
             <thead>
-              <tr style={{ borderBottom: "2px solid #0b1524" }}>
-                {["#", "Cat. Ref.", "Description", "Brand", "UOM", "Qty", "U.Price", "Total AED"].map((h, i) => (
+              <tr>
+                {["S.#.", "Cat. Ref.", "Description", "Brand", "UOM", "Qty.", "U.Price", "Total AED."].map((h, i) => (
                   <th
                     key={h}
                     style={{
-                      textAlign: i >= 5 ? "right" : i === 4 ? "center" : "left",
-                      padding: "0 6px 8px",
-                      fontSize: 9,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.6,
-                      color: "#8a96a3",
+                      border: CELL_BORDER,
+                      textAlign: i >= 5 ? "right" : "left",
+                      padding: "4px 6px",
+                      fontSize: 10.5,
+                      fontWeight: 700,
                     }}
                   >
                     {h}
@@ -134,120 +155,112 @@ export default async function QuotationPrintPage({
             </thead>
             <tbody>
               {q.lines.map((l, i) => (
-                <tr key={l.id} style={{ borderBottom: "1px solid #eef1f5" }}>
-                  <td style={{ padding: "10px 6px", color: "#8a96a3", fontSize: 11.5 }}>{i + 1}</td>
-                  <td style={{ padding: "10px 6px", fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 11, color: "#4a5568" }}>
+                <tr key={l.id}>
+                  <td style={{ border: CELL_BORDER, padding: "6px" }}>{i + 1}</td>
+                  <td style={{ border: CELL_BORDER, padding: "6px", fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 10.5 }}>
                     {l.code || "—"}
                   </td>
-                  <td style={{ padding: "10px 6px" }}>{l.description}</td>
-                  <td style={{ padding: "10px 6px", color: "#4a5568" }}>{l.brand}</td>
-                  <td style={{ padding: "10px 6px", textAlign: "center", color: "#4a5568" }}>{l.uom}</td>
-                  <td style={{ padding: "10px 6px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                    {l.qty.toLocaleString()}
-                  </td>
-                  <td style={{ padding: "10px 6px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                    {l.unitSell.toFixed(2)}
-                  </td>
-                  <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                    {l.lineTotal.toFixed(2)}
-                  </td>
+                  <td style={{ border: CELL_BORDER, padding: "6px" }}>{l.description}</td>
+                  <td style={{ border: CELL_BORDER, padding: "6px" }}>{l.brand}</td>
+                  <td style={{ border: CELL_BORDER, padding: "6px" }}>{l.uom}</td>
+                  <td style={{ border: CELL_BORDER, padding: "6px", textAlign: "right" }}>{l.qty.toLocaleString()}</td>
+                  <td style={{ border: CELL_BORDER, padding: "6px", textAlign: "right" }}>{l.unitSell.toFixed(2)}</td>
+                  <td style={{ border: CELL_BORDER, padding: "6px", textAlign: "right" }}>{l.lineTotal.toFixed(2)}</td>
                 </tr>
               ))}
+              <tr>
+                <td colSpan={7} style={{ border: CELL_BORDER, padding: "5px 6px", textAlign: "right", fontWeight: 700, color: LABEL_COLOR }}>
+                  Quote Value AED
+                </td>
+                <td style={{ border: CELL_BORDER, padding: "5px 6px", textAlign: "right", fontWeight: 700, color: LABEL_COLOR }}>
+                  {q.quoteValue.toFixed(2)}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={7} style={{ border: CELL_BORDER, padding: "5px 6px", textAlign: "right", fontWeight: 700, color: LABEL_COLOR }}>
+                  VAT 5%
+                </td>
+                <td style={{ border: CELL_BORDER, padding: "5px 6px", textAlign: "right", fontWeight: 700, color: LABEL_COLOR }}>
+                  {q.vat.toFixed(2)}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={7} style={{ border: CELL_BORDER, padding: "5px 6px", textAlign: "right", fontWeight: 700, color: LABEL_COLOR }}>
+                  Total Value AED
+                </td>
+                <td style={{ border: CELL_BORDER, padding: "5px 6px", textAlign: "right", fontWeight: 700, color: LABEL_COLOR }}>
+                  {q.totalValue.toFixed(2)}
+                </td>
+              </tr>
             </tbody>
           </table>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", margin: "18px 0 30px" }}>
-            <div style={{ width: 280 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 12.5, color: "#4a5568" }}>
-                <span>Quote Value AED</span>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>{q.quoteValue.toFixed(2)}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 12.5, color: "#4a5568" }}>
-                <span>VAT 5%</span>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>{q.vat.toFixed(2)}</span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "10px 0 0",
-                  marginTop: 6,
-                  borderTop: "2px solid #0b1524",
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: "#2e86de",
-                }}
-              >
-                <span>Total Value AED</span>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>{q.totalValue.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ fontFamily: "var(--font-space-grotesk), sans-serif", fontWeight: 700, fontSize: 12.5, color: "#0b1524", marginBottom: 10, letterSpacing: 0.2 }}>
-            Terms &amp; Conditions
-          </div>
-          <div style={{ fontSize: 11, color: "#4a5568", marginBottom: 18 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, marginTop: 20, marginBottom: 6 }}>Terms &amp; Conditions:</div>
+          <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 4 }}>Price Offer:</div>
+          <div style={{ fontSize: 10.5, color: "#1a2233", marginBottom: 14 }}>
             {TERMS_CONDITIONS.map((t, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-                <span style={{ color: "#2e86de", fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                <span style={{ flexShrink: 0 }}>{i + 1}-</span>
                 <span>{t}</span>
               </div>
             ))}
           </div>
 
-          <div style={{ fontSize: 11.5, color: "#4a5568", lineHeight: 1.8, marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: "#1a2233", lineHeight: 1.9, marginBottom: 16 }}>
             <div>
-              <b style={{ color: "#1a2233" }}>Currency:</b> Arab Emirates Dirham (AED)
+              <b style={{ textDecoration: "underline" }}>Currency:</b> Arab Emirates Dirham (AED)
             </div>
             <div>
-              <b style={{ color: "#1a2233" }}>Delivery:</b> {q.delivery || "To be confirmed"}
+              <b style={{ textDecoration: "underline" }}>Delivery :</b> {q.delivery || "To be confirmed"}
             </div>
             <div>
-              <b style={{ color: "#1a2233" }}>Delivery Place:</b> {q.deliveryPlace}
+              <b style={{ textDecoration: "underline" }}>Delivery Place:</b> {q.deliveryPlace}
             </div>
             <div>
-              <b style={{ color: "#1a2233" }}>Validity:</b> {q.validity}
+              <b style={{ textDecoration: "underline" }}>Validity:</b> {q.validity}
             </div>
             <div>
-              <b style={{ color: "#1a2233" }}>Payment Terms:</b> {q.paymentTerms || "To be confirmed"}
+              <b style={{ textDecoration: "underline" }}>Payment Terms:</b> {q.paymentTerms || "To be confirmed"}
             </div>
           </div>
 
-          <div style={{ fontSize: 11.5, color: "#4a5568", marginBottom: 26 }}>
-            We look forward to meeting your expectations and to conducting a long-term business relationship.
+          <div style={{ fontSize: 11, color: "#1a2233", marginBottom: 20 }}>
+            We look forward to meeting your expectations and to conducting long term business relationship.
             <br />
             Thanking you and assuring you of our best services at all times.
           </div>
 
-          <div style={{ fontSize: 11.5, marginBottom: 36 }}>
-            <div style={{ fontWeight: 600, color: "#1a2233" }}>For AL BAHRI AND AL MAZROEI TRADING COM. LLC</div>
-            <div style={{ height: 32 }} />
-            <div style={{ fontWeight: 700, color: "#1a2233" }}>{preparedByName}</div>
-            <div style={{ color: "#6b7785" }}>{q.prepTitle}</div>
-            <div style={{ color: "#6b7785" }}>{q.prepMobile ? `MOBILE: ${q.prepMobile}` : ""}</div>
+          <div style={{ fontSize: 11, marginBottom: 30 }}>
+            <div style={{ fontWeight: 700 }}>For AL BAHRI AND AL MAZROEI TRADING COM. LLC</div>
+            <div style={{ height: 28 }} />
+            <div style={{ fontWeight: 700 }}>{preparedByName}</div>
+            <div>{q.prepTitle}</div>
+            <div>{q.prepMobile ? `MOBILE: ${q.prepMobile}` : ""}</div>
           </div>
 
           <div
             style={{
-              borderTop: "1px solid #eef1f5",
-              paddingTop: 14,
-              fontSize: 9.5,
-              color: "#8a96a3",
+              borderTop: "1px solid #ccc",
+              paddingTop: 12,
               display: "flex",
               justifyContent: "space-between",
+              alignItems: "center",
               flexWrap: "wrap",
-              gap: 6,
+              gap: 10,
             }}
           >
-            <div>
-              <div>شركة البحري والمزروعي التجارية ذ.م.م.-ش.ش.و</div>
-              <div>Al Bahri &amp; Al Mazroei Trading Company L.L.C.- S.P.C</div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div>P.O. Box 72901, Abu Dhabi, United Arab Emirates</div>
+            <div style={{ fontSize: 9.5, color: "#333" }}>
+              <div style={{ color: "#2962AE", fontWeight: 600 }}>
+                شركة البحري والمزروعي التجارية ذ.م.م.-ش.ش.و
+              </div>
+              <div style={{ color: "#2962AE", fontWeight: 600 }}>
+                Al Bahri &amp; Al Mazroei Trading Company L.L.C.- S.P.C
+              </div>
+              <div style={{ marginTop: 4 }}>P.O. Box 72901, Abu Dhabi, United Arab Emirates</div>
               <div>00971 2 550 6700 &nbsp;|&nbsp; info@bmtc.ae &nbsp;|&nbsp; www.bmtc.ae</div>
             </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icv-badge.png" alt="In-Country Value Certified — CN-1029315" style={{ height: 50 }} />
           </div>
         </div>
       </div>
