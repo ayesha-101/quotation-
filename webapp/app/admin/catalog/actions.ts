@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { requireCatalogManager } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
+import { appendChainEvent } from "@/lib/security-chain";
 import catalogSeed from "@/prisma/catalog-seed.json";
 
 export interface ActionResult {
@@ -18,7 +19,7 @@ const IMPORT_BATCH_SIZE = 500;
 // more than once: skipDuplicates means an item already present for its
 // [code, brand] is left untouched, never overwritten.
 export async function importMasterCatalogAction(): Promise<ActionResult> {
-  await requireCatalogManager();
+  const user = await requireCatalogManager();
 
   let imported = 0;
   for (let i = 0; i < catalogSeed.length; i += IMPORT_BATCH_SIZE) {
@@ -29,6 +30,13 @@ export async function importMasterCatalogAction(): Promise<ActionResult> {
     });
     imported += result.count;
   }
+
+  await appendChainEvent({
+    actor: user.name,
+    action: `Imported master catalog (${imported} new item(s))`,
+    resource: "catalog",
+    outcome: "success",
+  });
 
   revalidatePath("/admin/catalog");
   return { success: true, imported };
@@ -43,7 +51,7 @@ export async function createCatalogItemAction(
   _prevState: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireCatalogManager();
+  const user = await requireCatalogManager();
 
   const code = String(formData.get("code") || "").trim();
   const description = String(formData.get("description") || "").trim();
@@ -78,6 +86,13 @@ export async function createCatalogItemAction(
     throw e;
   }
 
+  await appendChainEvent({
+    actor: user.name,
+    action: `Added catalog item ${code} (${brand})`,
+    resource: "catalog",
+    outcome: "success",
+  });
+
   revalidatePath("/admin/catalog");
   return { success: true };
 }
@@ -86,7 +101,7 @@ export async function updateCatalogItemAction(
   itemId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireCatalogManager();
+  const user = await requireCatalogManager();
 
   const description = String(formData.get("description") || "").trim();
   const uom = String(formData.get("uom") || "").trim();
@@ -94,7 +109,7 @@ export async function updateCatalogItemAction(
     return { error: "Description and unit are required." };
   }
 
-  await prisma.catalogItem.update({
+  const item = await prisma.catalogItem.update({
     where: { id: itemId },
     data: {
       description,
@@ -110,13 +125,28 @@ export async function updateCatalogItemAction(
     },
   });
 
+  await appendChainEvent({
+    actor: user.name,
+    action: `Edited catalog item ${item.code} (${item.brand})`,
+    resource: "catalog",
+    outcome: "success",
+  });
+
   revalidatePath("/admin/catalog");
   return { success: true };
 }
 
 export async function deleteCatalogItemAction(itemId: string): Promise<ActionResult> {
-  await requireCatalogManager();
-  await prisma.catalogItem.delete({ where: { id: itemId } });
+  const user = await requireCatalogManager();
+  const item = await prisma.catalogItem.delete({ where: { id: itemId } });
+
+  await appendChainEvent({
+    actor: user.name,
+    action: `Deleted catalog item ${item.code} (${item.brand})`,
+    resource: "catalog",
+    outcome: "success",
+  });
+
   revalidatePath("/admin/catalog");
   return { success: true };
 }

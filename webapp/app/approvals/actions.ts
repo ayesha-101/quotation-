@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
+import { appendChainEvent } from "@/lib/security-chain";
 
 export interface ActionResult {
   error?: string;
@@ -48,6 +49,15 @@ export async function decideApprovalAction(
       },
     }),
   ]);
+
+  await appendChainEvent({
+    actor: user.name,
+    action:
+      `LPO GP approval ${decision.toLowerCase()} by ${user.name}` +
+      (comment.trim() ? `: "${comment.trim()}"` : ""),
+    resource: `quotation:${approval.quotationId}`,
+    outcome: "success",
+  });
 
   revalidatePath("/approvals");
   revalidatePath(`/quotations/${approval.quotationId}`);

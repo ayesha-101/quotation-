@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { requireUserManager } from "@/lib/auth-guard";
 import { hashPassword, generateTempPassword } from "@/lib/password";
 import { revalidatePath } from "next/cache";
+import { appendChainEvent } from "@/lib/security-chain";
+import type { Prisma } from "@prisma/client";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -68,6 +70,13 @@ export async function createUserAction(
     throw e;
   }
 
+  await appendChainEvent({
+    actor: admin.name,
+    action: `Created user ${email} (${role.name})`,
+    resource: "user-management",
+    outcome: "success",
+  });
+
   revalidatePath("/admin/users");
   return { success: true, tempPassword, email };
 }
@@ -84,7 +93,12 @@ export interface ActionResult {
 // both read count===2, both pass the <=1 check, and leave zero admins
 // with no way back in. Serializable isolation makes Postgres abort one
 // of the two conflicting transactions instead.
-async function withSerializable<T>(fn: () => Promise<T>): Promise<T> {
+// fn must do its reads/writes through the tx client it's given, never the
+// outer `prisma` — a closure over the outer client would run its queries
+// as independent, non-transactional statements, and the whole point of
+// Serializable here is to make the "is this the last Admin" check and the
+// delete/deactivate atomic against a concurrent identical check.
+async function withSerializable<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
   return prisma.$transaction(fn, { isolationLevel: "Serializable" });
 }
 
@@ -97,25 +111,35 @@ export async function deleteUserAction(userId: string): Promise<ActionResult> {
     return { error: "You can't delete your own account." };
   }
 
+  type DeleteResult = ActionResult & { email?: string };
+
   try {
-    const result = await withSerializable(async () => {
-      const target = await prisma.user.findUnique({
+    const result = await withSerializable<DeleteResult>(async (tx) => {
+      const target = await tx.user.findUnique({
         where: { id: userId },
         include: { role: true },
       });
-      if (!target) return { error: "User not found." } as ActionResult;
+      if (!target) return { error: "User not found." };
 
       if (target.role.isAdmin) {
-        const adminCount = await prisma.user.count({ where: { role: { isAdmin: true } } });
+        const adminCount = await tx.user.count({ where: { role: { isAdmin: true } } });
         if (adminCount <= 1) {
-          return { error: "Can't delete the last remaining Admin." } as ActionResult;
+          return { error: "Can't delete the last remaining Admin." };
         }
       }
 
-      await prisma.user.delete({ where: { id: userId } });
-      return { success: true } as ActionResult;
+      await tx.user.delete({ where: { id: userId } });
+      return { success: true, email: target.email };
     });
-    if (result.success) revalidatePath("/admin/users");
+    if (result.success) {
+      await appendChainEvent({
+        actor: admin.name,
+        action: `Deleted user ${result.email}`,
+        resource: "user-management",
+        outcome: "success",
+      });
+      revalidatePath("/admin/users");
+    }
     return result;
   } catch {
     return RETRY_ERROR;
@@ -129,30 +153,40 @@ export async function toggleActiveAction(userId: string): Promise<ActionResult> 
     return { error: "You can't deactivate your own account." };
   }
 
+  type ToggleResult = ActionResult & { email?: string; nowActive?: boolean };
+
   try {
-    const result = await withSerializable(async () => {
-      const target = await prisma.user.findUnique({
+    const result = await withSerializable<ToggleResult>(async (tx) => {
+      const target = await tx.user.findUnique({
         where: { id: userId },
         include: { role: true },
       });
-      if (!target) return { error: "User not found." } as ActionResult;
+      if (!target) return { error: "User not found." };
 
       if (target.isActive && target.role.isAdmin) {
-        const activeAdminCount = await prisma.user.count({
+        const activeAdminCount = await tx.user.count({
           where: { role: { isAdmin: true }, isActive: true },
         });
         if (activeAdminCount <= 1) {
-          return { error: "Can't deactivate the last active Admin." } as ActionResult;
+          return { error: "Can't deactivate the last active Admin." };
         }
       }
 
-      await prisma.user.update({
+      await tx.user.update({
         where: { id: userId },
         data: { isActive: !target.isActive },
       });
-      return { success: true } as ActionResult;
+      return { success: true, email: target.email, nowActive: !target.isActive };
     });
-    if (result.success) revalidatePath("/admin/users");
+    if (result.success) {
+      await appendChainEvent({
+        actor: admin.name,
+        action: `${result.nowActive ? "Reactivated" : "Deactivated"} user ${result.email}`,
+        resource: "user-management",
+        outcome: "success",
+      });
+      revalidatePath("/admin/users");
+    }
     return result;
   } catch {
     return RETRY_ERROR;
@@ -160,7 +194,7 @@ export async function toggleActiveAction(userId: string): Promise<ActionResult> 
 }
 
 export async function resetPasswordAction(userId: string): Promise<ActionResult> {
-  await requireUserManager();
+  const admin = await requireUserManager();
 
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) return { error: "User not found." };
@@ -176,6 +210,13 @@ export async function resetPasswordAction(userId: string): Promise<ActionResult>
       failedAttempts: 0,
       lockedUntil: null,
     },
+  });
+
+  await appendChainEvent({
+    actor: admin.name,
+    action: `Reset password for user ${target.email}`,
+    resource: "user-management",
+    outcome: "success",
   });
 
   revalidatePath("/admin/users");

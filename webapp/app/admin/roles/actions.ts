@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
+import { appendChainEvent } from "@/lib/security-chain";
 
 export interface ActionResult {
   error?: string;
@@ -77,7 +78,7 @@ export async function createRoleAction(
   _prevState: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const parsed = parseRoleFields(formData);
   if ("error" in parsed) return parsed;
@@ -94,12 +95,19 @@ export async function createRoleAction(
     throw e;
   }
 
+  await appendChainEvent({
+    actor: admin.name,
+    action: `Created role ${parsed.name}`,
+    resource: "role-management",
+    outcome: "success",
+  });
+
   revalidatePath("/admin/roles");
   return { success: true };
 }
 
 export async function updateRoleAction(roleId: string, formData: FormData): Promise<ActionResult> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const parsed = parseRoleFields(formData);
   if ("error" in parsed) return parsed;
@@ -116,13 +124,20 @@ export async function updateRoleAction(roleId: string, formData: FormData): Prom
     throw e;
   }
 
+  await appendChainEvent({
+    actor: admin.name,
+    action: `Edited role ${parsed.name}`,
+    resource: "role-management",
+    outcome: "success",
+  });
+
   revalidatePath("/admin/roles");
   revalidatePath("/admin/users");
   return { success: true };
 }
 
 export async function deleteRoleAction(roleId: string): Promise<ActionResult> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const role = await prisma.role.findUnique({
     where: { id: roleId },
@@ -138,6 +153,14 @@ export async function deleteRoleAction(roleId: string): Promise<ActionResult> {
   }
 
   await prisma.role.delete({ where: { id: roleId } });
+
+  await appendChainEvent({
+    actor: admin.name,
+    action: `Deleted role ${role.name}`,
+    resource: "role-management",
+    outcome: "success",
+  });
+
   revalidatePath("/admin/roles");
   return { success: true };
 }

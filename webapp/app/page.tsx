@@ -191,6 +191,26 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {user.role.isAdmin && (
+        <div className="card">
+          <h2 style={{ fontSize: 15, marginBottom: 6 }}>Security &amp; audit chain</h2>
+          <p
+            style={{
+              fontSize: 12.5,
+              color: "var(--ink-faint)",
+              marginBottom: 16,
+              lineHeight: 1.5,
+            }}
+          >
+            Hash-linked, server-appended log of every significant action —
+            re-verify integrity any time.
+          </p>
+          <Link href="/security" className="btn primary">
+            View audit chain →
+          </Link>
+        </div>
+      )}
+
       {canManageCatalog(user.role) && (
         <div className="card">
           <h2 style={{ fontSize: 15, marginBottom: 6 }}>Pricing catalog</h2>

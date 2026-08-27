@@ -11,6 +11,7 @@ import {
   type RawLineInput,
 } from "@/lib/pricing";
 import { canEditQuotes, resolveApproverRoleId } from "@/lib/permissions";
+import { appendChainEvent } from "@/lib/security-chain";
 import type { CatalogItem } from "@prisma/client";
 
 async function lookupCatalogByCode(codes: (string | undefined)[]): Promise<Map<string, CatalogItem>> {
@@ -143,6 +144,17 @@ export async function convertToLpoAction(
     });
   });
 
+  await appendChainEvent({
+    actor: user.name,
+    action:
+      mismatches.length > 0
+        ? `LPO match check failed (customer ref ${customerLpoNo || "—"}): ` +
+          mismatches.map((m) => `${m.label} — ${m.detail}`).join("; ")
+        : `Converted to LPO — matched against customer LPO ${customerLpoNo || "(no reference given)"}`,
+    resource: `quotation:${quotationId}`,
+    outcome: mismatches.length > 0 ? "failure" : "success",
+  });
+
   revalidatePath(`/quotations/${quotationId}`);
   if (mismatches.length > 0) return { mismatches };
   return { success: true };
@@ -169,6 +181,13 @@ export async function flagStatusAction(
       data: { quotationId, who: user.name, action: `Flagged as ${status.replace(/_/g, " ")}` },
     }),
   ]);
+
+  await appendChainEvent({
+    actor: user.name,
+    action: `Flagged as ${status.replace(/_/g, " ")}`,
+    resource: `quotation:${quotationId}`,
+    outcome: "success",
+  });
 
   revalidatePath(`/quotations/${quotationId}`);
   revalidatePath("/quotations");
@@ -287,6 +306,13 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
     quotationId = quotation.id;
   });
 
+  await appendChainEvent({
+    actor: user.name,
+    action: `Quotation created (${status})`,
+    resource: `quotation:${quotationId}`,
+    outcome: "success",
+  });
+
   redirect(`/quotations/${quotationId}`);
 }
 
@@ -356,6 +382,13 @@ export async function reviseQuotationAction(
       data: { quotationId, who: user.name, action: `Revised to R${nextRevision}` },
     }),
   ]);
+
+  await appendChainEvent({
+    actor: user.name,
+    action: `Revised to R${nextRevision}`,
+    resource: `quotation:${quotationId}`,
+    outcome: "success",
+  });
 
   revalidatePath(`/quotations/${quotationId}`);
   revalidatePath("/quotations");

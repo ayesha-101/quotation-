@@ -188,6 +188,24 @@ model Approval {
   comment     String?
 }
 
+// Append-only, hash-linked audit trail: every significant action across
+// the app (not just quotations) gets one record here, and each record's
+// hash covers its own fields plus the previous record's hash — so editing,
+// deleting, or reordering any entry breaks the chain from that point on.
+// Unlike the original Artifact's version (client-side only, disclosed as
+// provable-internal-consistency-only), this is appended and hashed by the
+// server, never by the browser — see lib/security-chain.ts.
+model SecurityChainRecord {
+  seq      Int      @id @default(autoincrement())
+  at       DateTime @default(now())
+  actor    String
+  action   String
+  resource String
+  outcome  String
+  prevHash String
+  hash     String
+}
+
 model QuotationAuditEntry {
   id          String    @id @default(cuid())
   quotationId String
