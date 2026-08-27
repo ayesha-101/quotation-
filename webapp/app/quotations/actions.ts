@@ -9,8 +9,8 @@ import {
   defaultPricingControls,
   type PricingControls,
   type RawLineInput,
-  gpTier,
 } from "@/lib/pricing";
+import { canEditQuotes, resolveApproverRoleId } from "@/lib/permissions";
 import type { CatalogItem } from "@prisma/client";
 
 async function lookupCatalogByCode(codes: (string | undefined)[]): Promise<Map<string, CatalogItem>> {
@@ -23,10 +23,6 @@ async function lookupCatalogByCode(codes: (string | undefined)[]): Promise<Map<s
 export interface ActionResult {
   error?: string;
   success?: boolean;
-}
-
-function canEditQuotes(role: string): boolean {
-  return role === "ADMIN" || role === "QUOTATION_OFFICER";
 }
 
 export interface MismatchInfo {
@@ -89,6 +85,19 @@ export async function convertToLpoAction(
     }
   }
 
+  // Resolved before the transaction: if no role's GP range covers this
+  // margin, fail loudly instead of silently creating an unroutable
+  // approval — an Admin needs to fix the role coverage gap first.
+  let approverRoleId: string | null = null;
+  if (mismatches.length === 0) {
+    approverRoleId = await resolveApproverRoleId(quotation.gp);
+    if (!approverRoleId) {
+      return {
+        error: `No role is configured to approve ${quotation.gp.toFixed(1)}% GP — ask an Admin to check the GP ranges under Manage roles.`,
+      };
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     await Promise.all(
       quotation.lines.map((line) => {
@@ -118,7 +127,6 @@ export async function convertToLpoAction(
       return;
     }
 
-    const tier = gpTier(quotation.gp);
     await tx.quotation.update({
       where: { id: quotationId },
       data: { customerLpoNo, lpoMismatch: false, status: "CONVERTED_TO_LPO" },
@@ -131,7 +139,7 @@ export async function convertToLpoAction(
       },
     });
     await tx.approval.create({
-      data: { quotationId, tier },
+      data: { quotationId, roleId: approverRoleId! },
     });
   });
 
@@ -148,7 +156,7 @@ export async function flagStatusAction(
 
   const quotation = await prisma.quotation.findUnique({ where: { id: quotationId } });
   if (!quotation) return { error: "Quotation not found." };
-  if (user.role !== "SALESMAN" || quotation.salesmanId !== user.id) {
+  if (!user.role.isSalesman || quotation.salesmanId !== user.id) {
     return { error: "Only the salesman this quotation is assigned to can flag its status." };
   }
   if (quotation.status === "CONVERTED_TO_LPO" || quotation.status === "LOST") {

@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
+import { canEditQuotes } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
-
-function canEditQuotes(role: string): boolean {
-  return role === "ADMIN" || role === "QUOTATION_OFFICER";
-}
 
 function fmtMoney(n: number): string {
   return "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

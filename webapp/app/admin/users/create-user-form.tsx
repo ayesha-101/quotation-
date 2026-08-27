@@ -2,11 +2,10 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { createUserAction, type CreateUserState } from "./actions";
-import { ROLES, ROLE_LABELS, type RoleValue } from "@/lib/roles";
 
 const initialState: CreateUserState = {};
 
-export default function CreateUserForm() {
+export default function CreateUserForm({ roles }: { roles: Array<{ id: string; name: string }> }) {
   const [state, formAction, pending] = useActionState(
     createUserAction,
     initialState
@@ -52,14 +51,14 @@ export default function CreateUserForm() {
           <input id="email" name="email" type="email" required />
         </div>
         <div className="field" style={{ margin: 0 }}>
-          <label htmlFor="role">Role</label>
-          <select id="role" name="role" required defaultValue="">
+          <label htmlFor="roleId">Role</label>
+          <select id="roleId" name="roleId" required defaultValue="">
             <option value="" disabled>
               Choose role…
             </option>
-            {ROLES.map((r: RoleValue) => (
-              <option key={r} value={r}>
-                {ROLE_LABELS[r]}
+            {roles.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
               </option>
             ))}
           </select>

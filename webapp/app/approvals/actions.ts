@@ -9,10 +9,6 @@ export interface ActionResult {
   success?: boolean;
 }
 
-function canApprove(role: string): boolean {
-  return role === "LINE_MANAGER" || role === "GM" || role === "CEO";
-}
-
 export async function decideApprovalAction(
   approvalId: string,
   decision: "APPROVED" | "REJECTED",
@@ -22,7 +18,7 @@ export async function decideApprovalAction(
 
   const approval = await prisma.approval.findUnique({ where: { id: approvalId } });
   if (!approval) return { error: "Approval request not found." };
-  if (!canApprove(user.role) || approval.tier !== user.role) {
+  if (approval.roleId !== user.roleId) {
     return { error: "This approval isn't routed to your role." };
   }
   if (approval.status !== "PENDING") {

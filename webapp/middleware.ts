@@ -22,9 +22,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (pathname.startsWith("/admin") && session.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
+  // /admin/* is no longer gated here on a single isAdmin flag: since roles
+  // are dynamic (see lib/permissions.ts), /admin/catalog and /admin/users
+  // are reachable by roles with just canManageCatalog/canManageUsers, not
+  // only full Admins. Each of those routes re-checks its own specific
+  // permission via requireCatalogManager()/requireUserManager()/
+  // requireAdmin() — this middleware only handles "not logged in at all".
 
   return NextResponse.next();
 }

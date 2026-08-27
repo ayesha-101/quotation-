@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { canManageCatalog, canManageUsers } from "@/lib/permissions";
 
 /**
  * The proxy (proxy.ts) only checks that a session cookie is present and
@@ -13,7 +14,10 @@ export async function requireUser() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    include: { role: true },
+  });
   if (!user || !user.isActive) redirect("/login");
 
   return user;
@@ -21,6 +25,18 @@ export async function requireUser() {
 
 export async function requireAdmin() {
   const user = await requireUser();
-  if (user.role !== "ADMIN") redirect("/");
+  if (!user.role.isAdmin) redirect("/");
+  return user;
+}
+
+export async function requireCatalogManager() {
+  const user = await requireUser();
+  if (!canManageCatalog(user.role)) redirect("/");
+  return user;
+}
+
+export async function requireUserManager() {
+  const user = await requireUser();
+  if (!canManageUsers(user.role)) redirect("/");
   return user;
 }

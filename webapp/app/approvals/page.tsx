@@ -4,12 +4,6 @@ import { requireUser } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
 import ApprovalRowActions from "./approval-row-actions";
 
-type ApproverRole = "LINE_MANAGER" | "GM" | "CEO";
-
-function asApproverRole(role: string): ApproverRole | null {
-  return role === "LINE_MANAGER" || role === "GM" || role === "CEO" ? role : null;
-}
-
 function fmtMoney(n: number): string {
   return "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -18,21 +12,20 @@ export default async function ApprovalsPage() {
   const user = await requireUser();
   if (user.mustResetPassword) redirect("/account/reset-password");
 
-  const approverRole = asApproverRole(user.role);
-
   const approvals = await prisma.approval.findMany({
-    where: user.role === "ADMIN" ? {} : approverRole ? { tier: approverRole } : { id: "" },
+    where: user.role.isAdmin ? {} : { roleId: user.roleId },
     include: {
       quotation: { include: { lines: true } },
       decidedBy: true,
+      role: true,
     },
     orderBy: { requestedAt: "desc" },
   });
 
-  const note = approverRole
-    ? `Showing GP approval requests routed to ${approverRole.replace(/_/g, " ")}. ≥10% GP → Line Manager · 5–10% GP → GM · <5% GP → CEO.`
-    : user.role === "ADMIN"
-      ? "Admin oversight view of all approval tiers — Admin does not decide these, only the routed approver can."
+  const note = user.role.isAdmin
+    ? "Admin oversight view of every approval role — Admin does not decide these, only the routed role can."
+    : user.role.canApproveGp
+      ? `Showing GP approval requests routed to ${user.role.name}.`
       : "Not applicable to your role.";
 
   return (
@@ -70,7 +63,7 @@ export default async function ApprovalsPage() {
             ) : (
               approvals.map((a) => {
                 const brands = Array.from(new Set(a.quotation.lines.map((l) => l.brand).filter(Boolean)));
-                const canDecide = approverRole !== null && a.tier === approverRole && a.status === "PENDING";
+                const canDecide = a.roleId === user.roleId && a.status === "PENDING";
                 return (
                   <tr key={a.id}>
                     <td className="mono">
@@ -79,7 +72,7 @@ export default async function ApprovalsPage() {
                     <td>{brands.join(", ") || "—"}</td>
                     <td className="mono">{fmtMoney(a.quotation.quoteValue)}</td>
                     <td className="mono">{a.quotation.gp.toFixed(1)}%</td>
-                    <td>{a.tier.replace(/_/g, " ")}</td>
+                    <td>{a.role.name}</td>
                     <td className="mono">{a.requestedAt.toLocaleDateString("en-AE")}</td>
                     <td>
                       <span

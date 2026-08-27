@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
-import { ROLE_LABELS, type RoleValue } from "@/lib/roles";
+import { canEditQuotes, canManageCatalog, canManageUsers } from "@/lib/permissions";
 import { logoutAction } from "@/app/logout/actions";
 
 export default async function DashboardPage() {
@@ -47,9 +47,7 @@ export default async function DashboardPage() {
         <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
           {user.name}
         </div>
-        <span className="pill active">
-          {ROLE_LABELS[user.role as RoleValue]}
-        </span>
+        <span className="pill active">{user.role.name}</span>
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
@@ -62,7 +60,7 @@ export default async function DashboardPage() {
             lineHeight: 1.5,
           }}
         >
-          {user.role === "ADMIN" || user.role === "QUOTATION_OFFICER"
+          {canEditQuotes(user.role)
             ? "Create quotations and track every one in the system."
             : "View every quotation in the system."}
         </p>
@@ -71,7 +69,7 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {(["LINE_MANAGER", "GM", "CEO", "ADMIN"] as string[]).includes(user.role) && (
+      {(user.role.canApproveGp || user.role.isAdmin) && (
         <div className="card" style={{ marginBottom: 20 }}>
           <h2 style={{ fontSize: 15, marginBottom: 6 }}>GP approvals</h2>
           <p
@@ -82,7 +80,7 @@ export default async function DashboardPage() {
               lineHeight: 1.5,
             }}
           >
-            {user.role === "ADMIN"
+            {user.role.isAdmin
               ? "Oversight view of every approval tier."
               : "Decide GP approval requests routed to you."}
           </p>
@@ -92,7 +90,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {user.role === "ADMIN" && (
+      {canManageUsers(user.role) && (
         <div className="card" style={{ marginBottom: 20 }}>
           <h2 style={{ fontSize: 15, marginBottom: 6 }}>User access control</h2>
           <p
@@ -111,7 +109,27 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {user.role === "ADMIN" && (
+      {user.role.isAdmin && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h2 style={{ fontSize: 15, marginBottom: 6 }}>Roles &amp; permissions</h2>
+          <p
+            style={{
+              fontSize: 12.5,
+              color: "var(--ink-faint)",
+              marginBottom: 16,
+              lineHeight: 1.5,
+            }}
+          >
+            Create custom roles with their own permissions and, optionally,
+            their own GP% approval range.
+          </p>
+          <Link href="/admin/roles" className="btn primary">
+            Manage roles →
+          </Link>
+        </div>
+      )}
+
+      {canManageCatalog(user.role) && (
         <div className="card" style={{ marginBottom: 20 }}>
           <h2 style={{ fontSize: 15, marginBottom: 6 }}>Pricing catalog</h2>
           <p

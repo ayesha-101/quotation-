@@ -58,14 +58,6 @@ export function computeLinePricing(
   return { std, spe, landedUnit, sellUnit };
 }
 
-// Higher margin is lower risk, so it routes to the lighter-touch approver;
-// thinner margin gets escalated all the way to CEO.
-export function gpTier(gp: number): "LINE_MANAGER" | "GM" | "CEO" {
-  if (gp >= 10) return "LINE_MANAGER";
-  if (gp >= 5) return "GM";
-  return "CEO";
-}
-
 export interface RawLineInput {
   code?: string;
   description?: string;

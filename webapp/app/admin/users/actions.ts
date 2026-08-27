@@ -1,9 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requireUserManager } from "@/lib/auth-guard";
 import { hashPassword, generateTempPassword } from "@/lib/password";
-import { ROLES } from "@/lib/roles";
 import { revalidatePath } from "next/cache";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -19,21 +18,22 @@ export async function createUserAction(
   _prevState: CreateUserState,
   formData: FormData
 ): Promise<CreateUserState> {
-  const admin = await requireAdmin();
+  const admin = await requireUserManager();
 
   const name = String(formData.get("name") || "").trim();
   const email = String(formData.get("email") || "")
     .trim()
     .toLowerCase();
-  const role = String(formData.get("role") || "");
+  const roleId = String(formData.get("roleId") || "");
 
-  if (!name || !email || !role) {
+  if (!name || !email || !roleId) {
     return { error: "Fill in name, email, and role." };
   }
   if (!EMAIL_RE.test(email)) {
     return { error: "Enter a valid email address." };
   }
-  if (!(ROLES as readonly string[]).includes(role)) {
+  const role = await prisma.role.findUnique({ where: { id: roleId } });
+  if (!role) {
     return { error: "Choose a valid role." };
   }
 
@@ -50,7 +50,7 @@ export async function createUserAction(
       data: {
         name,
         email,
-        role: role as (typeof ROLES)[number],
+        roleId,
         passwordHash,
         createdById: admin.id,
       },
@@ -91,7 +91,7 @@ async function withSerializable<T>(fn: () => Promise<T>): Promise<T> {
 const RETRY_ERROR = { error: "That conflicted with another change — try again." };
 
 export async function deleteUserAction(userId: string): Promise<ActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requireUserManager();
 
   if (userId === admin.id) {
     return { error: "You can't delete your own account." };
@@ -99,11 +99,14 @@ export async function deleteUserAction(userId: string): Promise<ActionResult> {
 
   try {
     const result = await withSerializable(async () => {
-      const target = await prisma.user.findUnique({ where: { id: userId } });
+      const target = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { role: true },
+      });
       if (!target) return { error: "User not found." } as ActionResult;
 
-      if (target.role === "ADMIN") {
-        const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+      if (target.role.isAdmin) {
+        const adminCount = await prisma.user.count({ where: { role: { isAdmin: true } } });
         if (adminCount <= 1) {
           return { error: "Can't delete the last remaining Admin." } as ActionResult;
         }
@@ -120,7 +123,7 @@ export async function deleteUserAction(userId: string): Promise<ActionResult> {
 }
 
 export async function toggleActiveAction(userId: string): Promise<ActionResult> {
-  const admin = await requireAdmin();
+  const admin = await requireUserManager();
 
   if (userId === admin.id) {
     return { error: "You can't deactivate your own account." };
@@ -128,12 +131,15 @@ export async function toggleActiveAction(userId: string): Promise<ActionResult> 
 
   try {
     const result = await withSerializable(async () => {
-      const target = await prisma.user.findUnique({ where: { id: userId } });
+      const target = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { role: true },
+      });
       if (!target) return { error: "User not found." } as ActionResult;
 
-      if (target.isActive && target.role === "ADMIN") {
+      if (target.isActive && target.role.isAdmin) {
         const activeAdminCount = await prisma.user.count({
-          where: { role: "ADMIN", isActive: true },
+          where: { role: { isAdmin: true }, isActive: true },
         });
         if (activeAdminCount <= 1) {
           return { error: "Can't deactivate the last active Admin." } as ActionResult;
@@ -154,7 +160,7 @@ export async function toggleActiveAction(userId: string): Promise<ActionResult> 
 }
 
 export async function resetPasswordAction(userId: string): Promise<ActionResult> {
-  await requireAdmin();
+  await requireUserManager();
 
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) return { error: "User not found." };

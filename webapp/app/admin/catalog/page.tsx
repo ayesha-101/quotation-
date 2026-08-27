@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requireCatalogManager } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
 import CatalogManager from "./catalog-manager";
 
 export default async function AdminCatalogPage() {
-  const admin = await requireAdmin();
+  const admin = await requireCatalogManager();
   if (admin.mustResetPassword) redirect("/account/reset-password");
 
   const items = await prisma.catalogItem.findMany({
@@ -29,7 +29,7 @@ export default async function AdminCatalogPage() {
           lineHeight: 1.5,
         }}
       >
-        Admin-only. This is the raw pricing data — list price, discounts,
+        Requires catalog access. This is the raw pricing data — list price, discounts,
         exchange rate, freight/duty/AD — that the quotation builder uses to
         compute landed cost and sell price per line.
       </p>

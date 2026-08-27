@@ -7,13 +7,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  QUOTATION_OFFICER
-  SALESMAN
-  LINE_MANAGER
-  GM
-  CEO
+// Roles are data, not code: an Admin can create new ones (e.g. "Regional
+// Manager") with their own permission set and, if it should take part in
+// GP approval routing, its own margin range. The six built-in roles are
+// seeded rows (isSystem = true) with these same flags, not special-cased
+// in application logic — see lib/permissions.ts for how gp% picks a role.
+model Role {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  isSystem            Boolean  @default(false)
+  isAdmin             Boolean  @default(false)
+  canManageCatalog    Boolean  @default(false)
+  canManageUsers      Boolean  @default(false)
+  canCreateQuotations Boolean  @default(false)
+  isSalesman          Boolean  @default(false)
+  canApproveGp        Boolean  @default(false)
+  // Margin range this role approves, only meaningful when canApproveGp.
+  // Null gpMin = no lower bound, null gpMax = no upper bound. Ranges are
+  // validated not to overlap when a role is created/edited.
+  gpMin               Float?
+  gpMax               Float?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  users     User[]
+  approvals Approval[]
 }
 
 model User {
@@ -21,7 +39,8 @@ model User {
   name          String
   email         String    @unique
   passwordHash  String
-  role          Role
+  roleId        String
+  role          Role      @relation(fields: [roleId], references: [id])
   isActive      Boolean   @default(true)
   mustResetPassword Boolean @default(true)
   failedAttempts Int      @default(0)
@@ -149,12 +168,6 @@ model QuotationLine {
   custPrice   Float?
 }
 
-enum ApprovalTier {
-  LINE_MANAGER
-  GM
-  CEO
-}
-
 enum ApprovalStatus {
   PENDING
   APPROVED
@@ -165,7 +178,8 @@ model Approval {
   id          String         @id @default(cuid())
   quotationId String
   quotation   Quotation      @relation(fields: [quotationId], references: [id], onDelete: Cascade)
-  tier        ApprovalTier
+  roleId      String
+  role        Role           @relation(fields: [roleId], references: [id])
   status      ApprovalStatus @default(PENDING)
   requestedAt DateTime       @default(now())
   decidedAt   DateTime?

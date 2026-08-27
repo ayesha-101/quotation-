@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
+import { canEditQuotes } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import LpoMatchForm from "./lpo-match-form";
 import FlagStatusButtons from "./flag-status-buttons";
@@ -8,10 +9,6 @@ import ReviseForm from "./revise-form";
 
 function fmtMoney(n: number): string {
   return "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function canEditQuotes(role: string): boolean {
-  return role === "ADMIN" || role === "QUOTATION_OFFICER";
 }
 
 const OPEN_STATUSES = ["DRAFT", "QUOTED", "UNDER_NEGOTIATION"];
@@ -32,7 +29,7 @@ export default async function QuotationDetailPage({
       createdBy: true,
       lines: { orderBy: { position: "asc" } },
       auditLog: { orderBy: { at: "asc" } },
-      approvals: { orderBy: { requestedAt: "desc" }, include: { decidedBy: true } },
+      approvals: { orderBy: { requestedAt: "desc" }, include: { decidedBy: true, role: true } },
       revisions: { orderBy: { revision: "desc" } },
     },
   });
@@ -40,7 +37,7 @@ export default async function QuotationDetailPage({
 
   const isOpen = OPEN_STATUSES.includes(q.status);
   const canConvert = canEditQuotes(user.role) && isOpen;
-  const canFlag = user.role === "SALESMAN" && user.id === q.salesmanId && isOpen;
+  const canFlag = user.role.isSalesman && user.id === q.salesmanId && isOpen;
   const canRevise = canEditQuotes(user.role) && ["QUOTED", "UNDER_NEGOTIATION"].includes(q.status);
   const catalog = canRevise
     ? await prisma.catalogItem.findMany({ orderBy: [{ brand: "asc" }, { code: "asc" }] })
@@ -170,7 +167,7 @@ export default async function QuotationDetailPage({
           <h2 style={{ fontSize: 14, marginBottom: 12 }}>GP approval</h2>
           {q.approvals.map((a) => (
             <div key={a.id} style={{ fontSize: 12.5, marginBottom: 6 }}>
-              Routed to <b>{a.tier.replace(/_/g, " ")}</b> —{" "}
+              Routed to <b>{a.role.name}</b> —{" "}
               <span className={`status-pill status-${a.status === "PENDING" ? "QUOTED" : a.status === "APPROVED" ? "CONVERTED-TO-LPO" : "LOST"}`}>
                 {a.status}
               </span>

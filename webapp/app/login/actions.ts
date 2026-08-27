@@ -74,7 +74,11 @@ export async function loginAction(
     data: { failedAttempts: 0, lockedUntil: null },
   });
 
-  await createSession({ userId: user.id, role: user.role, name: user.name });
+  await createSession({
+    userId: user.id,
+    roleId: user.roleId,
+    name: user.name,
+  });
 
   redirect(
     user.mustResetPassword

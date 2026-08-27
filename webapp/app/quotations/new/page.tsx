@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
+import { canEditQuotes } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import QuotationBuilder from "./quotation-builder";
 
 export default async function NewQuotationPage() {
   const user = await requireUser();
   if (user.mustResetPassword) redirect("/account/reset-password");
-  if (user.role !== "ADMIN" && user.role !== "QUOTATION_OFFICER") {
+  if (!canEditQuotes(user.role)) {
     redirect("/quotations");
   }
 
   const [catalog, salesmen] = await Promise.all([
     prisma.catalogItem.findMany({ orderBy: [{ brand: "asc" }, { code: "asc" }] }),
     prisma.user.findMany({
-      where: { role: "SALESMAN", isActive: true },
+      where: { role: { isSalesman: true }, isActive: true },
       orderBy: { name: "asc" },
     }),
   ]);

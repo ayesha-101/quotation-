@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const existingAdminCount = await prisma.user.count({
-    where: { role: "ADMIN" },
+    where: { role: { isAdmin: true } },
   });
 
   if (existingAdminCount > 0) {
@@ -22,7 +22,7 @@ async function main() {
   const passwordHash = await hashPassword(tempPassword);
 
   await prisma.user.create({
-    data: { name, email, role: "ADMIN", passwordHash },
+    data: { name, email, roleId: "role_admin", passwordHash },
   });
 
   console.log("\n=========================================");

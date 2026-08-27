@@ -18,18 +18,18 @@ function getSecret() {
 
 export interface SessionPayload extends JWTPayload {
   userId: string;
-  role: string;
+  roleId: string;
   name: string;
 }
 
 export async function createSession(data: {
   userId: string;
-  role: string;
+  roleId: string;
   name: string;
 }) {
   const token = await new SignJWT({
     userId: data.userId,
-    role: data.role,
+    roleId: data.roleId,
     name: data.name,
   })
     .setProtectedHeader({ alg: "HS256" })

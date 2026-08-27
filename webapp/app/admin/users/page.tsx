@@ -1,18 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requireUserManager } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
-import { ROLE_LABELS, type RoleValue } from "@/lib/roles";
 import CreateUserForm from "./create-user-form";
 import UserRowActions from "./user-row-actions";
 
 export default async function AdminUsersPage() {
-  const admin = await requireAdmin();
+  const admin = await requireUserManager();
   if (admin.mustResetPassword) redirect("/account/reset-password");
 
-  const users = await prisma.user.findMany({
-    orderBy: { createdAt: "asc" },
-  });
+  const [users, roles] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: { createdAt: "asc" },
+      include: { role: true },
+    }),
+    prisma.role.findMany({ orderBy: { name: "asc" } }),
+  ]);
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "60px 24px" }}>
@@ -31,14 +34,14 @@ export default async function AdminUsersPage() {
           lineHeight: 1.5,
         }}
       >
-        Admin-only. Deleting or deactivating a user takes effect on their
+        Requires user management access. Deleting or deactivating a user takes effect on their
         very next request — sessions aren&apos;t just trusted until they
         expire.
       </p>
 
       <div className="card" style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 14, marginBottom: 16 }}>Add a user</h2>
-        <CreateUserForm />
+        <CreateUserForm roles={roles} />
       </div>
 
       <div className="table-wrap">
@@ -62,7 +65,7 @@ export default async function AdminUsersPage() {
                   )}
                 </td>
                 <td className="mono">{u.email}</td>
-                <td>{ROLE_LABELS[u.role as RoleValue]}</td>
+                <td>{u.role.name}</td>
                 <td>
                   <span className={`pill ${u.isActive ? "active" : "inactive"}`}>
                     {u.isActive ? "Active" : "Deactivated"}

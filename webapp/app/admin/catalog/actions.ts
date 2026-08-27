@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth-guard";
+import { requireCatalogManager } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
 import catalogSeed from "@/prisma/catalog-seed.json";
 
@@ -18,7 +18,7 @@ const IMPORT_BATCH_SIZE = 500;
 // more than once: skipDuplicates means an item already present for its
 // [code, brand] is left untouched, never overwritten.
 export async function importMasterCatalogAction(): Promise<ActionResult> {
-  await requireAdmin();
+  await requireCatalogManager();
 
   let imported = 0;
   for (let i = 0; i < catalogSeed.length; i += IMPORT_BATCH_SIZE) {
@@ -43,7 +43,7 @@ export async function createCatalogItemAction(
   _prevState: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireAdmin();
+  await requireCatalogManager();
 
   const code = String(formData.get("code") || "").trim();
   const description = String(formData.get("description") || "").trim();
@@ -86,7 +86,7 @@ export async function updateCatalogItemAction(
   itemId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireAdmin();
+  await requireCatalogManager();
 
   const description = String(formData.get("description") || "").trim();
   const uom = String(formData.get("uom") || "").trim();
@@ -115,7 +115,7 @@ export async function updateCatalogItemAction(
 }
 
 export async function deleteCatalogItemAction(itemId: string): Promise<ActionResult> {
-  await requireAdmin();
+  await requireCatalogManager();
   await prisma.catalogItem.delete({ where: { id: itemId } });
   revalidatePath("/admin/catalog");
   return { success: true };
