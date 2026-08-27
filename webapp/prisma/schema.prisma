@@ -30,3 +30,27 @@ model User {
   updatedAt     DateTime  @updatedAt
   createdById   String?
 }
+
+// The pricing catalog: one row per sellable item. Landed cost and sell
+// price are computed from these fields at quotation time (see the pricing
+// engine ported from the original Artifact's computeLinePricing()), not
+// stored here — only the inputs to that calculation live on the item.
+model CatalogItem {
+  id          String   @id @default(cuid())
+  code        String
+  description String
+  brand       String
+  uom         String
+  exWork      String   @default("")
+  currency    String   @default("USD")
+  listPrice   Float    @default(0)
+  disPct      Float    @default(0)
+  exRate      Float    @default(3.68)
+  freightPct  Float    @default(0)
+  dutyPct     Float    @default(0)
+  adPct       Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([code, brand])
+}
