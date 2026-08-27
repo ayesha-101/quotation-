@@ -3,13 +3,47 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { canEditQuotes, canManageCatalog, canManageUsers } from "@/lib/permissions";
 import { logoutAction } from "@/app/logout/actions";
+import { prisma } from "@/lib/db";
+import DashboardAnalytics, { type DashboardQuotation } from "./dashboard-analytics";
 
 export default async function DashboardPage() {
   const user = await requireUser();
   if (user.mustResetPassword) redirect("/account/reset-password");
 
+  const [quotationRows, officers, salesmen] = await Promise.all([
+    prisma.quotation.findMany({
+      include: { lines: true, salesman: true, createdBy: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.findMany({
+      where: { OR: [{ role: { canCreateQuotations: true } }, { role: { isAdmin: true } }] },
+      orderBy: { name: "asc" },
+    }),
+    prisma.user.findMany({
+      where: { role: { isSalesman: true } },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const quotations: DashboardQuotation[] = quotationRows.map((q) => ({
+    id: q.id,
+    quoteNo: q.quoteNo,
+    revision: q.revision,
+    status: q.status,
+    quoteValue: q.quoteValue,
+    gp: q.gp,
+    to: q.to,
+    createdAt: q.createdAt.toISOString(),
+    lastEditedAt: q.lastEditedAt.toISOString(),
+    salesmanId: q.salesmanId,
+    salesmanName: q.salesman.name,
+    createdById: q.createdById,
+    createdByName: q.createdBy.name,
+    lines: q.lines.map((l) => ({ code: l.code, description: l.description, brand: l.brand, qty: l.qty })),
+  }));
+
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "60px 24px" }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
       <div
         style={{
           display: "flex",
@@ -40,7 +74,7 @@ export default async function DashboardPage() {
         </form>
       </div>
 
-      <div className="card" style={{ marginBottom: 20 }}>
+      <div className="card">
         <div style={{ fontSize: 12.5, color: "var(--ink-faint)", marginBottom: 4 }}>
           Signed in as
         </div>
@@ -50,7 +84,18 @@ export default async function DashboardPage() {
         <span className="pill active">{user.role.name}</span>
       </div>
 
-      <div className="card" style={{ marginBottom: 20 }}>
+      <DashboardAnalytics quotations={quotations} officers={officers} salesmen={salesmen} />
+
+      <h2 style={{ fontSize: 16, marginBottom: 16 }}>Quick access</h2>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          gap: 16,
+          marginBottom: 20,
+        }}
+      >
+      <div className="card">
         <h2 style={{ fontSize: 15, marginBottom: 6 }}>Quotations</h2>
         <p
           style={{
@@ -69,8 +114,25 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
+      <div className="card">
+        <h2 style={{ fontSize: 15, marginBottom: 6 }}>Material Tracker</h2>
+        <p
+          style={{
+            fontSize: 12.5,
+            color: "var(--ink-faint)",
+            marginBottom: 16,
+            lineHeight: 1.5,
+          }}
+        >
+          Quoted vs. converted quantities per item — a reorder signal.
+        </p>
+        <Link href="/materials" className="btn primary">
+          Material Tracker →
+        </Link>
+      </div>
+
       {(user.role.canApproveGp || user.role.isAdmin) && (
-        <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card">
           <h2 style={{ fontSize: 15, marginBottom: 6 }}>GP approvals</h2>
           <p
             style={{
@@ -91,7 +153,7 @@ export default async function DashboardPage() {
       )}
 
       {canManageUsers(user.role) && (
-        <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card">
           <h2 style={{ fontSize: 15, marginBottom: 6 }}>User access control</h2>
           <p
             style={{
@@ -110,7 +172,7 @@ export default async function DashboardPage() {
       )}
 
       {user.role.isAdmin && (
-        <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card">
           <h2 style={{ fontSize: 15, marginBottom: 6 }}>Roles &amp; permissions</h2>
           <p
             style={{
@@ -130,7 +192,7 @@ export default async function DashboardPage() {
       )}
 
       {canManageCatalog(user.role) && (
-        <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card">
           <h2 style={{ fontSize: 15, marginBottom: 6 }}>Pricing catalog</h2>
           <p
             style={{
@@ -148,6 +210,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
       )}
+      </div>
 
       <div
         className="card"
@@ -166,11 +229,10 @@ export default async function DashboardPage() {
         >
           Real authentication, hashed passwords, session cookies, Admin-only
           user management, the pricing catalog, quotation creation, LPO
-          matching, and GP approval routing — all backed by a real Postgres
-          database, with pricing recomputed server-side from the real
-          catalog on every save. Quotation revisions and a printable PDF
-          preview still live in the published Artifact; porting those is
-          next.
+          matching, GP approval routing (with dynamic, admin-configurable
+          roles and margin ranges), revisions, a printable quotation
+          matching the real BMTC template, and this dashboard&apos;s live
+          analytics — all backed by a real Postgres database.
         </p>
       </div>
     </div>
