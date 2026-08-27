@@ -29,6 +29,9 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   createdById   String?
+
+  quotationsAsSalesman Quotation[] @relation("QuotationSalesman")
+  quotationsCreated    Quotation[] @relation("QuotationCreatedBy")
 }
 
 // The pricing catalog: one row per sellable item. Landed cost and sell
@@ -53,4 +56,85 @@ model CatalogItem {
   updatedAt   DateTime @updatedAt
 
   @@unique([code, brand])
+}
+
+// Backs the human-readable quote number (BMTC-JIH-YYYYMM-<seq>). A single
+// row, incremented with an atomic upsert so two concurrent saves can never
+// get the same number.
+model QuoteSequence {
+  id    Int @id @default(1)
+  value Int @default(1390)
+}
+
+enum QuotationStatus {
+  DRAFT
+  QUOTED
+  UNDER_NEGOTIATION
+  LOST
+  CONVERTED_TO_LPO
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  quoteNo         String          @unique
+  revision        Int             @default(0)
+  status          QuotationStatus @default(DRAFT)
+  salesmanId      String
+  salesman        User            @relation("QuotationSalesman", fields: [salesmanId], references: [id])
+  to              String          @default("")
+  attention       String          @default("")
+  reference       String          @default("")
+  project         String          @default("")
+  consultant      String          @default("")
+  client          String          @default("")
+  subject         String          @default("")
+  telNo           String          @default("")
+  faxNo           String          @default("")
+  mobNo           String          @default("")
+  delivery        String          @default("")
+  deliveryPlace   String          @default("")
+  validity        String          @default("")
+  paymentTerms    String          @default("")
+  prepName        String          @default("")
+  prepTitle       String          @default("")
+  prepMobile      String          @default("")
+  pricingControls Json
+  quoteValue      Float
+  vat             Float
+  totalValue      Float
+  gp              Float
+  createdAt       DateTime        @default(now())
+  lastEditedAt    DateTime        @updatedAt
+  createdById     String
+  createdBy       User            @relation("QuotationCreatedBy", fields: [createdById], references: [id])
+
+  lines    QuotationLine[]
+  auditLog QuotationAuditEntry[]
+}
+
+model QuotationLine {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  position    Int
+  code        String    @default("")
+  description String    @default("")
+  brand       String    @default("")
+  uom         String    @default("")
+  qty         Float     @default(0)
+  speDiscPct  Float     @default(0)
+  marginPct   Float     @default(35)
+  unitLanded  Float     @default(0)
+  unitSell    Float     @default(0)
+  lineTotal   Float     @default(0)
+  manual      Boolean   @default(false)
+}
+
+model QuotationAuditEntry {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  who         String
+  action      String
+  at          DateTime  @default(now())
 }

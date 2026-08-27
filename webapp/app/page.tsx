@@ -52,6 +52,25 @@ export default async function DashboardPage() {
         </span>
       </div>
 
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 15, marginBottom: 6 }}>Quotations</h2>
+        <p
+          style={{
+            fontSize: 12.5,
+            color: "var(--ink-faint)",
+            marginBottom: 16,
+            lineHeight: 1.5,
+          }}
+        >
+          {user.role === "ADMIN" || user.role === "QUOTATION_OFFICER"
+            ? "Create quotations and track every one in the system."
+            : "View every quotation in the system."}
+        </p>
+        <Link href="/quotations" className="btn primary">
+          Quotation Tracker →
+        </Link>
+      </div>
+
       {user.role === "ADMIN" && (
         <div className="card" style={{ marginBottom: 20 }}>
           <h2 style={{ fontSize: 15, marginBottom: 6 }}>User access control</h2>
@@ -107,10 +126,11 @@ export default async function DashboardPage() {
           }}
         >
           Real authentication, hashed passwords, session cookies, Admin-only
-          user management, and the pricing catalog — all backed by a real
-          Postgres database. Quotation building, GP approval routing, and
-          LPO matching still live in the published Artifact; porting that
-          business logic into this app is the next phase.
+          user management, the pricing catalog, and quotation creation —
+          all backed by a real Postgres database, with pricing recomputed
+          server-side from the real catalog on every save. GP approval
+          routing and LPO matching still live in the published Artifact;
+          porting those is the next phase.
         </p>
       </div>
     </div>
