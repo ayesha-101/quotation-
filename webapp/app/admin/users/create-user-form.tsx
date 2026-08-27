@@ -37,8 +37,11 @@ export default function CreateUserForm({ roles }: { roles: Array<{ id: string; n
             <b>{state.tempPassword}</b>
             <br />
             <span style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-              Share this with them once — they&apos;ll be asked to set their
-              own password at first sign-in.
+              {state.emailSent
+                ? "A welcome email with these details was sent to them."
+                : "Couldn't send the welcome email — share this with them once yourself."}{" "}
+              They&apos;ll be asked to set their own password at first
+              sign-in.
             </span>
           </div>
         )}

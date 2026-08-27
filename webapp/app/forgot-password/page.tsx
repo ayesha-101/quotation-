@@ -1,12 +1,6 @@
-import LoginForm from "./login-form";
+import ForgotPasswordForm from "./forgot-password-form";
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string; reset?: string }>;
-}) {
-  const { next, reset } = await searchParams;
-
+export default function ForgotPasswordPage() {
   return (
     <div
       style={{
@@ -30,7 +24,7 @@ export default async function LoginPage({
         >
           BMTC
         </div>
-        <h1 style={{ fontSize: 20, marginBottom: 6 }}>Sign in</h1>
+        <h1 style={{ fontSize: 20, marginBottom: 6 }}>Forgot password</h1>
         <p
           style={{
             fontSize: 12.5,
@@ -39,14 +33,10 @@ export default async function LoginPage({
             lineHeight: 1.5,
           }}
         >
-          Quotation &amp; LPO Control — internal access only.
+          Enter your account email and we&apos;ll send you a link to reset
+          your password.
         </p>
-        {reset === "1" && (
-          <div className="success-note">
-            Password updated. Sign in with your new password.
-          </div>
-        )}
-        <LoginForm next={next || "/"} />
+        <ForgotPasswordForm />
       </div>
     </div>
   );

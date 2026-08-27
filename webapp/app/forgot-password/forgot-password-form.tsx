@@ -2,19 +2,32 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { loginAction, type LoginState } from "./actions";
+import { requestPasswordResetAction, type ForgotPasswordState } from "./actions";
 
-const initialState: LoginState = {};
+const initialState: ForgotPasswordState = {};
 
-export default function LoginForm({ next }: { next: string }) {
+export default function ForgotPasswordForm() {
   const [state, formAction, pending] = useActionState(
-    loginAction,
+    requestPasswordResetAction,
     initialState
   );
 
+  if (state.success) {
+    return (
+      <div>
+        <p className="success-note">
+          If an account exists for that email, we&apos;ve sent a link to
+          reset the password. It expires in 30 minutes.
+        </p>
+        <Link href="/login" className="btn" style={{ width: "100%", textAlign: "center", display: "block" }}>
+          Back to sign in
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <form action={formAction}>
-      <input type="hidden" name="next" value={next} />
       {state.error && <div className="error-note">{state.error}</div>}
       <div className="field">
         <label htmlFor="email">Email</label>
@@ -27,29 +40,19 @@ export default function LoginForm({ next }: { next: string }) {
           autoFocus
         />
       </div>
-      <div className="field">
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-        />
-      </div>
       <button
         type="submit"
         className="btn primary"
         style={{ width: "100%" }}
         disabled={pending}
       >
-        {pending ? "Signing in…" : "Sign in"}
+        {pending ? "Sending…" : "Send reset link"}
       </button>
       <Link
-        href="/forgot-password"
+        href="/login"
         style={{ display: "block", textAlign: "center", fontSize: 12, marginTop: 16, color: "var(--ink-faint)" }}
       >
-        Forgot your password?
+        Back to sign in
       </Link>
     </form>
   );

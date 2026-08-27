@@ -5,6 +5,7 @@ import { requireUserManager } from "@/lib/auth-guard";
 import { hashPassword, generateTempPassword } from "@/lib/password";
 import { revalidatePath } from "next/cache";
 import { appendChainEvent } from "@/lib/security-chain";
+import { sendWelcomeEmail } from "@/lib/email";
 import type { Prisma } from "@prisma/client";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -14,6 +15,7 @@ export interface CreateUserState {
   success?: boolean;
   tempPassword?: string;
   email?: string;
+  emailSent?: boolean;
 }
 
 export async function createUserAction(
@@ -77,8 +79,26 @@ export async function createUserAction(
     outcome: "success",
   });
 
+  let emailSent = false;
+  try {
+    await sendWelcomeEmail(email, name, tempPassword);
+    emailSent = true;
+  } catch (e) {
+    // Non-fatal: the admin still sees the temp password below and can
+    // relay it themselves — see the emailSent flag rendered in the UI.
+    console.error("Failed to send welcome email:", e);
+  }
+  await appendChainEvent({
+    actor: admin.name,
+    action: emailSent
+      ? `Welcome email sent to ${email}`
+      : `Welcome email failed to send to ${email}`,
+    resource: "user-management",
+    outcome: emailSent ? "success" : "failure",
+  });
+
   revalidatePath("/admin/users");
-  return { success: true, tempPassword, email };
+  return { success: true, tempPassword, email, emailSent };
 }
 
 export interface ActionResult {

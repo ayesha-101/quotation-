@@ -9,7 +9,11 @@ import { verifySessionToken, SESSION_COOKIE } from "@/lib/session";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/login")) {
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password")
+  ) {
     return NextResponse.next();
   }
 
