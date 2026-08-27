@@ -59,9 +59,14 @@ export default async function QuotationDetailPage({
             {q.to || "—"} · {q.salesman.name}
           </div>
         </div>
-        <span className={`status-pill status-${q.status.replace(/_/g, "-")}`}>
-          {q.status.replace(/_/g, " ")}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href={`/quotations/${q.id}/print`} target="_blank" className="btn">
+            Preview / Print →
+          </Link>
+          <span className={`status-pill status-${q.status.replace(/_/g, "-")}`}>
+            {q.status.replace(/_/g, " ")}
+          </span>
+        </div>
       </div>
 
       {q.lpoMismatch && (
