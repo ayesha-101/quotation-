@@ -35,13 +35,17 @@ export default async function QuotationDetailPage({
     },
   });
   if (!q) notFound();
+  if (!user.role.isAdmin && q.departmentId !== user.departmentId) notFound();
 
   const isOpen = OPEN_STATUSES.includes(q.status);
   const canConvert = canEditQuotes(user.role) && isOpen;
   const canFlag = user.role.isSalesman && user.id === q.salesmanId && isOpen;
   const canRevise = canEditQuotes(user.role) && ["QUOTED", "UNDER_NEGOTIATION"].includes(q.status);
   const catalog = canRevise
-    ? await prisma.catalogItem.findMany({ orderBy: [{ brand: "asc" }, { code: "asc" }] })
+    ? await prisma.catalogItem.findMany({
+        where: { departmentId: q.departmentId },
+        orderBy: [{ brand: "asc" }, { code: "asc" }],
+      })
     : [];
 
   return (

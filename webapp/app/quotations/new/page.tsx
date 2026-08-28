@@ -14,9 +14,12 @@ export default async function NewQuotationPage() {
   }
 
   const [catalog, salesmen] = await Promise.all([
-    prisma.catalogItem.findMany({ orderBy: [{ brand: "asc" }, { code: "asc" }] }),
+    prisma.catalogItem.findMany({
+      where: { departmentId: user.departmentId },
+      orderBy: [{ brand: "asc" }, { code: "asc" }],
+    }),
     prisma.user.findMany({
-      where: { role: { isSalesman: true }, isActive: true },
+      where: { role: { isSalesman: true }, isActive: true, departmentId: user.departmentId },
       orderBy: { name: "asc" },
     }),
   ]);

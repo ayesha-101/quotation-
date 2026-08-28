@@ -10,10 +10,12 @@ export type NavSection =
   | "catalog"
   | "users"
   | "roles"
+  | "departments"
   | "security";
 
 interface HeaderUser {
   name: string;
+  department: { name: string };
   role: {
     name: string;
     isAdmin: boolean;
@@ -37,6 +39,7 @@ export default function AppHeader({ user, active }: { user: HeaderUser; active: 
     { id: "catalog", href: "/admin/catalog", label: "Catalog", show: canManageCatalog(user.role) },
     { id: "users", href: "/admin/users", label: "Users", show: canManageUsers(user.role) },
     { id: "roles", href: "/admin/roles", label: "Roles", show: user.role.isAdmin },
+    { id: "departments", href: "/admin/departments", label: "Departments", show: user.role.isAdmin },
     { id: "security", href: "/security", label: "Security", show: user.role.isAdmin },
   ];
 
@@ -50,6 +53,7 @@ export default function AppHeader({ user, active }: { user: HeaderUser; active: 
         <div className="app-header-user">
           <span>{user.name}</span>
           <span className="pill active">{user.role.name}</span>
+          <span className="pill inactive">{user.role.isAdmin ? "All departments" : user.department.name}</span>
           <form action={logoutAction}>
             <button type="submit" className="btn" style={{ padding: "7px 14px", fontSize: 12 }}>
               Sign out

@@ -14,10 +14,16 @@ import { canEditQuotes, resolveApproverRoleId } from "@/lib/permissions";
 import { appendChainEvent } from "@/lib/security-chain";
 import type { CatalogItem } from "@prisma/client";
 
-async function lookupCatalogByCode(codes: (string | undefined)[]): Promise<Map<string, CatalogItem>> {
+// Scoped to one department: catalog codes are only unique per department
+// now, so an unscoped lookup could match another department's item that
+// happens to share a code.
+async function lookupCatalogByCode(
+  codes: (string | undefined)[],
+  departmentId: string
+): Promise<Map<string, CatalogItem>> {
   const cleaned = codes.map((c) => c?.trim().toUpperCase()).filter((c): c is string => !!c);
   if (cleaned.length === 0) return new Map();
-  const items = await prisma.catalogItem.findMany({ where: { code: { in: cleaned } } });
+  const items = await prisma.catalogItem.findMany({ where: { departmentId, code: { in: cleaned } } });
   return new Map(items.map((c) => [c.code.toUpperCase(), c]));
 }
 
@@ -53,6 +59,9 @@ export async function convertToLpoAction(
     include: { lines: { orderBy: { position: "asc" } } },
   });
   if (!quotation) return { error: "Quotation not found." };
+  if (!user.role.isAdmin && quotation.departmentId !== user.departmentId) {
+    return { error: "Quotation not found." };
+  }
   if (quotation.status === "CONVERTED_TO_LPO" || quotation.status === "LOST") {
     return { error: "This quotation can't be converted from its current status." };
   }
@@ -216,6 +225,7 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
     return { error: "Only the Admin or a Quotation Officer can create quotations." };
   }
 
+  const departmentId = user.departmentId;
   const salesmanId = String(formData.get("salesmanId") || "");
   const status = String(formData.get("status") || "DRAFT");
   if (!["DRAFT", "QUOTED"].includes(status)) {
@@ -223,7 +233,7 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
   }
 
   const salesman = await prisma.user.findUnique({ where: { id: salesmanId } });
-  if (!salesman || !salesman.isActive) {
+  if (!salesman || !salesman.isActive || salesman.departmentId !== departmentId) {
     return { error: "Choose a valid, active salesman." };
   }
 
@@ -247,7 +257,7 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
 
   // Recompute pricing server-side from the real catalog — never trust the
   // client's numbers for anything that feeds GP/approval routing later.
-  const catalogByCode = await lookupCatalogByCode(nonEmpty.map((l) => l.code));
+  const catalogByCode = await lookupCatalogByCode(nonEmpty.map((l) => l.code), departmentId);
   const { lines: computedLines, totals } = computeQuotationLines(nonEmpty, catalogByCode, ctl);
   const { quoteValue, vat, totalValue, gp } = totals;
 
@@ -274,17 +284,21 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
     headerFieldNames.map((f) => [f, String(formData.get(f) || "")])
   );
 
+  const department = await prisma.department.findUnique({ where: { id: departmentId } });
+  if (!department) return { error: "Your department could not be found." };
+
   let quotationId = "";
   await prisma.$transaction(async (tx) => {
     const seq = await tx.quoteSequence.upsert({
-      where: { id: 1 },
-      create: { id: 1, value: 1391 },
+      where: { departmentId },
+      create: { departmentId, value: 1391 },
       update: { value: { increment: 1 } },
     });
-    const quoteNo = `BMTC-JIH-${currentYYYYMM()}-${seq.value}`;
+    const quoteNo = `${department.quotePrefix}-${currentYYYYMM()}-${seq.value}`;
 
     const quotation = await tx.quotation.create({
       data: {
+        departmentId,
         quoteNo,
         status: status as "DRAFT" | "QUOTED",
         salesmanId,
@@ -329,6 +343,9 @@ export async function reviseQuotationAction(
 
   const quotation = await prisma.quotation.findUnique({ where: { id: quotationId } });
   if (!quotation) return { error: "Quotation not found." };
+  if (!user.role.isAdmin && quotation.departmentId !== user.departmentId) {
+    return { error: "Quotation not found." };
+  }
   if (!REVISABLE_STATUSES.includes(quotation.status)) {
     return { error: "Only a Quoted or Under Negotiation quotation can be revised." };
   }
@@ -347,7 +364,7 @@ export async function reviseQuotationAction(
   // Matches the original Artifact: revising recalculates against default
   // (zeroed) global pricing controls, not whatever the quotation was
   // originally saved with — each revision starts from a clean baseline.
-  const catalogByCode = await lookupCatalogByCode(nonEmpty.map((l) => l.code));
+  const catalogByCode = await lookupCatalogByCode(nonEmpty.map((l) => l.code), quotation.departmentId);
   const { lines: computedLines, totals } = computeQuotationLines(
     nonEmpty,
     catalogByCode,

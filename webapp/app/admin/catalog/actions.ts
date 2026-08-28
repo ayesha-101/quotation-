@@ -6,6 +6,19 @@ import { revalidatePath } from "next/cache";
 import { appendChainEvent } from "@/lib/security-chain";
 import catalogSeed from "@/prisma/catalog-seed.json";
 
+const NOT_FOUND: ActionResult = { error: "Catalog item not found." };
+
+// Non-Admin catalog managers only ever act within their own department —
+// fetch first and check rather than trusting a departmentId in the where
+// clause, so a mismatch reads as "not found" instead of leaking whether an
+// id exists in a department the caller can't see.
+async function findOwnCatalogItem(itemId: string, user: { role: { isAdmin: boolean }; departmentId: string }) {
+  const item = await prisma.catalogItem.findUnique({ where: { id: itemId } });
+  if (!item) return null;
+  if (!user.role.isAdmin && item.departmentId !== user.departmentId) return null;
+  return item;
+}
+
 export interface ActionResult {
   error?: string;
   success?: boolean;
@@ -25,7 +38,7 @@ export async function importMasterCatalogAction(): Promise<ActionResult> {
   for (let i = 0; i < catalogSeed.length; i += IMPORT_BATCH_SIZE) {
     const batch = catalogSeed.slice(i, i + IMPORT_BATCH_SIZE);
     const result = await prisma.catalogItem.createMany({
-      data: batch,
+      data: batch.map((item) => ({ ...item, departmentId: user.departmentId })),
       skipDuplicates: true,
     });
     imported += result.count;
@@ -65,6 +78,7 @@ export async function createCatalogItemAction(
   try {
     await prisma.catalogItem.create({
       data: {
+        departmentId: user.departmentId,
         code,
         description,
         brand,
@@ -103,6 +117,9 @@ export async function updateCatalogItemAction(
 ): Promise<ActionResult> {
   const user = await requireCatalogManager();
 
+  const existing = await findOwnCatalogItem(itemId, user);
+  if (!existing) return NOT_FOUND;
+
   const description = String(formData.get("description") || "").trim();
   const uom = String(formData.get("uom") || "").trim();
   if (!description || !uom) {
@@ -138,6 +155,10 @@ export async function updateCatalogItemAction(
 
 export async function deleteCatalogItemAction(itemId: string): Promise<ActionResult> {
   const user = await requireCatalogManager();
+
+  const existing = await findOwnCatalogItem(itemId, user);
+  if (!existing) return NOT_FOUND;
+
   const item = await prisma.catalogItem.delete({ where: { id: itemId } });
 
   await appendChainEvent({

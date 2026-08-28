@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireCatalogManager } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
+import { departmentScope } from "@/lib/permissions";
 import AppHeader from "@/app/app-header";
 import CatalogManager from "./catalog-manager";
 
@@ -9,6 +10,7 @@ export default async function AdminCatalogPage() {
   if (admin.mustResetPassword) redirect("/account/reset-password");
 
   const items = await prisma.catalogItem.findMany({
+    where: departmentScope(admin),
     orderBy: [{ brand: "asc" }, { code: "asc" }],
   });
 

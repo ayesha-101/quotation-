@@ -14,7 +14,9 @@ export default async function ApprovalsPage() {
   if (user.mustResetPassword) redirect("/account/reset-password");
 
   const approvals = await prisma.approval.findMany({
-    where: user.role.isAdmin ? {} : { roleId: user.roleId },
+    where: user.role.isAdmin
+      ? {}
+      : { roleId: user.roleId, quotation: { departmentId: user.departmentId } },
     include: {
       quotation: { include: { lines: true } },
       decidedBy: true,

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireUserManager } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
+import { departmentScope } from "@/lib/permissions";
 import AppHeader from "@/app/app-header";
 import CreateUserForm from "./create-user-form";
 import UserRowActions from "./user-row-actions";
@@ -9,12 +10,14 @@ export default async function AdminUsersPage() {
   const admin = await requireUserManager();
   if (admin.mustResetPassword) redirect("/account/reset-password");
 
-  const [users, roles] = await Promise.all([
+  const [users, roles, departments] = await Promise.all([
     prisma.user.findMany({
+      where: departmentScope(admin),
       orderBy: { createdAt: "asc" },
-      include: { role: true },
+      include: { role: true, department: true },
     }),
     prisma.role.findMany({ orderBy: { name: "asc" } }),
+    admin.role.isAdmin ? prisma.department.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
   ]);
 
   return (
@@ -37,7 +40,7 @@ export default async function AdminUsersPage() {
 
       <div className="card" style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 14, marginBottom: 16 }}>Add a user</h2>
-        <CreateUserForm roles={roles} />
+        <CreateUserForm roles={roles} departments={departments} homeDepartmentName={admin.department.name} />
       </div>
 
       <div className="table-wrap">
@@ -47,6 +50,7 @@ export default async function AdminUsersPage() {
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
+              {admin.role.isAdmin && <th>Department</th>}
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -62,6 +66,7 @@ export default async function AdminUsersPage() {
                 </td>
                 <td className="mono">{u.email}</td>
                 <td>{u.role.name}</td>
+                {admin.role.isAdmin && <td>{u.department.name}</td>}
                 <td>
                   <span className={`pill ${u.isActive ? "active" : "inactive"}`}>
                     {u.isActive ? "Active" : "Deactivated"}

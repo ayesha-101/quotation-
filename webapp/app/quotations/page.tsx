@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
-import { canEditQuotes } from "@/lib/permissions";
+import { canEditQuotes, departmentScope } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import AppHeader from "@/app/app-header";
 
@@ -18,8 +18,9 @@ export default async function QuotationsPage() {
   if (user.mustResetPassword) redirect("/account/reset-password");
 
   const quotations = await prisma.quotation.findMany({
+    where: departmentScope(user),
     orderBy: { createdAt: "desc" },
-    include: { salesman: true, lines: true },
+    include: { salesman: true, lines: true, department: true },
   });
 
   return (
@@ -54,6 +55,7 @@ export default async function QuotationsPage() {
           <thead>
             <tr>
               <th>Ref.</th>
+              {user.role.isAdmin && <th>Department</th>}
               <th>To</th>
               <th>Brand(s)</th>
               <th>Value</th>
@@ -65,7 +67,7 @@ export default async function QuotationsPage() {
           <tbody>
             {quotations.length === 0 ? (
               <tr>
-                <td colSpan={7} className="empty-state">
+                <td colSpan={user.role.isAdmin ? 8 : 7} className="empty-state">
                   No quotations yet.
                 </td>
               </tr>
@@ -80,6 +82,7 @@ export default async function QuotationsPage() {
                         {q.revision > 0 ? `-R${q.revision}` : ""}
                       </Link>
                     </td>
+                    {user.role.isAdmin && <td>{q.department.name}</td>}
                     <td>{q.to || "—"}</td>
                     <td>{brands.join(", ") || "—"}</td>
                     <td className="mono">{fmtMoney(q.quoteValue)}</td>

@@ -41,6 +41,8 @@ model User {
   passwordHash  String
   roleId        String
   role          Role      @relation(fields: [roleId], references: [id])
+  departmentId  String
+  department    Department @relation(fields: [departmentId], references: [id])
   isActive      Boolean   @default(true)
   mustResetPassword Boolean @default(true)
   failedAttempts Int      @default(0)
@@ -53,6 +55,30 @@ model User {
   quotationsCreated    Quotation[] @relation("QuotationCreatedBy")
   approvalDecisions    Approval[]  @relation("ApprovalDecidedBy")
   passwordResetTokens  PasswordResetToken[]
+}
+
+// A business unit (Electrical today; more added from /admin/departments as
+// each one's own catalog/quotation workflow gets defined — see the comment
+// on CatalogItem/Quotation.departmentId). isAdmin roles see across every
+// department; every other role is scoped to its user's own department by
+// a departmentId filter at each query site, not by anything on Role itself
+// — a role's permission bits stay company-wide, only the *data* is scoped.
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique
+  // Printed quote-number prefix, e.g. "BMTC-JIH" — kept editable per
+  // department since each one may follow its own existing numbering
+  // convention once that's known.
+  quotePrefix String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users         User[]
+  catalogItems  CatalogItem[]
+  quotations    Quotation[]
+  quoteSequence QuoteSequence?
 }
 
 // Self-service "forgot password" flow. Only tokenHash (SHA-256 of the raw
@@ -74,31 +100,35 @@ model PasswordResetToken {
 // engine ported from the original Artifact's computeLinePricing()), not
 // stored here — only the inputs to that calculation live on the item.
 model CatalogItem {
-  id          String   @id @default(cuid())
-  code        String
-  description String
-  brand       String
-  uom         String
-  exWork      String   @default("")
-  currency    String   @default("USD")
-  listPrice   Float    @default(0)
-  disPct      Float    @default(0)
-  exRate      Float    @default(3.68)
-  freightPct  Float    @default(0)
-  dutyPct     Float    @default(0)
-  adPct       Float    @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String     @id @default(cuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  code         String
+  description  String
+  brand        String
+  uom          String
+  exWork       String   @default("")
+  currency     String   @default("USD")
+  listPrice    Float    @default(0)
+  disPct       Float    @default(0)
+  exRate       Float    @default(3.68)
+  freightPct   Float    @default(0)
+  dutyPct      Float    @default(0)
+  adPct        Float    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  @@unique([code, brand])
+  @@unique([departmentId, code, brand])
 }
 
-// Backs the human-readable quote number (BMTC-JIH-YYYYMM-<seq>). A single
-// row, incremented with an atomic upsert so two concurrent saves can never
-// get the same number.
+// Backs the human-readable quote number (<department.quotePrefix>-YYYYMM-
+// <seq>) — one row per department, each incremented with an atomic upsert
+// so two concurrent saves in the same department can never get the same
+// number.
 model QuoteSequence {
-  id    Int @id @default(1)
-  value Int @default(1390)
+  departmentId String     @id
+  department   Department @relation(fields: [departmentId], references: [id])
+  value        Int        @default(1390)
 }
 
 enum QuotationStatus {
@@ -111,6 +141,8 @@ enum QuotationStatus {
 
 model Quotation {
   id              String          @id @default(cuid())
+  departmentId    String
+  department      Department      @relation(fields: [departmentId], references: [id])
   quoteNo         String          @unique
   revision        Int             @default(0)
   status          QuotationStatus @default(DRAFT)

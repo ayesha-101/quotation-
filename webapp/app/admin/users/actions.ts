@@ -29,16 +29,28 @@ export async function createUserAction(
     .trim()
     .toLowerCase();
   const roleId = String(formData.get("roleId") || "");
+  // A department-scoped user manager can only ever add users to their own
+  // department — the submitted departmentId is trusted only from a full
+  // Admin, who's allowed to place a user in any department.
+  const departmentId = admin.role.isAdmin
+    ? String(formData.get("departmentId") || "")
+    : admin.departmentId;
 
-  if (!name || !email || !roleId) {
-    return { error: "Fill in name, email, and role." };
+  if (!name || !email || !roleId || !departmentId) {
+    return { error: "Fill in name, email, role, and department." };
   }
   if (!EMAIL_RE.test(email)) {
     return { error: "Enter a valid email address." };
   }
-  const role = await prisma.role.findUnique({ where: { id: roleId } });
+  const [role, department] = await Promise.all([
+    prisma.role.findUnique({ where: { id: roleId } }),
+    prisma.department.findUnique({ where: { id: departmentId } }),
+  ]);
   if (!role) {
     return { error: "Choose a valid role." };
+  }
+  if (!department) {
+    return { error: "Choose a valid department." };
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -55,6 +67,7 @@ export async function createUserAction(
         name,
         email,
         roleId,
+        departmentId,
         passwordHash,
         createdById: admin.id,
       },
@@ -74,7 +87,7 @@ export async function createUserAction(
 
   await appendChainEvent({
     actor: admin.name,
-    action: `Created user ${email} (${role.name})`,
+    action: `Created user ${email} (${role.name}, ${department.name})`,
     resource: "user-management",
     outcome: "success",
   });
@@ -140,6 +153,9 @@ export async function deleteUserAction(userId: string): Promise<ActionResult> {
         include: { role: true },
       });
       if (!target) return { error: "User not found." };
+      if (!admin.role.isAdmin && target.departmentId !== admin.departmentId) {
+        return { error: "User not found." };
+      }
 
       if (target.role.isAdmin) {
         const adminCount = await tx.user.count({ where: { role: { isAdmin: true } } });
@@ -182,6 +198,9 @@ export async function toggleActiveAction(userId: string): Promise<ActionResult> 
         include: { role: true },
       });
       if (!target) return { error: "User not found." };
+      if (!admin.role.isAdmin && target.departmentId !== admin.departmentId) {
+        return { error: "User not found." };
+      }
 
       if (target.isActive && target.role.isAdmin) {
         const activeAdminCount = await tx.user.count({
@@ -218,6 +237,9 @@ export async function resetPasswordAction(userId: string): Promise<ActionResult>
 
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) return { error: "User not found." };
+  if (!admin.role.isAdmin && target.departmentId !== admin.departmentId) {
+    return { error: "User not found." };
+  }
 
   const tempPassword = generateTempPassword();
   const passwordHash = await hashPassword(tempPassword);

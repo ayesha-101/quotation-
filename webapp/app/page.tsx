@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
+import { departmentScope } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import AppHeader from "./app-header";
 import DashboardAnalytics, { type DashboardQuotation } from "./dashboard-analytics";
@@ -10,15 +11,16 @@ export default async function DashboardPage() {
 
   const [quotationRows, officers, salesmen] = await Promise.all([
     prisma.quotation.findMany({
+      where: departmentScope(user),
       include: { lines: true, salesman: true, createdBy: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.user.findMany({
-      where: { OR: [{ role: { canCreateQuotations: true } }, { role: { isAdmin: true } }] },
+      where: { ...departmentScope(user), OR: [{ role: { canCreateQuotations: true } }, { role: { isAdmin: true } }] },
       orderBy: { name: "asc" },
     }),
     prisma.user.findMany({
-      where: { role: { isSalesman: true } },
+      where: { ...departmentScope(user), role: { isSalesman: true } },
       orderBy: { name: "asc" },
     }),
   ]);

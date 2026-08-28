@@ -22,7 +22,7 @@ async function main() {
   const passwordHash = await hashPassword(tempPassword);
 
   await prisma.user.create({
-    data: { name, email, roleId: "role_admin", passwordHash },
+    data: { name, email, roleId: "role_admin", departmentId: "dept_electrical", passwordHash },
   });
 
   console.log("\n=========================================");

@@ -28,6 +28,18 @@ export function canManageUsers(role: RolePermissions): boolean {
   return role.isAdmin || role.canManageUsers;
 }
 
+// A role's permission bits (above) are company-wide by design — whether a
+// custom role can manage catalog/users doesn't vary per department. What
+// varies is the *data* a non-Admin sees: every catalog/user/quotation query
+// should scope to the caller's own department unless they're a full Admin,
+// who sees across all of them. Use this in a Prisma `where` clause.
+export function departmentScope(user: {
+  role: { isAdmin: boolean };
+  departmentId: string;
+}): { departmentId: string } | Record<string, never> {
+  return user.role.isAdmin ? {} : { departmentId: user.departmentId };
+}
+
 // Finds which role's GP range covers a given margin (ranges are validated
 // not to overlap when a role is created/edited — see admin/roles/actions).
 // Returns null if no approver role currently covers this margin, which the

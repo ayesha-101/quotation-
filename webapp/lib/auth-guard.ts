@@ -16,7 +16,7 @@ export async function requireUser() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    include: { role: true },
+    include: { role: true, department: true },
   });
   if (!user || !user.isActive) redirect("/login");
 

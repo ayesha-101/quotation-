@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
+import { departmentScope } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import AppHeader from "@/app/app-header";
 import MaterialsView from "./materials-view";
@@ -9,6 +10,7 @@ export default async function MaterialsPage() {
   if (user.mustResetPassword) redirect("/account/reset-password");
 
   const quotationRows = await prisma.quotation.findMany({
+    where: departmentScope(user),
     select: {
       status: true,
       createdAt: true,
