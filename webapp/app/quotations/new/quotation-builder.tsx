@@ -68,24 +68,49 @@ function fmtMoney(n: number): string {
   return "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const HEADER_FIELDS: Array<[string, string]> = [
-  ["to", "To (Customer / Company)"],
-  ["attention", "Attention"],
-  ["reference", "Reference"],
-  ["project", "Project"],
-  ["consultant", "Consultant"],
-  ["client", "Client"],
-  ["subject", "Subject"],
-  ["telNo", "Tel No."],
-  ["faxNo", "Fax No."],
-  ["mobNo", "Mobile No."],
-  ["delivery", "Delivery"],
-  ["deliveryPlace", "Delivery place"],
-  ["validity", "Validity"],
-  ["paymentTerms", "Payment terms"],
-  ["prepName", "Prepared by (name)"],
-  ["prepTitle", "Prepared by (title)"],
-  ["prepMobile", "Prepared by (mobile)"],
+interface HeaderGroup {
+  label: string;
+  fields: Array<[string, string]>;
+}
+
+const HEADER_GROUPS: HeaderGroup[] = [
+  {
+    label: "Customer & project",
+    fields: [
+      ["to", "To (customer / company)"],
+      ["attention", "Attention"],
+      ["client", "Client"],
+      ["consultant", "Consultant"],
+      ["project", "Project"],
+      ["reference", "Reference"],
+      ["subject", "Subject"],
+    ],
+  },
+  {
+    label: "Contact",
+    fields: [
+      ["telNo", "Tel no."],
+      ["faxNo", "Fax no."],
+      ["mobNo", "Mobile no."],
+    ],
+  },
+  {
+    label: "Terms & delivery",
+    fields: [
+      ["delivery", "Delivery"],
+      ["deliveryPlace", "Delivery place"],
+      ["validity", "Validity"],
+      ["paymentTerms", "Payment terms"],
+    ],
+  },
+  {
+    label: "Prepared by",
+    fields: [
+      ["prepName", "Name"],
+      ["prepTitle", "Title"],
+      ["prepMobile", "Mobile"],
+    ],
+  },
 ];
 
 export default function QuotationBuilder({
@@ -184,10 +209,13 @@ export default function QuotationBuilder({
     <form ref={formRef}>
       {error && <div className="error-note">{error}</div>}
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 14, marginBottom: 14 }}>Header</h2>
-        <div className="form-grid">
-          <div className="field">
+      <div className="card" style={{ marginBottom: 20, padding: 0, overflow: "hidden" }}>
+        <div style={{ padding: "22px 26px 4px" }}>
+          <h2 style={{ fontSize: 14, marginBottom: 4 }}>Header</h2>
+          <p style={{ fontSize: 11.5, color: "var(--ink-faint)", marginBottom: 18 }}>
+            Fields that appear on the printed quotation.
+          </p>
+          <div className="field" style={{ maxWidth: 320 }}>
             <label>Salesman</label>
             <select name="salesmanId" defaultValue="" required>
               <option value="" disabled>
@@ -200,18 +228,26 @@ export default function QuotationBuilder({
               ))}
             </select>
           </div>
-          {HEADER_FIELDS.map(([name, label]) => (
-            <div className="field" key={name}>
-              <label>{label}</label>
-              <input name={name} />
-            </div>
-          ))}
         </div>
+
+        {HEADER_GROUPS.map((group) => (
+          <div key={group.label} className="form-section">
+            <div className="form-section-label">{group.label}</div>
+            <div className="form-grid-3">
+              {group.fields.map(([name, label]) => (
+                <div className="field" key={name}>
+                  <label>{label}</label>
+                  <input name={name} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 14, marginBottom: 14 }}>Pricing controls (global)</h2>
-        <div className="form-grid">
+        <div className="form-grid-3">
           <div className="field">
             <label>Special discount % (global)</label>
             <input
