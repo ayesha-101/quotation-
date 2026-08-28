@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { canEditQuotes } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
+import AppHeader from "@/app/app-header";
 import LpoMatchForm from "./lpo-match-form";
 import FlagStatusButtons from "./flag-status-buttons";
 import ReviseForm from "./revise-form";
@@ -44,7 +45,9 @@ export default async function QuotationDetailPage({
     : [];
 
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "60px 24px" }}>
+    <>
+      <AppHeader user={user} active="quotations" />
+      <div className="page-wrap" style={{ maxWidth: 1000 }}>
       <Link
         href="/quotations"
         style={{ fontSize: 12, color: "var(--ink-faint)", display: "inline-block", marginBottom: 18 }}
@@ -213,6 +216,7 @@ export default async function QuotationDetailPage({
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

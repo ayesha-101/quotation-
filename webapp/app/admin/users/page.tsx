@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUserManager } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
+import AppHeader from "@/app/app-header";
 import CreateUserForm from "./create-user-form";
 import UserRowActions from "./user-row-actions";
 
@@ -18,13 +18,9 @@ export default async function AdminUsersPage() {
   ]);
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: "60px 24px" }}>
-      <Link
-        href="/"
-        style={{ fontSize: 12, color: "var(--ink-faint)", display: "inline-block", marginBottom: 18 }}
-      >
-        ← Dashboard
-      </Link>
+    <>
+      <AppHeader user={admin} active="users" />
+      <div className="page-wrap" style={{ maxWidth: 960 }}>
       <h1 style={{ fontSize: 22, marginBottom: 6 }}>User access control</h1>
       <p
         style={{
@@ -83,6 +79,7 @@ export default async function AdminUsersPage() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

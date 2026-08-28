@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireCatalogManager } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
+import AppHeader from "@/app/app-header";
 import CatalogManager from "./catalog-manager";
 
 export default async function AdminCatalogPage() {
@@ -13,28 +13,25 @@ export default async function AdminCatalogPage() {
   });
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 24px" }}>
-      <Link
-        href="/"
-        style={{ fontSize: 12, color: "var(--ink-faint)", display: "inline-block", marginBottom: 18 }}
-      >
-        ← Dashboard
-      </Link>
-      <h1 style={{ fontSize: 22, marginBottom: 6 }}>Pricing catalog</h1>
-      <p
-        style={{
-          fontSize: 12.5,
-          color: "var(--ink-faint)",
-          marginBottom: 28,
-          lineHeight: 1.5,
-        }}
-      >
-        Requires catalog access. This is the raw pricing data — list price, discounts,
-        exchange rate, freight/duty/AD — that the quotation builder uses to
-        compute landed cost and sell price per line.
-      </p>
+    <>
+      <AppHeader user={admin} active="catalog" />
+      <div className="page-wrap">
+        <h1 style={{ fontSize: 22, marginBottom: 6 }}>Pricing catalog</h1>
+        <p
+          style={{
+            fontSize: 12.5,
+            color: "var(--ink-faint)",
+            marginBottom: 28,
+            lineHeight: 1.5,
+          }}
+        >
+          Requires catalog access. This is the raw pricing data — list price, discounts,
+          exchange rate, freight/duty/AD — that the quotation builder uses to
+          compute landed cost and sell price per line.
+        </p>
 
-      <CatalogManager items={items} />
-    </div>
+        <CatalogManager items={items} />
+      </div>
+    </>
   );
 }

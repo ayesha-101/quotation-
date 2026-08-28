@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
+import AppHeader from "@/app/app-header";
 import MaterialsView from "./materials-view";
 
 export default async function MaterialsPage() {
@@ -23,14 +23,11 @@ export default async function MaterialsPage() {
   }));
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
-      <Link
-        href="/"
-        style={{ fontSize: 12, color: "var(--ink-faint)", display: "inline-block", marginBottom: 18 }}
-      >
-        ← Dashboard
-      </Link>
-      <MaterialsView quotations={quotations} />
-    </div>
+    <>
+      <AppHeader user={user} active="materials" />
+      <div className="page-wrap">
+        <MaterialsView quotations={quotations} />
+      </div>
+    </>
   );
 }

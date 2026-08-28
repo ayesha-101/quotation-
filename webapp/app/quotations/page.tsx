@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { canEditQuotes } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
+import AppHeader from "@/app/app-header";
 
 function fmtMoney(n: number): string {
   return "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -22,13 +23,9 @@ export default async function QuotationsPage() {
   });
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", padding: "60px 24px" }}>
-      <Link
-        href="/"
-        style={{ fontSize: 12, color: "var(--ink-faint)", display: "inline-block", marginBottom: 18 }}
-      >
-        ← Dashboard
-      </Link>
+    <>
+      <AppHeader user={user} active="quotations" />
+      <div className="page-wrap">
       <div
         style={{
           display: "flex",
@@ -100,6 +97,7 @@ export default async function QuotationsPage() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

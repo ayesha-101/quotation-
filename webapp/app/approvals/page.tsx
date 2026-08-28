@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
+import AppHeader from "@/app/app-header";
 import ApprovalRowActions from "./approval-row-actions";
 
 function fmtMoney(n: number): string {
@@ -29,13 +30,9 @@ export default async function ApprovalsPage() {
       : "Not applicable to your role.";
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px" }}>
-      <Link
-        href="/"
-        style={{ fontSize: 12, color: "var(--ink-faint)", display: "inline-block", marginBottom: 18 }}
-      >
-        ← Dashboard
-      </Link>
+    <>
+      <AppHeader user={user} active="approvals" />
+      <div className="page-wrap">
       <h1 style={{ fontSize: 22, marginBottom: 6 }}>GP Approval Queue</h1>
       <p style={{ fontSize: 12.5, color: "var(--ink-faint)", marginBottom: 28, lineHeight: 1.5 }}>{note}</p>
 
@@ -101,6 +98,7 @@ export default async function ApprovalsPage() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

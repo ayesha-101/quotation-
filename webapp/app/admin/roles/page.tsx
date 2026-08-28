@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
+import AppHeader from "@/app/app-header";
 import NewRoleForm from "./new-role-form";
 import RoleRow from "./role-row";
 
@@ -15,13 +15,9 @@ export default async function AdminRolesPage() {
   });
 
   return (
-    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "60px 24px" }}>
-      <Link
-        href="/"
-        style={{ fontSize: 12, color: "var(--ink-faint)", display: "inline-block", marginBottom: 18 }}
-      >
-        ← Dashboard
-      </Link>
+    <>
+      <AppHeader user={admin} active="roles" />
+      <div className="page-wrap" style={{ maxWidth: 1000 }}>
       <h1 style={{ fontSize: 22, marginBottom: 6 }}>Roles &amp; permissions</h1>
       <p style={{ fontSize: 12.5, color: "var(--ink-faint)", marginBottom: 28, lineHeight: 1.5 }}>
         Admin-only. A role approving GP needs a margin range that doesn&apos;t
@@ -68,6 +64,7 @@ export default async function AdminRolesPage() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
