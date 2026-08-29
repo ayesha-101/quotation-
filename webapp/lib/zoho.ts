@@ -16,6 +16,16 @@ function requireEnv(name: string): string {
   return v;
 }
 
+// Data-quality gate: when on, a quotation can only be created for a
+// customer actually picked from the CRM search (crmAccountId set) — no more
+// free-typed "asdf" in the To field. Off by default so it never blocks
+// quotation creation while the CRM connection itself is still being set up;
+// flip ZOHO_REQUIRE_CRM_CUSTOMER=true in Vercel once Zoho search is
+// confirmed working end-to-end.
+export function requireCrmCustomer(): boolean {
+  return process.env.ZOHO_REQUIRE_CRM_CUSTOMER?.trim() === "true";
+}
+
 let cachedToken: { accessToken: string; expiresAt: number } | null = null;
 
 async function getAccessToken(): Promise<string> {
