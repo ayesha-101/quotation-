@@ -172,6 +172,13 @@ model Quotation {
   gp              Float
   customerLpoNo   String          @default("")
   lpoMismatch     Boolean         @default(false)
+  // The customer's LPO PDF, kept as a record and for side-by-side manual
+  // comparison — stored directly in Postgres (no separate file-storage
+  // service) since these documents are small. Text is extracted once on
+  // upload so the detail page doesn't re-parse the PDF on every view.
+  customerLpoFileName String?
+  customerLpoFileData Bytes?
+  customerLpoFileText String?
   createdAt       DateTime        @default(now())
   lastEditedAt    DateTime        @updatedAt
   createdById     String

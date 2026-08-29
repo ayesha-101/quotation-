@@ -28,6 +28,8 @@ export default function LpoMatchForm({
     lines.map((l) => ({ lineId: l.id, custQty: l.qty, custPrice: l.unitSell }))
   );
   const [mismatches, setMismatches] = useState<MismatchInfo[] | null>(null);
+  const [lpoFile, setLpoFile] = useState<File | null>(null);
+  const [lpoText, setLpoText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -44,8 +46,10 @@ export default function LpoMatchForm({
     const fd = new FormData();
     fd.set("customerLpoNo", lpoNo);
     fd.set("matches", JSON.stringify(rows));
+    if (lpoFile) fd.set("lpoFile", lpoFile);
     startTransition(async () => {
       const res = await convertToLpoAction(quotationId, fd);
+      if (res.lpoText !== undefined) setLpoText(res.lpoText);
       if (res.error) setError(res.error);
       else if (res.mismatches) setMismatches(res.mismatches);
       else {
@@ -90,10 +94,42 @@ export default function LpoMatchForm({
         </div>
       )}
 
-      <div className="field">
-        <label>Customer LPO number</label>
-        <input value={lpoNo} onChange={(e) => setLpoNo(e.target.value)} placeholder="Customer's PO reference" />
+      <div className="form-grid">
+        <div className="field">
+          <label>Customer LPO number</label>
+          <input value={lpoNo} onChange={(e) => setLpoNo(e.target.value)} placeholder="Customer's PO reference" />
+        </div>
+        <div className="field">
+          <label>Customer LPO PDF (optional)</label>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setLpoFile(e.target.files?.[0] ?? null)}
+          />
+        </div>
       </div>
+
+      {lpoText !== null && (
+        <div style={{ marginBottom: 16 }}>
+          <label>Text extracted from the attached PDF — compare against the table below</label>
+          <pre
+            className="mono"
+            style={{
+              maxHeight: 220,
+              overflow: "auto",
+              background: "var(--navy-panel2)",
+              border: "1px solid var(--grid-line)",
+              borderRadius: "var(--radius)",
+              padding: 12,
+              fontSize: 11.5,
+              whiteSpace: "pre-wrap",
+              margin: 0,
+            }}
+          >
+            {lpoText || "(no extractable text found in this PDF — it may be a scanned image)"}
+          </pre>
+        </div>
+      )}
 
       <div className="table-wrap">
         <table>

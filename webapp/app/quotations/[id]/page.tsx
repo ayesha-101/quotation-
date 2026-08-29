@@ -87,6 +87,40 @@ export default async function QuotationDetailPage({
         </div>
       )}
 
+      {q.customerLpoFileName && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <h2 style={{ fontSize: 14, margin: 0 }}>Customer LPO document</h2>
+            <a href={`/quotations/${q.id}/lpo-pdf`} target="_blank" className="btn">
+              {q.customerLpoFileName} →
+            </a>
+          </div>
+          {q.customerLpoFileText && (
+            <details>
+              <summary style={{ fontSize: 12, color: "var(--ink-faint)", cursor: "pointer" }}>
+                Extracted text
+              </summary>
+              <pre
+                className="mono"
+                style={{
+                  maxHeight: 260,
+                  overflow: "auto",
+                  background: "var(--navy-panel2)",
+                  border: "1px solid var(--grid-line)",
+                  borderRadius: "var(--radius)",
+                  padding: 12,
+                  fontSize: 11.5,
+                  whiteSpace: "pre-wrap",
+                  marginTop: 10,
+                }}
+              >
+                {q.customerLpoFileText}
+              </pre>
+            </details>
+          )}
+        </div>
+      )}
+
       {(canConvert || canFlag || canRevise) && (
         <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
           {canConvert && <LpoMatchForm quotationId={q.id} lines={q.lines} />}

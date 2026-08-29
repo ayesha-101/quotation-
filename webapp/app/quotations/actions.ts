@@ -12,6 +12,7 @@ import {
 } from "@/lib/pricing";
 import { canEditQuotes, resolveApproverRoleId } from "@/lib/permissions";
 import { appendChainEvent } from "@/lib/security-chain";
+import { extractPdfText } from "@/lib/pdf-text";
 import type { CatalogItem } from "@prisma/client";
 
 // Scoped to one department: catalog codes are only unique per department
@@ -39,7 +40,10 @@ export interface MismatchInfo {
 
 export interface ConvertToLpoResult extends ActionResult {
   mismatches?: MismatchInfo[];
+  lpoText?: string;
 }
+
+const MAX_LPO_FILE_BYTES = 10 * 1024 * 1024;
 
 function fmtMoney(n: number): string {
   return "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -108,6 +112,30 @@ export async function convertToLpoAction(
     }
   }
 
+  // The customer's LPO PDF is optional and, when present, kept regardless
+  // of whether the match check passes — a rejected/mismatched attempt is
+  // exactly when you want the document on record for reference.
+  const lpoFile = formData.get("lpoFile");
+  let lpoFileFields: { customerLpoFileName: string; customerLpoFileData: Uint8Array<ArrayBuffer>; customerLpoFileText: string } | null = null;
+  if (lpoFile instanceof File && lpoFile.size > 0) {
+    if (lpoFile.size > MAX_LPO_FILE_BYTES) {
+      return { error: "LPO file is too large (max 10 MB)." };
+    }
+    const data = Buffer.from(await lpoFile.arrayBuffer());
+    let text = "";
+    try {
+      text = await extractPdfText(data);
+    } catch (e) {
+      console.error("PDF text extraction failed:", e);
+      return { error: "Couldn't read that PDF — is the file not corrupted?" };
+    }
+    lpoFileFields = {
+      customerLpoFileName: lpoFile.name,
+      customerLpoFileData: Uint8Array.from(data),
+      customerLpoFileText: text,
+    };
+  }
+
   await prisma.$transaction(async (tx) => {
     await Promise.all(
       quotation.lines.map((line) => {
@@ -123,7 +151,7 @@ export async function convertToLpoAction(
     if (mismatches.length > 0) {
       await tx.quotation.update({
         where: { id: quotationId },
-        data: { customerLpoNo, lpoMismatch: true },
+        data: { customerLpoNo, lpoMismatch: true, ...lpoFileFields },
       });
       await tx.quotationAuditEntry.create({
         data: {
@@ -131,7 +159,8 @@ export async function convertToLpoAction(
           who: user.name,
           action:
             `LPO match check failed (customer ref ${customerLpoNo || "—"}): ` +
-            mismatches.map((m) => `${m.label} — ${m.detail}`).join("; "),
+            mismatches.map((m) => `${m.label} — ${m.detail}`).join("; ") +
+            (lpoFileFields ? ` [attached ${lpoFileFields.customerLpoFileName}]` : ""),
         },
       });
       return;
@@ -139,13 +168,15 @@ export async function convertToLpoAction(
 
     await tx.quotation.update({
       where: { id: quotationId },
-      data: { customerLpoNo, lpoMismatch: false, status: "CONVERTED_TO_LPO" },
+      data: { customerLpoNo, lpoMismatch: false, status: "CONVERTED_TO_LPO", ...lpoFileFields },
     });
     await tx.quotationAuditEntry.create({
       data: {
         quotationId,
         who: user.name,
-        action: `Converted to LPO — matched against customer LPO ${customerLpoNo || "(no reference given)"}`,
+        action:
+          `Converted to LPO — matched against customer LPO ${customerLpoNo || "(no reference given)"}` +
+          (lpoFileFields ? ` [attached ${lpoFileFields.customerLpoFileName}]` : ""),
       },
     });
     await tx.approval.create({
@@ -165,8 +196,8 @@ export async function convertToLpoAction(
   });
 
   revalidatePath(`/quotations/${quotationId}`);
-  if (mismatches.length > 0) return { mismatches };
-  return { success: true };
+  if (mismatches.length > 0) return { mismatches, lpoText: lpoFileFields?.customerLpoFileText };
+  return { success: true, lpoText: lpoFileFields?.customerLpoFileText };
 }
 
 export async function flagStatusAction(
