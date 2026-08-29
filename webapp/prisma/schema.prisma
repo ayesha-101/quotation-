@@ -172,6 +172,9 @@ model Quotation {
   gp              Float
   customerLpoNo   String          @default("")
   lpoMismatch     Boolean         @default(false)
+  // Required when a salesman flags a quotation LOST — why it didn't close,
+  // for the record and for later win/loss analysis.
+  lostReason      String?
   // The customer's LPO PDF, kept as a record and for side-by-side manual
   // comparison — stored directly in Postgres (no separate file-storage
   // service) since these documents are small. Text is extracted once on

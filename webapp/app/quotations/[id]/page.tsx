@@ -91,6 +91,12 @@ export default async function QuotationDetailPage({
         </div>
       </div>
 
+      {q.status === "LOST" && q.lostReason && (
+        <div className="error-note">
+          <strong>Lost:</strong> {q.lostReason}
+        </div>
+      )}
+
       {q.lpoMismatch && (
         <div className="error-note">
           Unresolved LPO mismatch — the customer&apos;s LPO reference {q.customerLpoNo || "(none given)"}{" "}

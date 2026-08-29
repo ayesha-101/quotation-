@@ -203,7 +203,8 @@ export async function convertToLpoAction(
 
 export async function flagStatusAction(
   quotationId: string,
-  status: "UNDER_NEGOTIATION" | "LOST"
+  status: "UNDER_NEGOTIATION" | "LOST",
+  reason?: string
 ): Promise<ActionResult> {
   const user = await requireUser();
 
@@ -215,17 +216,27 @@ export async function flagStatusAction(
   if (quotation.status === "CONVERTED_TO_LPO" || quotation.status === "LOST") {
     return { error: "This quotation can't be flagged from its current status." };
   }
+  const trimmedReason = (reason || "").trim();
+  if (status === "LOST" && !trimmedReason) {
+    return { error: "Give a reason for marking this quotation as lost." };
+  }
+
+  const actionLabel =
+    status === "LOST" ? `Flagged as Lost — ${trimmedReason}` : "Flagged as Under Negotiation";
 
   await prisma.$transaction([
-    prisma.quotation.update({ where: { id: quotationId }, data: { status } }),
+    prisma.quotation.update({
+      where: { id: quotationId },
+      data: { status, ...(status === "LOST" ? { lostReason: trimmedReason } : {}) },
+    }),
     prisma.quotationAuditEntry.create({
-      data: { quotationId, who: user.name, action: `Flagged as ${status.replace(/_/g, " ")}` },
+      data: { quotationId, who: user.name, action: actionLabel },
     }),
   ]);
 
   await appendChainEvent({
     actor: user.name,
-    action: `Flagged as ${status.replace(/_/g, " ")}`,
+    action: actionLabel,
     resource: `quotation:${quotationId}`,
     outcome: "success",
   });
