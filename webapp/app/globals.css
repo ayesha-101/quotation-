@@ -211,6 +211,44 @@ label {
   letter-spacing: 1.5px;
 }
 
+/* Split-screen login: an illustrated skyline hero beside the sign-in
+   form. The hero is hidden below md — the form is the whole story on a
+   phone-width screen, no room for a decorative panel. */
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+}
+
+.login-hero {
+  position: relative;
+  display: none;
+  flex: 1 1 46%;
+  overflow: hidden;
+}
+
+.login-hero-content {
+  position: absolute;
+  left: 40px;
+  bottom: 48px;
+  right: 40px;
+  padding: 16px 20px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.login-form-panel {
+  flex: 1 1 54%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+@media (min-width: 860px) {
+  .login-hero {
+    display: block;
+  }
+}
+
 .error-note {
   font-size: 12.5px;
   color: var(--red);
