@@ -9,6 +9,7 @@ import {
   defaultPricingControls,
   type PricingControls,
 } from "@/lib/pricing";
+import CrmAccountField, { type CrmAccountSelection } from "./crm-account-field";
 
 interface CatalogItemData {
   code: string;
@@ -121,6 +122,8 @@ export default function QuotationBuilder({
   salesmen: SalesmanOption[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const attentionRef = useRef<HTMLInputElement>(null);
+  const telNoRef = useRef<HTMLInputElement>(null);
   const [lines, setLines] = useState<LineState[]>([blankLine()]);
   const [ctl, setCtl] = useState<PricingControls>(defaultPricingControls());
   const [error, setError] = useState<string | null>(null);
@@ -205,6 +208,15 @@ export default function QuotationBuilder({
     });
   }
 
+  function handleCrmAccountSelect(account: CrmAccountSelection) {
+    if (attentionRef.current && account.contactName) {
+      attentionRef.current.value = account.contactName;
+    }
+    if (telNoRef.current && account.contactPhone) {
+      telNoRef.current.value = account.contactPhone;
+    }
+  }
+
   return (
     <form ref={formRef}>
       {error && <div className="error-note">{error}</div>}
@@ -237,7 +249,15 @@ export default function QuotationBuilder({
               {group.fields.map(([name, label]) => (
                 <div className="field" key={name}>
                   <label>{label}</label>
-                  <input name={name} />
+                  {name === "to" ? (
+                    <CrmAccountField onSelectAccount={handleCrmAccountSelect} />
+                  ) : name === "attention" ? (
+                    <input name={name} ref={attentionRef} />
+                  ) : name === "telNo" ? (
+                    <input name={name} ref={telNoRef} />
+                  ) : (
+                    <input name={name} />
+                  )}
                 </div>
               ))}
             </div>
