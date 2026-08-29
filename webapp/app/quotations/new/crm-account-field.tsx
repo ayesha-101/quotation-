@@ -30,11 +30,13 @@ export default function CrmAccountField({
   const [results, setResults] = useState<AccountResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (value.trim().length < 2) {
       setResults([]);
+      setError(null);
       return;
     }
     const t = setTimeout(async () => {
@@ -43,8 +45,10 @@ export default function CrmAccountField({
         const res = await fetch(`/api/zoho/accounts?q=${encodeURIComponent(value)}`);
         const data = await res.json();
         setResults(data.accounts ?? []);
-      } catch {
+        setError(data.error ?? null);
+      } catch (e) {
         setResults([]);
+        setError(e instanceof Error ? e.message : "CRM lookup failed.");
       } finally {
         setLoading(false);
       }
@@ -92,7 +96,7 @@ export default function CrmAccountField({
         onFocus={() => setOpen(true)}
         placeholder="Search CRM or type freely…"
       />
-      {open && (loading || results.length > 0) && (
+      {open && (loading || results.length > 0 || error) && (
         <div
           style={{
             position: "absolute",
@@ -114,7 +118,11 @@ export default function CrmAccountField({
               Searching CRM…
             </div>
           )}
+          {!loading && error && (
+            <div style={{ padding: "8px 12px", fontSize: 11.5, color: "var(--red)" }}>{error}</div>
+          )}
           {!loading &&
+            !error &&
             results.map((a) => (
               <button
                 key={a.id}
