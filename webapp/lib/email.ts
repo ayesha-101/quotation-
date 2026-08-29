@@ -44,6 +44,66 @@ export async function sendPasswordResetEmail(to: string, rawToken: string) {
   });
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// The quotation content goes straight in the email body (not a link to the
+// app) — the recipient is an external customer with no account, so a link
+// behind our login would just bounce them to a sign-in page.
+export async function sendQuotationEmail(input: {
+  to: string;
+  quoteRef: string;
+  customerName: string;
+  lines: { description: string; brand: string; qty: number; unitSell: number; lineTotal: number }[];
+  quoteValue: number;
+  vat: number;
+  totalValue: number;
+  senderName: string;
+  senderTitle: string;
+}) {
+  const fmt = (n: number) => "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const rows = input.lines
+    .map(
+      (l) => `<tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e8ec;font-size:12.5px">${escapeHtml(l.description)}${l.brand ? ` <span style="color:#7c8ba0">(${escapeHtml(l.brand)})</span>` : ""}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e8ec;font-size:12.5px;text-align:right">${l.qty}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e8ec;font-size:12.5px;text-align:right">${fmt(l.unitSell)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e8ec;font-size:12.5px;text-align:right">${fmt(l.lineTotal)}</td>
+      </tr>`
+    )
+    .join("");
+
+  await getClient().emails.send({
+    from: getFrom(),
+    to: input.to,
+    subject: `Quotation ${input.quoteRef} — Al Bahri & Al Mazroei Trading Co.`,
+    html: wrapper(`
+      <h1 style="font-size:18px;margin:0 0 4px">Quotation ${escapeHtml(input.quoteRef)}</h1>
+      <p style="font-size:13.5px;line-height:1.6">Dear ${escapeHtml(input.customerName) || "Sir/Madam"},</p>
+      <p style="font-size:13.5px;line-height:1.6">We thank you for the referred enquiry and are pleased to offer the following quote:</p>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:6px 8px;font-size:10.5px;text-transform:uppercase;color:#7c8ba0;border-bottom:1px solid #e5e8ec">Description</th>
+            <th style="text-align:right;padding:6px 8px;font-size:10.5px;text-transform:uppercase;color:#7c8ba0;border-bottom:1px solid #e5e8ec">Qty</th>
+            <th style="text-align:right;padding:6px 8px;font-size:10.5px;text-transform:uppercase;color:#7c8ba0;border-bottom:1px solid #e5e8ec">Unit</th>
+            <th style="text-align:right;padding:6px 8px;font-size:10.5px;text-transform:uppercase;color:#7c8ba0;border-bottom:1px solid #e5e8ec">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <table style="width:100%;font-size:13px;margin-bottom:20px">
+        <tr><td style="padding:2px 8px;color:#7c8ba0">Quote value</td><td style="padding:2px 8px;text-align:right">${fmt(input.quoteValue)}</td></tr>
+        <tr><td style="padding:2px 8px;color:#7c8ba0">VAT (5%)</td><td style="padding:2px 8px;text-align:right">${fmt(input.vat)}</td></tr>
+        <tr><td style="padding:4px 8px;font-weight:700">Total</td><td style="padding:4px 8px;text-align:right;font-weight:700;color:#2569c2">${fmt(input.totalValue)}</td></tr>
+      </table>
+      <p style="font-size:13.5px;line-height:1.6">We look forward to meeting your expectations and to conducting a long-term business relationship.</p>
+      <p style="font-size:13.5px;line-height:1.6;margin-top:20px">Best regards,<br>${escapeHtml(input.senderName)}${input.senderTitle ? `<br>${escapeHtml(input.senderTitle)}` : ""}<br>Al Bahri &amp; Al Mazroei Trading Co.</p>
+    `),
+  });
+}
+
 export async function sendWelcomeEmail(to: string, name: string, tempPassword: string) {
   const loginUrl = `${getAppUrl()}/login`;
   await getClient().emails.send({

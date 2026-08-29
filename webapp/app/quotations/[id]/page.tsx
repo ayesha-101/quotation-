@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import AppHeader from "@/app/app-header";
 import FireToast from "@/app/fire-toast";
 import AgentTrace from "./agent-trace";
+import EmailQuoteButton from "./email-quote-button";
 import LpoMatchForm from "./lpo-match-form";
 import FlagStatusButtons from "./flag-status-buttons";
 import ReviseForm from "./revise-form";
@@ -142,8 +143,9 @@ export default async function QuotationDetailPage({
 
       <AgentTrace q={q} />
 
-      {(canConvert || canFlag || canRevise) && (
+      {(canConvert || canFlag || canRevise || canEditQuotes(user.role)) && (
         <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+          {canEditQuotes(user.role) && <EmailQuoteButton quotationId={q.id} />}
           {canConvert && <LpoMatchForm quotationId={q.id} lines={q.lines} />}
           {canRevise && (
             <ReviseForm

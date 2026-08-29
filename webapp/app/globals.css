@@ -18,6 +18,29 @@
   --shadow-card: 0 1px 2px rgba(20, 24, 31, 0.04), 0 1px 8px rgba(20, 24, 31, 0.03);
 }
 
+/* Dark mode — explicit toggle only (see theme-toggle.tsx), not tied to OS
+   preference, so a business app doesn't switch out from under someone
+   mid-task. Print pages are unaffected: they use their own fixed inline
+   colors for the printed document, never these tokens. */
+:root[data-theme="dark"] {
+  --navy-deep: #0e131b;
+  --navy-panel: #171e29;
+  --navy-panel2: #131922;
+  --grid-line: #2b3444;
+  --brand: #7ea0c1;
+  --brand-dim: #223040;
+  --ink: #eef1f5;
+  --ink-dim: #b7c0cc;
+  --ink-faint: #7c8695;
+  --green: #3bc47f;
+  --green-bg: rgba(59, 196, 127, 0.14);
+  --red: #f0616d;
+  --red-bg: rgba(240, 97, 109, 0.14);
+  --amber: #e0a52f;
+  --amber-bg: rgba(224, 165, 47, 0.14);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;

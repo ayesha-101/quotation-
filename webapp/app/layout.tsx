@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import ToastProvider from "./toast-provider";
@@ -26,6 +27,11 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "BMTC Quotation & LPO Control",
   description: "Internal quotation, LPO, and user access control system.",
+  manifest: "/manifest.json",
+};
+
+export const viewport = {
+  themeColor: "#4f7396",
 };
 
 export default function RootLayout({
@@ -39,6 +45,9 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${inter.variable} ${ibmPlexMono.variable}`}
     >
       <body>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(function(){try{var t=localStorage.getItem('bmtc-theme');if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();`}
+        </Script>
         <ToastProvider>
           {children}
           <CommandPalette />

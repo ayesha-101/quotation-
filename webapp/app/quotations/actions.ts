@@ -478,3 +478,60 @@ export async function reviseQuotationAction(
   revalidatePath("/quotations");
   return { success: true };
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function emailQuotationAction(quotationId: string, toEmail: string): Promise<ActionResult> {
+  const user = await requireUser();
+  if (!canEditQuotes(user.role)) {
+    return { error: "Only the Admin or a Quotation Officer can email a quotation." };
+  }
+
+  const to = toEmail.trim();
+  if (!EMAIL_RE.test(to)) return { error: "Enter a valid email address." };
+
+  const quotation = await prisma.quotation.findUnique({
+    where: { id: quotationId },
+    include: { lines: { orderBy: { position: "asc" } }, createdBy: true },
+  });
+  if (!quotation) return { error: "Quotation not found." };
+  if (!user.role.isAdmin && quotation.departmentId !== user.departmentId) {
+    return { error: "Quotation not found." };
+  }
+
+  try {
+    const { sendQuotationEmail } = await import("@/lib/email");
+    await sendQuotationEmail({
+      to,
+      quoteRef: quotation.quoteNo + (quotation.revision > 0 ? `-R${quotation.revision}` : ""),
+      customerName: quotation.attention || quotation.to,
+      lines: quotation.lines.map((l) => ({
+        description: l.description,
+        brand: l.brand,
+        qty: l.qty,
+        unitSell: l.unitSell,
+        lineTotal: l.lineTotal,
+      })),
+      quoteValue: quotation.quoteValue,
+      vat: quotation.vat,
+      totalValue: quotation.totalValue,
+      senderName: quotation.prepName || quotation.createdBy.name,
+      senderTitle: quotation.prepTitle,
+    });
+  } catch (err) {
+    return { error: err instanceof Error ? `Couldn't send the email: ${err.message}` : "Couldn't send the email." };
+  }
+
+  await prisma.quotationAuditEntry.create({
+    data: { quotationId, who: user.name, action: `Emailed to ${to}` },
+  });
+  await appendChainEvent({
+    actor: user.name,
+    action: `Emailed to ${to}`,
+    resource: `quotation:${quotationId}`,
+    outcome: "success",
+  });
+
+  revalidatePath(`/quotations/${quotationId}`);
+  return { success: true };
+}

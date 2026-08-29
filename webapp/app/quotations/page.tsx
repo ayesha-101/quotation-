@@ -40,11 +40,16 @@ export default async function QuotationsPage() {
         }}
       >
         <h1 style={{ fontSize: 22 }}>Quotation Tracker</h1>
-        {canEditQuotes(user.role) && (
-          <Link href="/quotations/new" className="btn primary">
-            + New quotation
-          </Link>
-        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <a href="/quotations/export" className="btn">
+            Export CSV ↓
+          </a>
+          {canEditQuotes(user.role) && (
+            <Link href="/quotations/new" className="btn primary">
+              + New quotation
+            </Link>
+          )}
+        </div>
       </div>
       <p style={{ fontSize: 12.5, color: "var(--ink-faint)", marginBottom: 28, lineHeight: 1.5 }}>
         {canEditQuotes(user.role)

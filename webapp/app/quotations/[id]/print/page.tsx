@@ -77,17 +77,29 @@ export default async function QuotationPrintPage({
   return (
     <>
       <style>{`
+        @page { margin: 14mm 12mm; }
         @media print {
           .no-print { display: none !important; }
           body { background: #fff !important; }
+          .print-doc thead { display: table-header-group; }
+          .print-doc tr { page-break-inside: avoid; }
+          .print-doc .no-split { page-break-inside: avoid; }
         }
         .print-doc table, .print-doc th, .print-doc td {
           color: #1a2233;
         }
       `}</style>
       <div style={{ background: "#f0f2f5", minHeight: "100vh", padding: "24px 0" }}>
-        <div className="no-print" style={{ maxWidth: 800, margin: "0 auto 16px", display: "flex", gap: 10 }}>
+        <div
+          className="no-print"
+          style={{ maxWidth: 800, margin: "0 auto 16px", display: "flex", gap: 10, alignItems: "center" }}
+        >
           <PrintButton />
+          {q.status === "DRAFT" && (
+            <span className="status-pill status-DRAFT" style={{ marginLeft: "auto" }}>
+              Draft — not yet sent
+            </span>
+          )}
         </div>
         <div
           className="print-doc"
@@ -99,10 +111,32 @@ export default async function QuotationPrintPage({
             padding: "40px 44px",
             background: "#fff",
             lineHeight: 1.5,
+            position: "relative",
           }}
         >
+          {q.status === "DRAFT" && (
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                top: "42%",
+                left: "50%",
+                transform: "translate(-50%, -50%) rotate(-28deg)",
+                fontSize: 90,
+                fontWeight: 800,
+                letterSpacing: 8,
+                color: "rgba(194, 42, 53, 0.12)",
+                pointerEvents: "none",
+                userSelect: "none",
+                whiteSpace: "nowrap",
+                zIndex: 0,
+              }}
+            >
+              DRAFT
+            </div>
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/bmtc-logo.png" alt="BMTC" style={{ height: 56, marginBottom: 18 }} />
+          <img src="/bmtc-logo.png" alt="BMTC" style={{ height: 56, marginBottom: 18, position: "relative" }} />
 
           <table style={{ borderCollapse: "collapse", width: "100%", marginBottom: 4 }}>
             <tbody>
@@ -231,7 +265,7 @@ export default async function QuotationPrintPage({
             Thanking you and assuring you of our best services at all times.
           </div>
 
-          <div style={{ fontSize: 11, marginBottom: 30 }}>
+          <div className="no-split" style={{ fontSize: 11, marginBottom: 30 }}>
             <div style={{ fontWeight: 700 }}>For AL BAHRI AND AL MAZROEI TRADING COM. LLC</div>
             <div style={{ height: 28 }} />
             <div style={{ fontWeight: 700 }}>{preparedByName}</div>
@@ -240,6 +274,7 @@ export default async function QuotationPrintPage({
           </div>
 
           <div
+            className="no-split"
             style={{
               borderTop: "1px solid #ccc",
               paddingTop: 12,

@@ -1,15 +1,17 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { departmentScope } from "@/lib/permissions";
+import { formatQuoteRef } from "@/lib/quote-format";
 import { prisma } from "@/lib/db";
 import AppHeader from "./app-header";
 import DashboardAnalytics, { type DashboardQuotation } from "./dashboard-analytics";
+import RecentActivity from "./recent-activity";
 
 export default async function DashboardPage() {
   const user = await requireUser();
   if (user.mustResetPassword) redirect("/account/reset-password");
 
-  const [quotationRows, officers, salesmen] = await Promise.all([
+  const [quotationRows, officers, salesmen, recentAuditRows] = await Promise.all([
     prisma.quotation.findMany({
       where: departmentScope(user),
       include: { lines: true, salesman: true, createdBy: true },
@@ -23,7 +25,22 @@ export default async function DashboardPage() {
       where: { ...departmentScope(user), role: { isSalesman: true } },
       orderBy: { name: "asc" },
     }),
+    prisma.quotationAuditEntry.findMany({
+      where: { quotation: departmentScope(user) },
+      include: { quotation: true },
+      orderBy: { at: "desc" },
+      take: 15,
+    }),
   ]);
+
+  const recentActivity = recentAuditRows.map((a) => ({
+    id: a.id,
+    quotationId: a.quotationId,
+    ref: formatQuoteRef(a.quotation),
+    who: a.who,
+    action: a.action,
+    at: a.at.toISOString(),
+  }));
 
   const quotations: DashboardQuotation[] = quotationRows.map((q) => ({
     id: q.id,
@@ -47,6 +64,7 @@ export default async function DashboardPage() {
       <AppHeader user={user} active="dashboard" />
       <div className="page-wrap">
         <DashboardAnalytics quotations={quotations} officers={officers} salesmen={salesmen} />
+        <RecentActivity entries={recentActivity} />
       </div>
     </>
   );
