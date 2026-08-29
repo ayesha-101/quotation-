@@ -37,61 +37,58 @@ interface HeaderUser {
 const ACTIVE_STATUSES = ["DRAFT", "QUOTED", "UNDER_NEGOTIATION"] as const;
 const OVERDUE_DAYS = 7;
 
+// Capped at 25 per category instead of a separate count() query — one
+// query does both the preview (first 3) and the badge total. This runs on
+// every page nav (it's in the shared header), so keeping it to 3 cheap
+// queries total matters for connection pressure on Neon's serverless pool.
+const NOTIFICATION_CAP = 25;
+
 async function loadNotifications(user: HeaderUser): Promise<NotificationGroups> {
   const scope = user.role.isAdmin ? {} : { departmentId: user.departmentId };
   const overdueCutoff = new Date(Date.now() - OVERDUE_DAYS * 24 * 60 * 60 * 1000);
   const canSeeApprovals = user.role.canApproveGp || user.role.isAdmin;
 
-  const [approvals, overdue, mismatches, approvalCount, overdueCount, mismatchCount] = await Promise.all([
+  const [approvals, overdue, mismatches] = await Promise.all([
     canSeeApprovals
       ? prisma.approval.findMany({
           where: { status: "PENDING", ...(user.role.isAdmin ? {} : { roleId: user.roleId }), quotation: scope },
           include: { quotation: true },
           orderBy: { requestedAt: "asc" },
-          take: 3,
+          take: NOTIFICATION_CAP,
         })
       : Promise.resolve([]),
     prisma.quotation.findMany({
       where: { ...scope, status: { in: [...ACTIVE_STATUSES] }, lastEditedAt: { lte: overdueCutoff } },
       orderBy: { lastEditedAt: "asc" },
-      take: 3,
+      take: NOTIFICATION_CAP,
     }),
     prisma.quotation.findMany({
       where: { ...scope, lpoMismatch: true },
       orderBy: { lastEditedAt: "desc" },
-      take: 3,
+      take: NOTIFICATION_CAP,
     }),
-    canSeeApprovals
-      ? prisma.approval.count({
-          where: { status: "PENDING", ...(user.role.isAdmin ? {} : { roleId: user.roleId }), quotation: scope },
-        })
-      : Promise.resolve(0),
-    prisma.quotation.count({
-      where: { ...scope, status: { in: [...ACTIVE_STATUSES] }, lastEditedAt: { lte: overdueCutoff } },
-    }),
-    prisma.quotation.count({ where: { ...scope, lpoMismatch: true } }),
   ]);
 
   return {
-    approvals: approvals.map((a) => ({
+    approvals: approvals.slice(0, 3).map((a) => ({
       id: a.id,
       href: `/quotations/${a.quotationId}`,
       label: formatQuoteRef(a.quotation),
       detail: `${a.quotation.to || "—"} · ${a.quotation.gp.toFixed(1)}% GP`,
     })),
-    overdue: overdue.map((q) => ({
+    overdue: overdue.slice(0, 3).map((q) => ({
       id: q.id,
       href: `/quotations/${q.id}`,
       label: formatQuoteRef(q),
       detail: q.to || "—",
     })),
-    mismatches: mismatches.map((q) => ({
+    mismatches: mismatches.slice(0, 3).map((q) => ({
       id: q.id,
       href: `/quotations/${q.id}`,
       label: formatQuoteRef(q),
       detail: `LPO ${q.customerLpoNo || "(no ref)"}`,
     })),
-    totalCount: approvalCount + overdueCount + mismatchCount,
+    totalCount: approvals.length + overdue.length + mismatches.length,
   };
 }
 
