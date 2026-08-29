@@ -35,6 +35,7 @@ async function getAccessToken(): Promise<string> {
       client_secret: clientSecret,
       grant_type: "refresh_token",
     }),
+    signal: AbortSignal.timeout(8000),
   });
   const data = await res.json();
   if (!res.ok || !data.access_token) {
@@ -55,12 +56,20 @@ async function zohoFetch(path: string, init?: RequestInit) {
       ...init?.headers,
       Authorization: `Zoho-oauthtoken ${token}`,
     },
+    signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`Zoho API ${path} failed (${res.status}): ${body}`);
   }
   return res.json();
+}
+
+/** Link to a Deal in the Zoho CRM web UI, for "view in CRM" links. */
+export function zohoDealUrl(dealId: string): string {
+  const orgId = process.env.ZOHO_ORG_ID?.trim() || "885191803";
+  const uiDomain = process.env.ZOHO_CRM_UI_DOMAIN?.trim() || "https://crm.zoho.com";
+  return `${uiDomain}/crm/org${orgId}/tab/Potentials/${dealId}`;
 }
 
 export interface ZohoAccountResult {
@@ -84,6 +93,57 @@ export interface ZohoContactResult {
   name: string;
   phone: string | null;
   email: string | null;
+}
+
+/**
+ * Create a Deal for a newly created quotation, linked to its Account when
+ * we have one (the customer was picked from the CRM autocomplete). Returns
+ * the new Deal's id, or null if Zoho didn't hand one back.
+ */
+export async function createZohoDeal(input: {
+  dealName: string;
+  accountId?: string;
+  amount: number;
+}): Promise<string | null> {
+  const closingDate = new Date();
+  closingDate.setDate(closingDate.getDate() + 30);
+  const data = await zohoFetch("/crm/v6/Deals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      data: [
+        {
+          Deal_Name: input.dealName,
+          Stage: "Qualification",
+          Amount: input.amount,
+          Closing_Date: closingDate.toISOString().slice(0, 10),
+          ...(input.accountId ? { Account_Name: { id: input.accountId } } : {}),
+        },
+      ],
+    }),
+  });
+  return data.data?.[0]?.details?.id ?? null;
+}
+
+/** An open follow-up Task attached to a Deal — reminds the salesman to chase it. */
+export async function createZohoTask(input: { subject: string; dealId: string }): Promise<void> {
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 3);
+  await zohoFetch("/crm/v6/Tasks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      data: [
+        {
+          Subject: input.subject,
+          Status: "Not Started",
+          Due_Date: dueDate.toISOString().slice(0, 10),
+          What_Id: input.dealId,
+          $se_module: "Deals",
+        },
+      ],
+    }),
+  });
 }
 
 /** The first Contact linked to an Account — used to prefill Attention/Tel/email. */

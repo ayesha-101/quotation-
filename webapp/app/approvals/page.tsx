@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
+import { formatQuoteRef } from "@/lib/quote-format";
 import AppHeader from "@/app/app-header";
 import ApprovalRowActions from "./approval-row-actions";
 
@@ -66,7 +67,7 @@ export default async function ApprovalsPage() {
                 return (
                   <tr key={a.id}>
                     <td className="mono">
-                      <Link href={`/quotations/${a.quotationId}`}>{a.quotation.quoteNo}</Link>
+                      <Link href={`/quotations/${a.quotationId}`}>{formatQuoteRef(a.quotation)}</Link>
                     </td>
                     <td>{brands.join(", ") || "—"}</td>
                     <td className="mono">{fmtMoney(a.quotation.quoteValue)}</td>

@@ -179,6 +179,13 @@ model Quotation {
   customerLpoFileName String?
   customerLpoFileData Bytes?
   customerLpoFileText String?
+  // Zoho CRM push-sync: the Account selected in the "To" autocomplete
+  // (used to link the Deal to the right Account) and the Deal Zoho hands
+  // back once we create it. Both stay null if CRM sync fails or the
+  // customer name wasn't picked from a CRM match — quotation creation
+  // never blocks on this.
+  crmAccountId    String?
+  zohoDealId      String?
   createdAt       DateTime        @default(now())
   lastEditedAt    DateTime        @updatedAt
   createdById     String

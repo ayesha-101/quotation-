@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { formatQuoteRef } from "@/lib/quote-format";
 
 export interface DashboardLine {
   code: string;
@@ -34,7 +35,7 @@ function fmtMoney(n: number): string {
 }
 
 function quoteRef(q: DashboardQuotation): string {
-  return q.quoteNo + (q.revision > 0 ? `-R${q.revision}` : "");
+  return formatQuoteRef(q);
 }
 
 function displayBrand(q: DashboardQuotation): string {

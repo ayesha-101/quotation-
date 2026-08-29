@@ -9,6 +9,7 @@ interface AccountResult {
 }
 
 export interface CrmAccountSelection {
+  id: string;
   name: string;
   phone: string | null;
   contactName?: string;
@@ -22,9 +23,11 @@ export interface CrmAccountSelection {
 export default function CrmAccountField({
   defaultValue,
   onSelectAccount,
+  onTextChange,
 }: {
   defaultValue?: string;
   onSelectAccount: (account: CrmAccountSelection) => void;
+  onTextChange?: () => void;
 }) {
   const [value, setValue] = useState(defaultValue ?? "");
   const [results, setResults] = useState<AccountResult[]>([]);
@@ -80,7 +83,7 @@ export default function CrmAccountField({
     } catch {
       // fall back to just the account's own phone
     }
-    onSelectAccount({ name: account.name, phone: account.phone, contactName, contactPhone });
+    onSelectAccount({ id: account.id, name: account.name, phone: account.phone, contactName, contactPhone });
   }
 
   return (
@@ -92,6 +95,7 @@ export default function CrmAccountField({
         onChange={(e) => {
           setValue(e.target.value);
           setOpen(true);
+          onTextChange?.();
         }}
         onFocus={() => setOpen(true)}
         placeholder="Search CRM or type freely…"

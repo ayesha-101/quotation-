@@ -124,6 +124,7 @@ export default function QuotationBuilder({
   const formRef = useRef<HTMLFormElement>(null);
   const attentionRef = useRef<HTMLInputElement>(null);
   const telNoRef = useRef<HTMLInputElement>(null);
+  const [crmAccountId, setCrmAccountId] = useState("");
   const [lines, setLines] = useState<LineState[]>([blankLine()]);
   const [ctl, setCtl] = useState<PricingControls>(defaultPricingControls());
   const [error, setError] = useState<string | null>(null);
@@ -201,6 +202,7 @@ export default function QuotationBuilder({
     fd.set("status", status);
     fd.set("lines", JSON.stringify(lines));
     fd.set("pricingControls", JSON.stringify(ctl));
+    fd.set("crmAccountId", crmAccountId);
 
     startTransition(async () => {
       const res = await createQuotationAction(fd);
@@ -209,6 +211,7 @@ export default function QuotationBuilder({
   }
 
   function handleCrmAccountSelect(account: CrmAccountSelection) {
+    setCrmAccountId(account.id);
     if (attentionRef.current && account.contactName) {
       attentionRef.current.value = account.contactName;
     }
@@ -250,7 +253,10 @@ export default function QuotationBuilder({
                 <div className="field" key={name}>
                   <label>{label}</label>
                   {name === "to" ? (
-                    <CrmAccountField onSelectAccount={handleCrmAccountSelect} />
+                    <CrmAccountField
+                      onSelectAccount={handleCrmAccountSelect}
+                      onTextChange={() => setCrmAccountId("")}
+                    />
                   ) : name === "attention" ? (
                     <input name={name} ref={attentionRef} />
                   ) : name === "telNo" ? (

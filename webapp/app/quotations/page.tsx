@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { canEditQuotes, departmentScope } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
+import { formatQuoteRef } from "@/lib/quote-format";
+import { zohoDealUrl } from "@/lib/zoho";
 import AppHeader from "@/app/app-header";
 
 function fmtMoney(n: number): string {
@@ -62,12 +64,13 @@ export default async function QuotationsPage() {
               <th>GP%</th>
               <th>Status</th>
               <th>Salesman</th>
+              <th>CRM Deal</th>
             </tr>
           </thead>
           <tbody>
             {quotations.length === 0 ? (
               <tr>
-                <td colSpan={user.role.isAdmin ? 8 : 7} className="empty-state">
+                <td colSpan={user.role.isAdmin ? 9 : 8} className="empty-state">
                   No quotations yet.
                 </td>
               </tr>
@@ -77,10 +80,7 @@ export default async function QuotationsPage() {
                 return (
                   <tr key={q.id}>
                     <td className="mono">
-                      <Link href={`/quotations/${q.id}`}>
-                        {q.quoteNo}
-                        {q.revision > 0 ? `-R${q.revision}` : ""}
-                      </Link>
+                      <Link href={`/quotations/${q.id}`}>{formatQuoteRef(q)}</Link>
                     </td>
                     {user.role.isAdmin && <td>{q.department.name}</td>}
                     <td>{q.to || "—"}</td>
@@ -93,6 +93,20 @@ export default async function QuotationsPage() {
                       </span>
                     </td>
                     <td>{q.salesman.name}</td>
+                    <td>
+                      {q.zohoDealId ? (
+                        <a
+                          href={zohoDealUrl(q.zohoDealId)}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ fontSize: 11.5 }}
+                        >
+                          View deal →
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                   </tr>
                 );
               })

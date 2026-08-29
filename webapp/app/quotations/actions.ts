@@ -13,6 +13,7 @@ import {
 import { canEditQuotes, resolveApproverRoleId } from "@/lib/permissions";
 import { appendChainEvent } from "@/lib/security-chain";
 import { extractPdfText } from "@/lib/pdf-text";
+import { createZohoDeal, createZohoTask } from "@/lib/zoho";
 import type { CatalogItem } from "@prisma/client";
 
 // Scoped to one department: catalog codes are only unique per department
@@ -318,7 +319,10 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
   const department = await prisma.department.findUnique({ where: { id: departmentId } });
   if (!department) return { error: "Your department could not be found." };
 
+  const crmAccountId = String(formData.get("crmAccountId") || "") || null;
+
   let quotationId = "";
+  let quoteNoForDeal = "";
   await prisma.$transaction(async (tx) => {
     const seq = await tx.quoteSequence.upsert({
       where: { departmentId },
@@ -326,6 +330,7 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
       update: { value: { increment: 1 } },
     });
     const quoteNo = `${department.quotePrefix}-${currentYYYYMM()}-${seq.value}`;
+    quoteNoForDeal = quoteNo;
 
     const quotation = await tx.quotation.create({
       data: {
@@ -335,6 +340,7 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
         salesmanId,
         createdById: user.id,
         ...header,
+        crmAccountId,
         pricingControls: ctl as object,
         quoteValue,
         vat,
@@ -358,7 +364,26 @@ export async function createQuotationAction(formData: FormData): Promise<ActionR
     outcome: "success",
   });
 
-  redirect(`/quotations/${quotationId}`);
+  // CRM push-sync: create a Deal (+ a follow-up Task) in Zoho for this
+  // quotation. Best-effort only — if Zoho is unreachable, misconfigured, or
+  // the org lacks API access, the quotation is already saved and this must
+  // never block or fail the request.
+  try {
+    const dealName = `${header.to || "Quotation"} — ${quoteNoForDeal}`;
+    const dealId = await createZohoDeal({
+      dealName,
+      accountId: crmAccountId ?? undefined,
+      amount: quoteValue,
+    });
+    if (dealId) {
+      await prisma.quotation.update({ where: { id: quotationId }, data: { zohoDealId: dealId } });
+      await createZohoTask({ subject: `Follow up on ${quoteNoForDeal}`, dealId });
+    }
+  } catch (err) {
+    console.error("Zoho CRM push-sync failed:", err);
+  }
+
+  redirect(`/quotations/${quotationId}?created=1`);
 }
 
 const REVISABLE_STATUSES = ["QUOTED", "UNDER_NEGOTIATION"];

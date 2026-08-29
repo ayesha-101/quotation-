@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { prisma } from "@/lib/db";
+import { formatQuoteRef } from "@/lib/quote-format";
 import PrintButton from "./print-button";
 
 const TERMS_CONDITIONS = [
@@ -71,7 +72,7 @@ export default async function QuotationPrintPage({
     .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })
     .replace(/ /g, "-");
   const preparedByName = q.prepName || q.createdBy.name;
-  const quoteRef = q.quoteNo + (q.revision > 0 ? `-R${q.revision}` : "");
+  const quoteRef = formatQuoteRef(q);
 
   return (
     <>

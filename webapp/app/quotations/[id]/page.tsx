@@ -2,8 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
 import { canEditQuotes } from "@/lib/permissions";
+import { formatQuoteRef } from "@/lib/quote-format";
+import { zohoDealUrl } from "@/lib/zoho";
 import { prisma } from "@/lib/db";
 import AppHeader from "@/app/app-header";
+import FireToast from "@/app/fire-toast";
 import LpoMatchForm from "./lpo-match-form";
 import FlagStatusButtons from "./flag-status-buttons";
 import ReviseForm from "./revise-form";
@@ -16,13 +19,16 @@ const OPEN_STATUSES = ["DRAFT", "QUOTED", "UNDER_NEGOTIATION"];
 
 export default async function QuotationDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ created?: string }>;
 }) {
   const user = await requireUser();
   if (user.mustResetPassword) redirect("/account/reset-password");
 
   const { id } = await params;
+  const { created } = await searchParams;
   const q = await prisma.quotation.findUnique({
     where: { id },
     include: {
@@ -51,6 +57,7 @@ export default async function QuotationDetailPage({
   return (
     <>
       <AppHeader user={user} active="quotations" />
+      {created === "1" && <FireToast message={`Quotation ${formatQuoteRef(q)} created.`} kind="success" />}
       <div className="page-wrap" style={{ maxWidth: 1000 }}>
       <Link
         href="/quotations"
@@ -61,12 +68,17 @@ export default async function QuotationDetailPage({
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
-          <h1 className="mono" style={{ fontSize: 20 }}>
-            {q.quoteNo}
-            {q.revision > 0 ? `-R${q.revision}` : ""}
-          </h1>
+          <h1 className="mono" style={{ fontSize: 20 }}>{formatQuoteRef(q)}</h1>
           <div style={{ fontSize: 11.5, color: "var(--ink-faint)", marginTop: 4 }}>
             {q.to || "—"} · {q.salesman.name}
+            {q.zohoDealId && (
+              <>
+                {" · "}
+                <a href={zohoDealUrl(q.zohoDealId)} target="_blank" rel="noreferrer">
+                  CRM deal →
+                </a>
+              </>
+            )}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

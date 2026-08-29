@@ -1,5 +1,6 @@
 import LoginForm from "./login-form";
 import LoginHero from "./login-hero";
+import FireToast from "../fire-toast";
 
 export default async function LoginPage({
   searchParams,
@@ -38,9 +39,7 @@ export default async function LoginPage({
               Quotation &amp; LPO Control — internal access only.
             </p>
             {reset === "1" && (
-              <div className="success-note">
-                Password updated. Sign in with your new password.
-              </div>
+              <FireToast message="Password updated. Sign in with your new password." kind="success" />
             )}
             <LoginForm next={next || "/"} />
           </div>
