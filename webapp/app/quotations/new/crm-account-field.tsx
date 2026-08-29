@@ -38,6 +38,7 @@ export default function CrmAccountField({
 
   useEffect(() => {
     if (value.trim().length < 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
       setError(null);
       return;

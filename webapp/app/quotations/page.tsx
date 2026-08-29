@@ -41,6 +41,9 @@ export default async function QuotationsPage() {
       >
         <h1 style={{ fontSize: 22 }}>Quotation Tracker</h1>
         <div style={{ display: "flex", gap: 10 }}>
+          {/* Plain <a>, not <Link>: this hits a route handler that streams a
+              file download (Content-Disposition), not a page to navigate to. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/quotations/export" className="btn">
             Export CSV ↓
           </a>

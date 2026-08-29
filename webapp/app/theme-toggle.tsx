@@ -7,7 +7,13 @@ const STORAGE_KEY = "bmtc-theme";
 export default function ThemeToggle() {
   const [dark, setDark] = useState(false);
 
+  // Deliberately not a lazy useState initializer: server-rendered HTML has
+  // no access to the DOM's data-theme attribute, so the first client render
+  // must also start from `false` to match it (avoiding a hydration
+  // mismatch) — this effect corrects it right after, same tick the
+  // beforeInteractive script already applied the attribute.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDark(document.documentElement.dataset.theme === "dark");
   }, []);
 

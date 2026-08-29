@@ -95,8 +95,16 @@ async function loadNotifications(user: HeaderUser): Promise<NotificationGroups> 
 // Single persistent nav shared by every authenticated page, so moving
 // between sections doesn't mean hunting for a "← Dashboard" link back to
 // the one page that has links to everywhere else.
+const EMPTY_NOTIFICATIONS: NotificationGroups = { approvals: [], overdue: [], mismatches: [], totalCount: 0 };
+
 export default async function AppHeader({ user, active }: { user: HeaderUser; active: NavSection }) {
-  const notifications = await loadNotifications(user);
+  // The header renders on every single page, so a transient DB hiccup in
+  // this one query must never take the whole page down with it — better a
+  // quiet bell than a global error boundary on every route.
+  const notifications = await loadNotifications(user).catch((err) => {
+    console.error("Notification bell query failed:", err);
+    return EMPTY_NOTIFICATIONS;
+  });
   const links: Array<{ id: NavSection; href: string; label: string; show: boolean }> = [
     { id: "dashboard", href: "/", label: "Dashboard", show: true },
     { id: "quotations", href: "/quotations", label: "Quotations", show: true },

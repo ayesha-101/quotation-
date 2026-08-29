@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   const user = await requireUser();
   if (user.mustResetPassword) redirect("/account/reset-password");
 
-  const [quotationRows, officers, salesmen, recentAuditRows] = await Promise.all([
+  const [quotationRows, officers, salesmen] = await Promise.all([
     prisma.quotation.findMany({
       where: departmentScope(user),
       include: { lines: true, salesman: true, createdBy: true },
@@ -25,13 +25,22 @@ export default async function DashboardPage() {
       where: { ...departmentScope(user), role: { isSalesman: true } },
       orderBy: { name: "asc" },
     }),
-    prisma.quotationAuditEntry.findMany({
+  ]);
+
+  // Fetched separately from the core dashboard queries above, and never
+  // allowed to fail the whole page — "recent activity" is a nice-to-have,
+  // not something worth a blank dashboard over.
+  const recentAuditRows = await prisma.quotationAuditEntry
+    .findMany({
       where: { quotation: departmentScope(user) },
       include: { quotation: true },
       orderBy: { at: "desc" },
       take: 15,
-    }),
-  ]);
+    })
+    .catch((err) => {
+      console.error("Recent activity query failed:", err);
+      return [];
+    });
 
   const recentActivity = recentAuditRows.map((a) => ({
     id: a.id,
