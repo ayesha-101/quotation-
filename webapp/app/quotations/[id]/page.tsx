@@ -7,6 +7,7 @@ import { zohoDealUrl } from "@/lib/zoho";
 import { prisma } from "@/lib/db";
 import AppHeader from "@/app/app-header";
 import FireToast from "@/app/fire-toast";
+import AgentTrace from "./agent-trace";
 import LpoMatchForm from "./lpo-match-form";
 import FlagStatusButtons from "./flag-status-buttons";
 import ReviseForm from "./revise-form";
@@ -138,6 +139,8 @@ export default async function QuotationDetailPage({
           )}
         </div>
       )}
+
+      <AgentTrace q={q} />
 
       {(canConvert || canFlag || canRevise) && (
         <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
