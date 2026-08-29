@@ -57,9 +57,11 @@ export default function LoginHero() {
           )}
         </g>
 
-        {/* diagonal brand banner, echoing the real building photo */}
+        {/* diagonal brand banner, echoing the real building photo's blue
+            triangle + light gap + gray triangle composition */}
         <polygon points="0,60 210,0 480,0 480,120 60,640 0,640" fill="url(#banner)" fillOpacity="0.92" />
         <polygon points="0,60 210,0 232,0 22,640 0,640" fill="#ffffff" fillOpacity="0.08" />
+        <polygon points="480,180 480,340 240,640 130,640" fill="#c9ccd1" fillOpacity="0.22" />
       </svg>
 
       <div className="login-hero-content corner-marks">

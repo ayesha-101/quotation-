@@ -75,7 +75,7 @@ function KpiCard({
 }) {
   const color = cls === "green" ? "var(--green)" : cls === "amber" ? "var(--amber)" : cls === "red" ? "var(--red)" : "var(--ink)";
   return (
-    <div className="card">
+    <div className="card corner-marks">
       <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 1.2, color: "var(--ink-faint)", marginBottom: 8 }}>
         {label}
       </div>

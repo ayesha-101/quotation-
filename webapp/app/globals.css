@@ -135,45 +135,63 @@ label {
   border-color: #3d5b78;
 }
 
-/* Corner-bracket / blueprint registration marks — a small "+" tick at each
-   corner, drawn as a CSS mask so its color follows `color` (currentColor)
-   and adapts automatically to light or dark backgrounds. Applied to
-   primary buttons and framed panels for the drafting-table look. */
+/* Corner-bracket registration marks — bold L-shaped brackets at each
+   corner (viewfinder / crop-mark style), drawn as four independently
+   oriented CSS masks so the shape reads correctly at every corner. Color
+   follows `color` (currentColor) so it adapts to the element it's on.
+   This echoes the thick blue corner brackets in BMTC's own "One Team One
+   Goal" campaign mark — same visual language, applied to our UI. */
 .corner-marks {
   position: relative;
+  --mark-tl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M0 0H20V4H4V20H0V0Z' fill='%23000'/%3E%3C/svg%3E");
+  --mark-tr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M20 0H0V4H16V20H20V0Z' fill='%23000'/%3E%3C/svg%3E");
+  --mark-bl: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M0 20H20V16H4V0H0V20Z' fill='%23000'/%3E%3C/svg%3E");
+  --mark-br: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M20 20H0V16H16V0H20V20Z' fill='%23000'/%3E%3C/svg%3E");
 }
 
 .corner-marks::before {
   content: "";
   position: absolute;
-  inset: -1px;
+  inset: -2px;
   pointer-events: none;
   background-color: currentColor;
-  opacity: 0.55;
+  opacity: 0.9;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
-  -webkit-mask-size: 9px 9px;
-  mask-size: 9px 9px;
-  -webkit-mask-position: top -1px left -1px, top -1px right -1px, bottom -1px left -1px, bottom -1px right -1px;
-  mask-position: top -1px left -1px, top -1px right -1px, bottom -1px left -1px, bottom -1px right -1px;
-  --corner-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4.5 0V9M0 4.5H9' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E");
-  -webkit-mask-image: var(--corner-mark), var(--corner-mark), var(--corner-mark), var(--corner-mark);
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4.5 0V9M0 4.5H9' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4.5 0V9M0 4.5H9' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4.5 0V9M0 4.5H9' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4.5 0V9M0 4.5H9' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E");
+  -webkit-mask-size: 22px 22px;
+  mask-size: 22px 22px;
+  -webkit-mask-position: top -2px left -2px, top -2px right -2px, bottom -2px left -2px, bottom -2px right -2px;
+  mask-position: top -2px left -2px, top -2px right -2px, bottom -2px left -2px, bottom -2px right -2px;
+  -webkit-mask-image: var(--mark-tl), var(--mark-tr), var(--mark-bl), var(--mark-br);
+  mask-image: var(--mark-tl), var(--mark-tr), var(--mark-bl), var(--mark-br);
 }
 
 .btn.corner-marks {
   color: #fff;
 }
 
+.btn.corner-marks::before {
+  inset: -1px;
+  -webkit-mask-size: 13px 13px;
+  mask-size: 13px 13px;
+  -webkit-mask-position: top -1px left -1px, top -1px right -1px, bottom -1px left -1px, bottom -1px right -1px;
+  mask-position: top -1px left -1px, top -1px right -1px, bottom -1px left -1px, bottom -1px right -1px;
+}
+
 .btn:not(.primary).corner-marks {
-  color: var(--ink-faint);
+  color: var(--brand);
 }
 
 .frame-box.corner-marks {
-  color: var(--ink-faint);
+  color: var(--brand);
+}
+
+.card.corner-marks {
+  color: var(--brand);
+}
+
+.login-hero-content.corner-marks::before {
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .btn.danger {
