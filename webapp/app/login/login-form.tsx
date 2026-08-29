@@ -39,7 +39,7 @@ export default function LoginForm({ next }: { next: string }) {
       </div>
       <button
         type="submit"
-        className="btn primary"
+        className="btn primary corner-marks"
         style={{ width: "100%" }}
         disabled={pending}
       >

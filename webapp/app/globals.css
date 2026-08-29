@@ -3,8 +3,8 @@
   --navy-panel: #ffffff;
   --navy-panel2: #f6f7f9;
   --grid-line: #e5e8ec;
-  --brand: #1d4ed8;
-  --brand-dim: #e8eefc;
+  --brand: #4f7396;
+  --brand-dim: #e7edf2;
   --ink: #14181f;
   --ink-dim: #565f6c;
   --ink-faint: #8992a0;
@@ -131,8 +131,49 @@ label {
 }
 
 .btn.primary:hover {
-  background: #1a41b0;
-  border-color: #1a41b0;
+  background: #3d5b78;
+  border-color: #3d5b78;
+}
+
+/* Corner-bracket / blueprint registration marks — a small "+" tick at each
+   corner, drawn as a CSS mask so its color follows `color` (currentColor)
+   and adapts automatically to light or dark backgrounds. Applied to
+   primary buttons and framed panels for the drafting-table look. */
+.corner-marks {
+  position: relative;
+}
+
+.corner-marks::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  background-color: currentColor;
+  opacity: 0.55;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 9px 9px;
+  mask-size: 9px 9px;
+  -webkit-mask-position: top -1px left -1px, top -1px right -1px, bottom -1px left -1px, bottom -1px right -1px;
+  mask-position: top -1px left -1px, top -1px right -1px, bottom -1px left -1px, bottom -1px right -1px;
+  --corner-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4.5 0V9M0 4.5H9' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E");
+  -webkit-mask-image: var(--corner-mark), var(--corner-mark), var(--corner-mark), var(--corner-mark);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4.5 0V9M0 4.5H9' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4.5 0V9M0 4.5H9' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4.5 0V9M0 4.5H9' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9'%3E%3Cpath d='M4.5 0V9M0 4.5H9' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+.btn.corner-marks {
+  color: #fff;
+}
+
+.btn:not(.primary).corner-marks {
+  color: var(--ink-faint);
+}
+
+.frame-box.corner-marks {
+  color: var(--ink-faint);
 }
 
 .btn.danger {
@@ -152,6 +193,22 @@ label {
   border-radius: 12px;
   padding: 24px 26px;
   box-shadow: var(--shadow-card);
+}
+
+/* Sharp-cornered, flat variant of .card for the blueprint/drafting-table
+   look — pair with .corner-marks for the registration-mark corners. */
+.frame-box {
+  background: var(--navy-panel);
+  border: 1px solid var(--grid-line);
+  border-radius: 2px;
+  padding: 24px 26px;
+}
+
+.brand-wordmark {
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
 }
 
 .error-note {
@@ -415,9 +472,10 @@ tbody tr:hover td {
 .app-header-wordmark {
   font-family: var(--font-space-grotesk), sans-serif;
   font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.3px;
-  color: var(--ink);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--brand);
 }
 
 .app-header-tagline {
