@@ -48,22 +48,20 @@ export default function CatalogManager({ items }: { items: CatalogItemData[] }) 
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
-        {brands.map((b) => (
-          <button
-            key={b}
-            className="btn"
-            onClick={() => setActiveBrand(b)}
-            disabled={pending}
-            style={
-              b === brand
-                ? { background: "var(--brand)", color: "#fff", borderColor: "var(--brand)" }
-                : undefined
-            }
-          >
-            {b} ({items.filter((i) => i.brand === b).length})
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
+        <select
+          value={brand ?? ""}
+          onChange={(e) => setActiveBrand(e.target.value)}
+          disabled={pending || brands.length === 0}
+          style={{ maxWidth: 260, fontWeight: 600 }}
+        >
+          {brands.length === 0 && <option value="">No brands yet</option>}
+          {brands.map((b) => (
+            <option key={b} value={b}>
+              {b} ({items.filter((i) => i.brand === b).length})
+            </option>
+          ))}
+        </select>
         <button className="btn" onClick={addBrand} disabled={pending}>
           + New brand
         </button>
