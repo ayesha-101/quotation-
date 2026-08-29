@@ -7,8 +7,11 @@
 const ACCOUNTS_DOMAIN = process.env.ZOHO_ACCOUNTS_DOMAIN || "https://accounts.zoho.com";
 const API_DOMAIN = process.env.ZOHO_API_DOMAIN || "https://www.zohoapis.com";
 
+// .trim() guards against a stray trailing newline/space from copy-pasting
+// the value into Vercel's env var UI — Zoho rejects the token outright if
+// so, with an error that doesn't hint at whitespace being the cause.
 function requireEnv(name: string): string {
-  const v = process.env[name];
+  const v = process.env[name]?.trim();
   if (!v) throw new Error(`${name} is not set.`);
   return v;
 }
