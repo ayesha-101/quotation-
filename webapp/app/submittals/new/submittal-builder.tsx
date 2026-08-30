@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createSubmittalAction, extractSubmittalPdfTextAction, type CustomFieldInput, type IndexItemInput } from "../actions";
+import { useToast } from "@/app/toast-provider";
 
 const GENERAL_INDEX: string[] = [
   "COMPANY PROFILE",
@@ -17,6 +18,74 @@ const GENERAL_INDEX: string[] = [
   "PREVIOUS APPROVALS",
   "CATALOGUE",
 ];
+
+// Free, rule-based field extraction — not AI. Client project-details
+// tables almost always read as "LABEL value" (same line, or the label
+// alone on a row from a 2-column table), using a small, predictable
+// vocabulary of labels — so a curated list of exact labels gets real
+// value here without a paid model call, and safely: matching a *known*
+// label first avoids the classic regex trap of a generic "SHORT-LABEL
+// long value" pattern silently mis-splitting a real two-word label like
+// "SUB CONTRACTOR" into "SUB" + "CONTRACTOR ...". Labels not in this list
+// fall straight through to the index quick-add box untouched — never
+// guessed at.
+interface ParsedFields {
+  fields: { projectName?: string; employerName?: string; consultantName?: string; mainContractor?: string; mepContractor?: string };
+  customFields: CustomFieldInput[];
+  remaining: string[];
+}
+
+type LabelMatch = { field: keyof ParsedFields["fields"] } | { customTitle: string };
+
+// Longer/more specific labels first, so e.g. "SUB CONTRACTOR" is tried
+// before a hypothetical bare "CONTRACTOR" fallback would ever get a shot.
+const KNOWN_LABELS: Array<{ re: RegExp; match: LabelMatch }> = [
+  { re: /^sub\s*-?\s*contractor\b\s*[:\-]?\s*(.*)$/i, match: { customTitle: "Sub Contractor" } },
+  { re: /^mep\s*contractor\b\s*[:\-]?\s*(.*)$/i, match: { field: "mepContractor" } },
+  { re: /^main\s*contractor\b\s*[:\-]?\s*(.*)$/i, match: { field: "mainContractor" } },
+  { re: /^contractor\b\s*[:\-]?\s*(.*)$/i, match: { field: "mainContractor" } },
+  { re: /^(?:client|employer)\b\s*[:\-]?\s*(.*)$/i, match: { field: "employerName" } },
+  { re: /^consultant\b\s*[:\-]?\s*(.*)$/i, match: { field: "consultantName" } },
+  { re: /^project\s*location\b\s*[:\-]?\s*(.*)$/i, match: { customTitle: "Project Location" } },
+  { re: /^project\s*(?:ref\.?|reference|no\.?|number)\b\s*[:\-]?\s*(.*)$/i, match: { customTitle: "Project Ref." } },
+  { re: /^project\b\s*(?:name)?\s*[:\-]?\s*(.*)$/i, match: { field: "projectName" } },
+  { re: /^(?:tender|contract)\s*(?:ref\.?|no\.?|number)\b\s*[:\-]?\s*(.*)$/i, match: { customTitle: "Tender / Contract No." } },
+  { re: /^p\.?\s*o\.?\s*(?:no\.?|number)\b\s*[:\-]?\s*(.*)$/i, match: { customTitle: "PO No." } },
+];
+
+function parseProjectFields(lines: string[]): ParsedFields {
+  const fields: ParsedFields["fields"] = {};
+  const customFields: CustomFieldInput[] = [];
+  const remaining: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^project\s*details$/i.test(line)) continue; // table header, not data
+
+    const known = KNOWN_LABELS.find(({ re }) => re.test(line));
+    if (!known) {
+      remaining.push(line);
+      continue;
+    }
+
+    // Value is whatever follows the label on the same line; if the row was
+    // just the bare label (2-column table read as separate lines), take
+    // the next line as the value instead, provided it isn't itself a label.
+    let value = line.match(known.re)?.[1]?.trim() ?? "";
+    if (!value && i + 1 < lines.length && !KNOWN_LABELS.some(({ re }) => re.test(lines[i + 1]))) {
+      value = lines[++i];
+    }
+    if (!value) continue;
+
+    if ("field" in known.match) {
+      if (!fields[known.match.field]) fields[known.match.field] = value;
+    } else {
+      customFields.push({ title: known.match.customTitle, value });
+    }
+  }
+
+  return { fields, customFields, remaining };
+}
 
 function defaultRef(): string {
   const now = new Date();
@@ -33,6 +102,7 @@ interface RemovableField {
 
 export default function SubmittalBuilder({ defaultSalesman }: { defaultSalesman: string }) {
   const router = useRouter();
+  const { show } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +169,41 @@ export default function SubmittalBuilder({ defaultSalesman }: { defaultSalesman:
         .split("\n")
         .map((l) => l.trim())
         .filter((l) => l && !/^--\s*\d+\s*of\s*\d+\s*--$/i.test(l)); // strip pdf-parse's page-separator lines
-      setQuickAdd((prev) => (prev ? prev + "\n" : "") + lines.join("\n"));
+
+      const { fields: matched, customFields: matchedCustom, remaining } = parseProjectFields(lines);
+      const filledLabels: string[] = [];
+      if (matched.projectName) {
+        setProjectName(matched.projectName);
+        filledLabels.push("Project");
+      }
+      if (matched.employerName) {
+        updateField("employerName", matched.employerName);
+        filledLabels.push("Client");
+      }
+      if (matched.consultantName) {
+        updateField("consultantName", matched.consultantName);
+        filledLabels.push("Consultant");
+      }
+      if (matched.mainContractor) {
+        updateField("mainContractor", matched.mainContractor);
+        filledLabels.push("Main Contractor");
+      }
+      if (matched.mepContractor) {
+        updateField("mepContractor", matched.mepContractor);
+        filledLabels.push("MEP Contractor");
+      }
+      if (matchedCustom.length > 0) {
+        setCustomFields((f) => [...f, ...matchedCustom]);
+        filledLabels.push(...matchedCustom.map((c) => c.title));
+      }
+      if (filledLabels.length > 0) {
+        show(`Auto-filled from file: ${filledLabels.join(", ")}. Please double-check them.`, "success");
+      }
+      if (remaining.length > 0) {
+        setQuickAdd((prev) => (prev ? prev + "\n" : "") + remaining.join("\n"));
+      } else if (filledLabels.length === 0) {
+        show("No recognizable text found in that file.", "error");
+      }
     } catch (e) {
       setImportError(e instanceof Error ? e.message : "Couldn't read that file.");
     } finally {
@@ -109,7 +213,10 @@ export default function SubmittalBuilder({ defaultSalesman }: { defaultSalesman:
   }
 
   function updateField(key: string, value: string) {
-    setFields((f) => f.map((x) => (x.key === key ? { ...x, value } : x)));
+    // Also forces visible: true — a caller setting a value (e.g. the file
+    // import) means it should actually be shown, not silently dropped at
+    // submit because it had earlier been toggled off.
+    setFields((f) => f.map((x) => (x.key === key ? { ...x, value, visible: true } : x)));
   }
   function toggleField(key: string) {
     setFields((f) => f.map((x) => (x.key === key ? { ...x, visible: !x.visible } : x)));
