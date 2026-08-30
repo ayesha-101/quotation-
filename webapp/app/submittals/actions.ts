@@ -4,11 +4,41 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
 import { canEditQuotes } from "@/lib/permissions";
+import { extractPdfText } from "@/lib/pdf-text";
 
 export interface ActionResult {
   error?: string;
   success?: boolean;
   id?: string;
+}
+
+export interface ExtractTextResult {
+  error?: string;
+  text?: string;
+}
+
+const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024;
+
+// Free, non-AI text extraction for a client-supplied index (PDF only —
+// image OCR runs client-side via tesseract.js, no server round-trip
+// needed). Same tradeoff already made for the LPO PDF feature: plain text
+// out, no smart field-by-field parsing — that would need a paid AI call,
+// which this project has twice now explicitly opted out of.
+export async function extractSubmittalPdfTextAction(formData: FormData): Promise<ExtractTextResult> {
+  await requireUser();
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { error: "No file provided." };
+  if (file.size > MAX_IMPORT_FILE_BYTES) return { error: "File is too large (max 10 MB)." };
+
+  try {
+    const data = Buffer.from(await file.arrayBuffer());
+    const text = await extractPdfText(data);
+    return { text };
+  } catch (e) {
+    console.error("Submittal PDF text extraction failed:", e);
+    return { error: "Couldn't read that PDF — is the file not corrupted?" };
+  }
 }
 
 export interface IndexItemInput {

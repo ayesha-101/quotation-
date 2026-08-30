@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createSubmittalAction, type CustomFieldInput, type IndexItemInput } from "../actions";
+import { createSubmittalAction, extractSubmittalPdfTextAction, type CustomFieldInput, type IndexItemInput } from "../actions";
 
 const GENERAL_INDEX: string[] = [
   "COMPANY PROFILE",
@@ -51,10 +51,62 @@ export default function SubmittalBuilder({ defaultSalesman }: { defaultSalesman:
   ]);
   const [customFields, setCustomFields] = useState<CustomFieldInput[]>([]);
 
+  const [indexType, setIndexType] = useState<"general" | "custom">("general");
   const [items, setItems] = useState<IndexItemInput[]>(
     GENERAL_INDEX.map((description) => ({ description, status: "" }))
   );
   const [quickAdd, setQuickAdd] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function selectIndexType(type: "general" | "custom") {
+    setIndexType(type);
+    setItems(type === "general" ? GENERAL_INDEX.map((description) => ({ description, status: "" })) : []);
+  }
+
+  // Free, non-AI extraction only — see extractSubmittalPdfTextAction. This
+  // dumps raw recognized text into the quick-add box for the user to
+  // review and clean up themselves; it never guesses which line is which
+  // field (that needs real language understanding, i.e. a paid AI call,
+  // which this project has deliberately opted out of twice now).
+  async function importFromFile(file: File) {
+    setImportError(null);
+    setImporting(true);
+    try {
+      let text: string;
+      if (file.type === "application/pdf") {
+        const fd = new FormData();
+        fd.set("file", file);
+        const res = await extractSubmittalPdfTextAction(fd);
+        if (res.error || !res.text) throw new Error(res.error || "No text found in that PDF.");
+        text = res.text;
+      } else if (file.type.startsWith("image/")) {
+        const { createWorker } = await import("tesseract.js");
+        const worker = await createWorker("eng");
+        try {
+          const {
+            data: { text: ocrText },
+          } = await worker.recognize(file);
+          text = ocrText;
+        } finally {
+          await worker.terminate();
+        }
+      } else {
+        throw new Error("Choose a PDF or an image file.");
+      }
+      const lines = text
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l && !/^--\s*\d+\s*of\s*\d+\s*--$/i.test(l)); // strip pdf-parse's page-separator lines
+      setQuickAdd((prev) => (prev ? prev + "\n" : "") + lines.join("\n"));
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : "Couldn't read that file.");
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   function updateField(key: string, value: string) {
     setFields((f) => f.map((x) => (x.key === key ? { ...x, value } : x)));
@@ -206,6 +258,71 @@ export default function SubmittalBuilder({ defaultSalesman }: { defaultSalesman:
 
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 14, marginBottom: 14 }}>Table of contents / index</h2>
+
+        <div style={{ display: "flex", gap: 12, marginBottom: 18 }}>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+              padding: "9px 16px",
+              border: `1.5px solid ${indexType === "general" ? "var(--brand)" : "var(--grid-line)"}`,
+              borderRadius: 8,
+              color: indexType === "general" ? "var(--brand)" : "var(--ink)",
+              background: indexType === "general" ? "var(--brand-dim)" : "transparent",
+            }}
+          >
+            <input type="radio" checked={indexType === "general"} onChange={() => selectIndexType("general")} style={{ width: "auto" }} />
+            General (standard 11)
+          </label>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+              padding: "9px 16px",
+              border: `1.5px solid ${indexType === "custom" ? "var(--brand)" : "var(--grid-line)"}`,
+              borderRadius: 8,
+              color: indexType === "custom" ? "var(--brand)" : "var(--ink)",
+              background: indexType === "custom" ? "var(--brand-dim)" : "transparent",
+            }}
+          >
+            <input type="radio" checked={indexType === "custom"} onChange={() => selectIndexType("custom")} style={{ width: "auto" }} />
+            Custom (from client)
+          </label>
+        </div>
+
+        {indexType === "custom" && (
+          <div className="frame-box" style={{ marginBottom: 18, padding: 16 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>Import from a client file (optional)</div>
+            <p style={{ fontSize: 11.5, color: "var(--ink-faint)", marginBottom: 10, lineHeight: 1.5 }}>
+              Upload the client&apos;s index as a PDF or a photo — the raw text gets dropped into the quick-add
+              box below for you to review and clean up. No AI involved, so it won&apos;t sort lines into the
+              right fields on its own.
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf,image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) importFromFile(f);
+                }}
+                disabled={importing}
+              />
+              {importing && <span style={{ fontSize: 12, color: "var(--ink-faint)" }}>Reading file…</span>}
+            </div>
+            {importError && <div className="error-note" style={{ marginTop: 10 }}>{importError}</div>}
+          </div>
+        )}
+
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
           {items.map((item, i) => (
             <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
