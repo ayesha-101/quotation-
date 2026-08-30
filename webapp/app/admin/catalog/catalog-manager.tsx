@@ -31,8 +31,8 @@ export default function CatalogManager({ items }: { items: CatalogItemData[] }) 
     fd.set("description", "New item");
     fd.set("brand", targetBrand);
     fd.set("uom", "EACH");
-    fd.set("currency", "USD");
-    fd.set("exRate", "3.68");
+    fd.set("currency", "AED");
+    fd.set("exRate", "1.00");
     startTransition(async () => {
       const res = await createCatalogItemAction({}, fd);
       if (res.error) setError(res.error);
