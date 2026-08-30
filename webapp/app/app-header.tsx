@@ -9,6 +9,7 @@ import NotificationBell, { type NotificationGroups } from "@/app/notification-be
 export type NavSection =
   | "dashboard"
   | "quotations"
+  | "submittals"
   | "materials"
   | "approvals"
   | "catalog"
@@ -108,6 +109,7 @@ export default async function AppHeader({ user, active }: { user: HeaderUser; ac
   const links: Array<{ id: NavSection; href: string; label: string; show: boolean }> = [
     { id: "dashboard", href: "/", label: "Dashboard", show: true },
     { id: "quotations", href: "/quotations", label: "Quotations", show: true },
+    { id: "submittals", href: "/submittals", label: "Submittals", show: true },
     { id: "materials", href: "/materials", label: "Materials", show: true },
     { id: "approvals", href: "/approvals", label: "Approvals", show: user.role.canApproveGp || user.role.isAdmin },
     { id: "catalog", href: "/admin/catalog", label: "Catalog", show: canManageCatalog(user.role) },

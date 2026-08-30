@@ -55,6 +55,7 @@ model User {
   quotationsCreated    Quotation[] @relation("QuotationCreatedBy")
   approvalDecisions    Approval[]  @relation("ApprovalDecidedBy")
   passwordResetTokens  PasswordResetToken[]
+  submittalsCreated    Submittal[] @relation("SubmittalCreatedBy")
 }
 
 // A business unit (Electrical today; more added from /admin/departments as
@@ -79,6 +80,7 @@ model Department {
   catalogItems  CatalogItem[]
   quotations    Quotation[]
   quoteSequence QuoteSequence?
+  submittals    Submittal[]
 }
 
 // Self-service "forgot password" flow. Only tokenHash (SHA-256 of the raw
@@ -277,4 +279,38 @@ model QuotationAuditEntry {
   who         String
   action      String
   at          DateTime  @default(now())
+}
+
+// Material submittal — a separate document type from Quotation: a package
+// of compliance/certification documents proving a material meets a
+// project's spec, submitted for consultant approval. The "document" itself
+// (cover/index/divider pages, folder-skeleton ZIP) is generated on demand
+// client-side, not stored — this table is the persistent tracker record
+// (ref, status, remark) shared across the team, replacing what the
+// original prototype kept in one browser's localStorage.
+model Submittal {
+  id             String     @id @default(cuid())
+  departmentId   String
+  department     Department @relation(fields: [departmentId], references: [id])
+  ref            String
+  materialName   String
+  brandName      String
+  projectName    String     @default("")
+  employerName   String     @default("")
+  consultantName String     @default("")
+  mainContractor String     @default("")
+  mepContractor  String     @default("")
+  customFields   Json       @default("[]")
+  // [{ description: string, status: "yes" | "no" | "na" }]
+  indexItems     Json       @default("[]")
+  value          Float?
+  status         String     @default("Pending Submission")
+  remark         String     @default("")
+  salesmanName   String     @default("")
+  createdById    String
+  createdBy      User       @relation("SubmittalCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([departmentId, ref])
 }
