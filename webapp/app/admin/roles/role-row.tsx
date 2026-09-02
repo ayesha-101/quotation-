@@ -17,6 +17,7 @@ function permissionBadges(r: RoleData): string[] {
   if (r.canManageUsers) badges.push("Manage users");
   if (r.canCreateQuotations) badges.push("Create quotations");
   if (r.isSalesman) badges.push("Salesman");
+  if (r.canInvoice) badges.push("Sales Admin");
   if (r.canApproveGp) badges.push(`Approve GP ${r.gpMin ?? "−∞"}–${r.gpMax ?? "∞"}%`);
   return badges;
 }

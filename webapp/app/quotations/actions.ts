@@ -34,6 +34,13 @@ export interface ActionResult {
   success?: boolean;
 }
 
+// The only statuses from which a quotation can still be converted or
+// flagged. Converting moves it on to CONVERTED_TO_LPO → (on approval)
+// PENDING_INVOICE → INVOICED, and none of those later stages may be
+// re-converted or re-flagged — guarded here on the server, not just by
+// hiding the buttons on the detail page.
+const OPEN_STATUSES = ["DRAFT", "QUOTED", "UNDER_NEGOTIATION"];
+
 export interface MismatchInfo {
   label: string;
   detail: string;
@@ -67,7 +74,7 @@ export async function convertToLpoAction(
   if (!user.role.isAdmin && quotation.departmentId !== user.departmentId) {
     return { error: "Quotation not found." };
   }
-  if (quotation.status === "CONVERTED_TO_LPO" || quotation.status === "LOST") {
+  if (!OPEN_STATUSES.includes(quotation.status)) {
     return { error: "This quotation can't be converted from its current status." };
   }
 
@@ -213,7 +220,7 @@ export async function flagStatusAction(
   if (!user.role.isSalesman || quotation.salesmanId !== user.id) {
     return { error: "Only the salesman this quotation is assigned to can flag its status." };
   }
-  if (quotation.status === "CONVERTED_TO_LPO" || quotation.status === "LOST") {
+  if (!OPEN_STATUSES.includes(quotation.status)) {
     return { error: "This quotation can't be flagged from its current status." };
   }
   const trimmedReason = (reason || "").trim();

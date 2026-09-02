@@ -381,6 +381,16 @@ label {
   color: var(--green);
 }
 
+.status-PENDING-INVOICE {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.status-INVOICED {
+  background: var(--green-bg);
+  color: var(--green);
+}
+
 .empty-state {
   text-align: center;
   color: var(--ink-faint);

@@ -29,6 +29,11 @@ export interface DashboardQuotation {
 }
 
 const ACTIVE_STATUSES = ["DRAFT", "QUOTED", "UNDER_NEGOTIATION"];
+// Everything downstream of a won LPO still counts as won: converting to an
+// LPO now flows on to PENDING_INVOICE and INVOICED, so win rate, converted
+// value and per-person "converted" counts must include those stages or
+// they'd appear to drop the moment an order moves toward invoicing.
+const WON_STATUSES = ["CONVERTED_TO_LPO", "PENDING_INVOICE", "INVOICED"];
 
 function fmtMoney(n: number): string {
   return "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -47,7 +52,7 @@ function daysSince(iso: string): number {
 }
 
 function isOverdue(q: DashboardQuotation): boolean {
-  return !["CONVERTED_TO_LPO", "LOST"].includes(q.status) && daysSince(q.lastEditedAt) >= 7;
+  return !WON_STATUSES.includes(q.status) && q.status !== "LOST" && daysSince(q.lastEditedAt) >= 7;
 }
 
 function withinPeriod(iso: string, months: number): boolean {
@@ -108,7 +113,7 @@ export default function DashboardAnalytics({
   );
 
   const stats = useMemo(() => {
-    const won = inRange.filter((q) => q.status === "CONVERTED_TO_LPO");
+    const won = inRange.filter((q) => WON_STATUSES.includes(q.status));
     const lost = inRange.filter((q) => q.status === "LOST");
     const decided = won.length + lost.length;
     const winRate = decided ? (won.length / decided) * 100 : 0;
@@ -116,7 +121,9 @@ export default function DashboardAnalytics({
     const soldValue = won.reduce((s, q) => s + q.quoteValue, 0);
     const conversion = quotedValue ? (soldValue / quotedValue) * 100 : 0;
     const overdueCount = quotations.filter(isOverdue).length;
-    return { won, lost, winRate, quotedValue, soldValue, conversion, overdueCount };
+    const invoicedCount = inRange.filter((q) => q.status === "INVOICED").length;
+    const pendingInvoiceCount = inRange.filter((q) => q.status === "PENDING_INVOICE").length;
+    return { won, lost, winRate, quotedValue, soldValue, conversion, overdueCount, invoicedCount, pendingInvoiceCount };
   }, [inRange, quotations]);
 
   const topMovers = useMemo(() => {
@@ -151,7 +158,7 @@ export default function DashboardAnalytics({
           activeCount: activeOwned.length,
           value: activeOwned.reduce((s, q) => s + q.quoteValue, 0),
           overdue: activeOwned.filter(isOverdue).length,
-          converted: owned.filter((q) => q.status === "CONVERTED_TO_LPO").length,
+          converted: owned.filter((q) => WON_STATUSES.includes(q.status)).length,
         };
       }),
     [officers, quotations]
@@ -162,7 +169,7 @@ export default function DashboardAnalytics({
       salesmen.map((s) => {
         const owned = quotations.filter((q) => q.salesmanId === s.id);
         const activeOwned = owned.filter((q) => ACTIVE_STATUSES.includes(q.status));
-        const won = owned.filter((q) => q.status === "CONVERTED_TO_LPO").length;
+        const won = owned.filter((q) => WON_STATUSES.includes(q.status)).length;
         const lost = owned.filter((q) => q.status === "LOST").length;
         const decided = won + lost;
         return {
@@ -246,6 +253,12 @@ export default function DashboardAnalytics({
           value={stats.overdueCount}
           sub="untouched 7+ days"
           cls={stats.overdueCount > 0 ? "red" : "green"}
+        />
+        <KpiCard
+          label="Invoiced"
+          value={stats.invoicedCount}
+          sub={`${stats.pendingInvoiceCount} awaiting invoice`}
+          cls={stats.pendingInvoiceCount > 0 ? "amber" : "green"}
         />
       </div>
 

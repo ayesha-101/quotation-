@@ -22,6 +22,11 @@ model Role {
   canCreateQuotations Boolean  @default(false)
   isSalesman          Boolean  @default(false)
   canApproveGp        Boolean  @default(false)
+  // Sales Admin capability: work the cross-department "Pending Invoices"
+  // queue and mark an approved LPO invoiced. Company-wide like the other
+  // permission bits — the built-in "Sales Admin" role (seeded isSystem)
+  // carries it, and an Admin can grant it to a custom role too.
+  canInvoice          Boolean  @default(false)
   // Margin range this role approves, only meaningful when canApproveGp.
   // Null gpMin = no lower bound, null gpMax = no upper bound. Ranges are
   // validated not to overlap when a role is created/edited.
@@ -53,6 +58,7 @@ model User {
 
   quotationsAsSalesman Quotation[] @relation("QuotationSalesman")
   quotationsCreated    Quotation[] @relation("QuotationCreatedBy")
+  quotationsInvoiced   Quotation[] @relation("QuotationInvoicedBy")
   approvalDecisions    Approval[]  @relation("ApprovalDecidedBy")
   passwordResetTokens  PasswordResetToken[]
   submittalsCreated    Submittal[] @relation("SubmittalCreatedBy")
@@ -139,6 +145,11 @@ enum QuotationStatus {
   UNDER_NEGOTIATION
   LOST
   CONVERTED_TO_LPO
+  // Invoicing pipeline: once a converted LPO's GP approval is granted it
+  // becomes PENDING_INVOICE (visible to Sales Admin across all
+  // departments), then INVOICED when a Sales Admin marks it done.
+  PENDING_INVOICE
+  INVOICED
 }
 
 model Quotation {
@@ -174,6 +185,11 @@ model Quotation {
   gp              Float
   customerLpoNo   String          @default("")
   lpoMismatch     Boolean         @default(false)
+  // Set only by a Sales Admin's "Done" action on the Pending Invoices
+  // queue, in an atomic status-guarded update — never editable afterwards.
+  invoicedById    String?
+  invoicedBy      User?           @relation("QuotationInvoicedBy", fields: [invoicedById], references: [id])
+  invoicedAt      DateTime?
   // Required when a salesman flags a quotation LOST — why it didn't close,
   // for the record and for later win/loss analysis.
   lostReason      String?

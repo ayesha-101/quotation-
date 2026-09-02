@@ -14,6 +14,7 @@ export interface RolePermissions {
   canCreateQuotations: boolean;
   isSalesman: boolean;
   canApproveGp: boolean;
+  canInvoice: boolean;
 }
 
 export function canEditQuotes(role: RolePermissions): boolean {
@@ -26,6 +27,12 @@ export function canManageCatalog(role: RolePermissions): boolean {
 
 export function canManageUsers(role: RolePermissions): boolean {
   return role.isAdmin || role.canManageUsers;
+}
+
+// Sales Admin capability: work the cross-department Pending Invoices queue
+// and mark an approved LPO invoiced. Admin implicitly has it too.
+export function canInvoice(role: RolePermissions): boolean {
+  return role.isAdmin || role.canInvoice;
 }
 
 // A role's permission bits (above) are company-wide by design — whether a

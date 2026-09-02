@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { canManageCatalog, canManageUsers } from "@/lib/permissions";
+import { canManageCatalog, canManageUsers, canInvoice } from "@/lib/permissions";
 
 /**
  * The proxy (proxy.ts) only checks that a session cookie is present and
@@ -38,5 +38,11 @@ export async function requireCatalogManager() {
 export async function requireUserManager() {
   const user = await requireUser();
   if (!canManageUsers(user.role)) redirect("/");
+  return user;
+}
+
+export async function requireInvoicer() {
+  const user = await requireUser();
+  if (!canInvoice(user.role)) redirect("/");
   return user;
 }

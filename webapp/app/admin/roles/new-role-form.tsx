@@ -14,6 +14,7 @@ const BLANK = {
   canCreateQuotations: false,
   isSalesman: false,
   canApproveGp: false,
+  canInvoice: false,
   gpMin: null,
   gpMax: null,
 };

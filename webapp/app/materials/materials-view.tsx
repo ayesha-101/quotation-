@@ -15,6 +15,11 @@ export interface MaterialQuotation {
   lines: MaterialLine[];
 }
 
+// A won LPO stays won through invoicing, so material demand from won
+// orders counts every stage downstream of conversion, not just the moment
+// it converted.
+const WON_STATUSES = ["CONVERTED_TO_LPO", "PENDING_INVOICE", "INVOICED"];
+
 function withinPeriod(iso: string, months: number): boolean {
   if (!months) return true;
   const cutoff = new Date();
@@ -41,7 +46,7 @@ export default function MaterialsView({ quotations }: { quotations: MaterialQuot
       );
 
     quotations
-      .filter((q) => q.status === "CONVERTED_TO_LPO" && withinPeriod(q.createdAt, period))
+      .filter((q) => WON_STATUSES.includes(q.status) && withinPeriod(q.createdAt, period))
       .forEach((q) =>
         q.lines.forEach((l) => {
           const key = (l.code || "") + "|" + l.description;

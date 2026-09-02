@@ -54,6 +54,7 @@ export default async function AdminRolesPage() {
                   canManageUsers: r.canManageUsers,
                   canCreateQuotations: r.canCreateQuotations,
                   isSalesman: r.isSalesman,
+                  canInvoice: r.canInvoice,
                   canApproveGp: r.canApproveGp,
                   gpMin: r.gpMin,
                   gpMax: r.gpMax,

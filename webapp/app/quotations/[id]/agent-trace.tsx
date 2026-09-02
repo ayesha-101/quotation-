@@ -76,13 +76,17 @@ export default function AgentTrace({
 }) {
   const fmtMoney = (n: number) => "AED " + n.toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const latestApproval = q.approvals[0];
-  const lpoConverted = q.status === "CONVERTED_TO_LPO";
+  // Once converted, the order stays "an LPO" through the invoicing stages
+  // — stages 5 and 6 below should keep reading as reached, not reset.
+  const lpoConverted = ["CONVERTED_TO_LPO", "PENDING_INVOICE", "INVOICED"].includes(q.status);
+  const isInvoiced = q.status === "INVOICED";
+  const isPendingInvoice = q.status === "PENDING_INVOICE";
 
   return (
     <div className="card corner-marks" style={{ marginBottom: 20 }}>
       <h2 style={{ fontSize: 14, marginBottom: 2 }}>AI Operations Agent — process trace</h2>
       <p style={{ fontSize: 11.5, color: "var(--ink-faint)", marginBottom: 4 }}>
-        Same six stages as the system prompt — each line reads this quotation&apos;s real stored data, not a simulation.
+        Each line reads this quotation&apos;s real stored data, not a simulation — through to invoicing.
       </p>
 
       <Stage title="1. Validate" state="done">
@@ -131,6 +135,17 @@ export default function AgentTrace({
         ) : (
           "Not started — runs automatically once the quotation is created, if CRM is connected."
         )}
+      </Stage>
+
+      <Stage
+        title="7. Invoicing"
+        state={isInvoiced ? "done" : isPendingInvoice ? "pending" : "skipped"}
+      >
+        {isInvoiced
+          ? "Invoiced — marked done by Sales Admin."
+          : isPendingInvoice
+            ? "GP approved — waiting in the Sales Admin Pending Invoices queue."
+            : "Not started — begins once the LPO's GP approval is granted."}
       </Stage>
     </div>
   );

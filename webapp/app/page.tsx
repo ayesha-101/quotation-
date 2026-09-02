@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import AppHeader from "./app-header";
 import DashboardAnalytics, { type DashboardQuotation } from "./dashboard-analytics";
 import RecentActivity from "./recent-activity";
+import LivePoll from "./live-poll";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -71,6 +72,7 @@ export default async function DashboardPage() {
   return (
     <>
       <AppHeader user={user} active="dashboard" />
+      <LivePoll intervalMs={5000} />
       <div className="page-wrap">
         <DashboardAnalytics quotations={quotations} officers={officers} salesmen={salesmen} />
         <RecentActivity entries={recentActivity} />

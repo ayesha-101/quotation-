@@ -18,6 +18,7 @@ interface RoleFields {
   canCreateQuotations: boolean;
   isSalesman: boolean;
   canApproveGp: boolean;
+  canInvoice: boolean;
   gpMin: number | null;
   gpMax: number | null;
 }
@@ -43,6 +44,7 @@ function parseRoleFields(formData: FormData): RoleFields | { error: string } {
     canManageUsers: formData.get("canManageUsers") === "on",
     canCreateQuotations: formData.get("canCreateQuotations") === "on",
     isSalesman: formData.get("isSalesman") === "on",
+    canInvoice: formData.get("canInvoice") === "on",
     canApproveGp,
     gpMin: canApproveGp ? gpMin : null,
     gpMax: canApproveGp ? gpMax : null,

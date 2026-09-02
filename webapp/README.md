@@ -17,8 +17,19 @@ database, or server-held secrets has to live here instead.
   just the session cookie (see `lib/auth-guard.ts`).
 - Account lockout after 5 failed login attempts (15 minutes).
 - Forced password change on first login for accounts an Admin creates.
-- Six roles matching the live app: Admin, Quotation Officer, Salesman,
-  Line Manager, GM, CEO.
+- Seven built-in roles: Admin, Quotation Officer, Salesman, Line Manager,
+  GM, CEO, and Sales Admin (invoicing). Roles are data — an Admin can add
+  more with their own permission bits.
+- Invoicing pipeline: once a converted LPO's GP approval is granted it
+  moves to a cross-department **Pending Invoices** queue that only a Sales
+  Admin (or Admin) can see — and deliberately **without margin**. Marking
+  one done is a single status-guarded write, so two people clicking "Done"
+  on the same row can't both succeed; the loser is told it was already
+  handled. `invoicedBy`/`invoicedAt` are stamped and audited (both the
+  per-quotation log and the hash-chained security log).
+- Live dashboard: the manager dashboard, its activity feed, and the
+  Pending Invoices queue refresh themselves every few seconds
+  (`router.refresh()`), pausing while the browser tab is hidden.
 
 ## What's NOT here yet
 

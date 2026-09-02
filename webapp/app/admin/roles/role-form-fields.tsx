@@ -10,6 +10,7 @@ export interface RoleDefaults {
   canCreateQuotations: boolean;
   isSalesman: boolean;
   canApproveGp: boolean;
+  canInvoice: boolean;
   gpMin: number | null;
   gpMax: number | null;
 }
@@ -20,6 +21,7 @@ const CHECKBOXES: Array<{ name: keyof RoleDefaults; label: string; hint: string 
   { name: "canManageUsers", label: "Manage users", hint: "Add/deactivate/delete accounts" },
   { name: "canCreateQuotations", label: "Create quotations", hint: "Build and convert quotations to LPO" },
   { name: "isSalesman", label: "Salesman", hint: "Appears in the quotation builder's salesman list" },
+  { name: "canInvoice", label: "Sales Admin (invoicing)", hint: "Works the cross-department Pending Invoices queue" },
 ];
 
 export default function RoleFormFields({ defaults }: { defaults: RoleDefaults }) {

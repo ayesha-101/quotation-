@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { canManageCatalog, canManageUsers } from "@/lib/permissions";
+import { canManageCatalog, canManageUsers, canInvoice } from "@/lib/permissions";
 import { logoutAction } from "@/app/logout/actions";
 import { prisma } from "@/lib/db";
 import { formatQuoteRef } from "@/lib/quote-format";
@@ -12,6 +12,7 @@ export type NavSection =
   | "submittals"
   | "materials"
   | "approvals"
+  | "invoicing"
   | "catalog"
   | "users"
   | "roles"
@@ -32,6 +33,7 @@ interface HeaderUser {
     canCreateQuotations: boolean;
     isSalesman: boolean;
     canApproveGp: boolean;
+    canInvoice: boolean;
   };
 }
 
@@ -112,6 +114,7 @@ export default async function AppHeader({ user, active }: { user: HeaderUser; ac
     { id: "submittals", href: "/submittals", label: "Submittals", show: true },
     { id: "materials", href: "/materials", label: "Materials", show: true },
     { id: "approvals", href: "/approvals", label: "Approvals", show: user.role.canApproveGp || user.role.isAdmin },
+    { id: "invoicing", href: "/invoicing", label: "Invoicing", show: canInvoice(user.role) },
     { id: "catalog", href: "/admin/catalog", label: "Catalog", show: canManageCatalog(user.role) },
     { id: "users", href: "/admin/users", label: "Users", show: canManageUsers(user.role) },
     { id: "roles", href: "/admin/roles", label: "Roles", show: user.role.isAdmin },
