@@ -60,14 +60,21 @@ export default async function SubmittalPrintPage({ params }: { params: Promise<{
     <>
       <style>{`
         @page { size: A4; margin: 0; }
+        /* Padding is included inside the fixed page height everywhere on
+           this page — without border-box, a content div's own padding
+           gets added on top of its minHeight instead of eating into it,
+           so the "one section per printed page" math silently doesn't add
+           up and content spills onto a mostly-blank extra page. */
+        .sub-page, .sub-page * { box-sizing: border-box; }
         @media print {
           .no-print { display: none !important; }
           body { background: #fff !important; margin: 0; }
+          .sub-page-wrap { background: #fff !important; padding: 0 !important; }
           .sub-page { margin: 0 !important; box-shadow: none !important; page-break-after: always; }
         }
         .sub-page table, .sub-page th, .sub-page td { color: #1a2233; }
       `}</style>
-      <div style={{ background: "#f0f2f5", minHeight: "100vh", padding: "24px 0" }}>
+      <div className="sub-page-wrap" style={{ background: "#f0f2f5", minHeight: "100vh", padding: "24px 0" }}>
         <div className="no-print" style={{ maxWidth: "210mm", margin: "0 auto 16px" }}>
           <PrintActions
             submittalRef={s.ref}
@@ -133,7 +140,6 @@ export default async function SubmittalPrintPage({ params }: { params: Promise<{
                 <p>PO BOX 72901, ABU DHABI, UNITED ARAB EMIRATES</p>
                 <p>Tel: +971 2 550 6700 | Fax: +971 4 266 4627</p>
                 <p style={{ color: NAVY }}>Web: www.bmtc.ae | E-mail: info@bmtc.ae</p>
-                {s.salesmanName && <p style={{ marginTop: 6 }}>Prepared by: {s.salesmanName}</p>}
               </div>
             </div>
           </div>

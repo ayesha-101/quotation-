@@ -81,6 +81,7 @@ export default async function QuotationPrintPage({
         @media print {
           .no-print { display: none !important; }
           body { background: #fff !important; }
+          .print-page-wrap { background: #fff !important; padding: 0 !important; }
           .print-doc thead { display: table-header-group; }
           .print-doc tr { page-break-inside: avoid; }
           .print-doc .no-split { page-break-inside: avoid; }
@@ -89,7 +90,7 @@ export default async function QuotationPrintPage({
           color: #1a2233;
         }
       `}</style>
-      <div style={{ background: "#f0f2f5", minHeight: "100vh", padding: "24px 0" }}>
+      <div className="print-page-wrap" style={{ background: "#f0f2f5", minHeight: "100vh", padding: "24px 0" }}>
         <div
           className="no-print"
           style={{ maxWidth: 800, margin: "0 auto 16px", display: "flex", gap: 10, alignItems: "center" }}
