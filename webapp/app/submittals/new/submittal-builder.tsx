@@ -2,7 +2,13 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createSubmittalAction, extractSubmittalPdfTextAction, type CustomFieldInput, type IndexItemInput } from "../actions";
+import {
+  createSubmittalAction,
+  extractSubmittalPdfTextAction,
+  updateSubmittalAction,
+  type CustomFieldInput,
+  type IndexItemInput,
+} from "../actions";
 import { useToast } from "@/app/toast-provider";
 
 const GENERAL_INDEX: string[] = [
@@ -100,30 +106,51 @@ interface RemovableField {
   value: string;
 }
 
-export default function SubmittalBuilder({ defaultSalesman }: { defaultSalesman: string }) {
+export interface ExistingSubmittal {
+  id: string;
+  ref: string;
+  materialName: string;
+  brandName: string;
+  projectName: string;
+  employerName: string;
+  consultantName: string;
+  mainContractor: string;
+  mepContractor: string;
+  salesmanName: string;
+  customFields: CustomFieldInput[];
+  indexItems: IndexItemInput[];
+}
+
+export default function SubmittalBuilder({
+  defaultSalesman,
+  submittal,
+}: {
+  defaultSalesman: string;
+  submittal?: ExistingSubmittal;
+}) {
   const router = useRouter();
   const { show } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const [materialName, setMaterialName] = useState("");
-  const [brandName, setBrandName] = useState("");
-  const [ref, setRef] = useState(defaultRef);
-  const [projectName, setProjectName] = useState("");
-  const [salesmanName, setSalesmanName] = useState(defaultSalesman);
+  const [materialName, setMaterialName] = useState(submittal?.materialName ?? "");
+  const [brandName, setBrandName] = useState(submittal?.brandName ?? "");
+  const [ref, setRef] = useState(submittal?.ref ?? defaultRef);
+  const [projectName, setProjectName] = useState(submittal?.projectName ?? "");
+  const [salesmanName, setSalesmanName] = useState(submittal?.salesmanName || defaultSalesman);
 
   const [fields, setFields] = useState<RemovableField[]>([
-    { key: "employerName", label: "Client", visible: true, value: "" },
-    { key: "consultantName", label: "Consultant", visible: true, value: "" },
-    { key: "mainContractor", label: "Main Contractor", visible: true, value: "" },
-    { key: "mepContractor", label: "MEP Contractor", visible: true, value: "" },
+    { key: "employerName", label: "Client", visible: true, value: submittal?.employerName ?? "" },
+    { key: "consultantName", label: "Consultant", visible: true, value: submittal?.consultantName ?? "" },
+    { key: "mainContractor", label: "Main Contractor", visible: true, value: submittal?.mainContractor ?? "" },
+    { key: "mepContractor", label: "MEP Contractor", visible: true, value: submittal?.mepContractor ?? "" },
   ]);
-  const [customFields, setCustomFields] = useState<CustomFieldInput[]>([]);
+  const [customFields, setCustomFields] = useState<CustomFieldInput[]>(submittal?.customFields ?? []);
 
-  const [indexType, setIndexType] = useState<"general" | "custom">("general");
+  const [indexType, setIndexType] = useState<"general" | "custom">(submittal ? "custom" : "general");
   const [items, setItems] = useState<IndexItemInput[]>(
-    GENERAL_INDEX.map((description) => ({ description, status: "" }))
+    submittal?.indexItems ?? GENERAL_INDEX.map((description) => ({ description, status: "" }))
   );
   const [quickAdd, setQuickAdd] = useState("");
   const [importing, setImporting] = useState(false);
@@ -278,7 +305,7 @@ export default function SubmittalBuilder({ defaultSalesman }: { defaultSalesman:
     fd.set("indexItems", JSON.stringify(items.filter((i) => i.description.trim())));
 
     startTransition(async () => {
-      const res = await createSubmittalAction(fd);
+      const res = submittal ? await updateSubmittalAction(submittal.id, fd) : await createSubmittalAction(fd);
       if (res.error) {
         setError(res.error);
       } else if (res.id) {
@@ -480,7 +507,7 @@ export default function SubmittalBuilder({ defaultSalesman }: { defaultSalesman:
 
       <div style={{ display: "flex", gap: 10 }}>
         <button type="button" className="btn primary" disabled={pending} onClick={handleSubmit}>
-          {pending ? "Generating…" : "Generate submittal"}
+          {pending ? "Saving…" : submittal ? "Save changes" : "Generate submittal"}
         </button>
       </div>
     </form>

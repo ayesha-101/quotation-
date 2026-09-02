@@ -111,6 +111,68 @@ export async function createSubmittalAction(formData: FormData): Promise<ActionR
   return { success: true, id: submittal.id };
 }
 
+// Edits the submittal's document fields (ref, cover/project details,
+// index) — separate from updateSubmittalTrackingAction below, which only
+// touches the tracker's workflow fields (status/remark/value). Keeping
+// them apart means editing a typo in the project name can never
+// accidentally reset where a submittal is in the approval process.
+export async function updateSubmittalAction(submittalId: string, formData: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  if (!canEditQuotes(user.role)) {
+    return { error: "Only the Admin or a Quotation Officer can edit submittals." };
+  }
+
+  const submittal = await prisma.submittal.findUnique({ where: { id: submittalId } });
+  if (!submittal) return { error: "Submittal not found." };
+  if (!user.role.isAdmin && submittal.departmentId !== user.departmentId) {
+    return { error: "Submittal not found." };
+  }
+
+  const ref = String(formData.get("ref") || "").trim();
+  const materialName = String(formData.get("materialName") || "").trim();
+  const brandName = String(formData.get("brandName") || "").trim();
+  if (!ref || !materialName || !brandName) {
+    return { error: "Ref., Material, and Brand are required." };
+  }
+
+  let indexItems: IndexItemInput[];
+  let customFields: CustomFieldInput[];
+  try {
+    indexItems = JSON.parse(String(formData.get("indexItems") || "[]"));
+    customFields = JSON.parse(String(formData.get("customFields") || "[]"));
+  } catch {
+    return { error: "Malformed index items." };
+  }
+
+  if (ref !== submittal.ref) {
+    const clash = await prisma.submittal.findUnique({
+      where: { departmentId_ref: { departmentId: submittal.departmentId, ref } },
+    });
+    if (clash) return { error: `Ref. "${ref}" already exists — use a unique reference.` };
+  }
+
+  await prisma.submittal.update({
+    where: { id: submittalId },
+    data: {
+      ref,
+      materialName,
+      brandName,
+      projectName: String(formData.get("projectName") || ""),
+      employerName: String(formData.get("employerName") || ""),
+      consultantName: String(formData.get("consultantName") || ""),
+      mainContractor: String(formData.get("mainContractor") || ""),
+      mepContractor: String(formData.get("mepContractor") || ""),
+      salesmanName: String(formData.get("salesmanName") || ""),
+      customFields: customFields as object,
+      indexItems: indexItems as object,
+    },
+  });
+
+  revalidatePath("/submittals");
+  revalidatePath(`/submittals/${submittalId}/print`);
+  return { success: true, id: submittalId };
+}
+
 export async function updateSubmittalTrackingAction(
   submittalId: string,
   fields: { status?: string; remark?: string; value?: string }

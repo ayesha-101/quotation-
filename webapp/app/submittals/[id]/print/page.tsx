@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth-guard";
+import { canEditQuotes } from "@/lib/permissions";
 import { prisma } from "@/lib/db";
 import PrintActions from "./print-actions";
 
@@ -74,6 +76,11 @@ export default async function SubmittalPrintPage({ params }: { params: Promise<{
             brandName={s.brandName}
             items={items.map((i) => i.description)}
           />
+          {canEditQuotes(user.role) && (
+            <Link href={`/submittals/${s.id}/edit`} className="btn" style={{ marginLeft: 10 }}>
+              Edit
+            </Link>
+          )}
         </div>
 
         {/* Cover page */}

@@ -63,12 +63,13 @@ export default async function SubmittalsPage() {
                 <th>Remark</th>
                 <th>Value</th>
                 <th></th>
+                {canEdit && <th></th>}
               </tr>
             </thead>
             <tbody>
               {submittals.length === 0 ? (
                 <tr>
-                  <td colSpan={user.role.isAdmin ? 10 : 9} className="empty-state">
+                  <td colSpan={user.role.isAdmin ? (canEdit ? 11 : 10) : canEdit ? 10 : 9} className="empty-state">
                     No submittals yet.
                   </td>
                 </tr>
@@ -90,6 +91,13 @@ export default async function SubmittalsPage() {
                       value={s.value != null ? String(s.value) : ""}
                       canEdit={canEdit}
                     />
+                    {canEdit && (
+                      <td>
+                        <Link href={`/submittals/${s.id}/edit`} style={{ fontSize: 11.5 }}>
+                          Edit
+                        </Link>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
