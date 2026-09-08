@@ -479,7 +479,7 @@ export async function reviseQuotationAction(
   return { success: true };
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_RE = /^[^\s@<>"'`]+@[^\s@<>"'`]+\.[^\s@<>"'`]+$/;
 
 export async function emailQuotationAction(quotationId: string, toEmail: string): Promise<ActionResult> {
   const user = await requireUser();
@@ -519,7 +519,8 @@ export async function emailQuotationAction(quotationId: string, toEmail: string)
       senderTitle: quotation.prepTitle,
     });
   } catch (err) {
-    return { error: err instanceof Error ? `Couldn't send the email: ${err.message}` : "Couldn't send the email." };
+    console.error("Quotation email send failed:", err);
+    return { error: "Couldn't send the email — check the address and try again." };
   }
 
   await prisma.quotationAuditEntry.create({

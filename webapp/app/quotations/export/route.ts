@@ -7,8 +7,12 @@ import { prisma } from "@/lib/db";
 // added dependencies. (The `xlsx` npm package has unpatched high-severity
 // CVEs — see GHSA-4r6h-8v6p-xvw6 / GHSA-5pgg-2g8v-p4x9 — and there's no
 // upside to a real binary format here, so this was the deliberate choice.)
+// CSV/formula injection guard: a field starting with =, +, -, or @ is
+// interpreted as a formula by Excel/Sheets, not literal text — prefix it
+// with a tab so it's forced back to a plain value.
 function csvEscape(value: string | number): string {
-  const s = String(value);
+  let s = String(value);
+  if (/^[=+\-@]/.test(s)) s = "\t" + s;
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }

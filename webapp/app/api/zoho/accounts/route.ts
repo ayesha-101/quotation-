@@ -13,7 +13,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ accounts });
   } catch (e) {
     console.error("Zoho account search failed:", e);
-    const detail = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ accounts: [], error: `CRM lookup failed: ${detail}` }, { status: 502 });
+    return NextResponse.json({ accounts: [], error: "CRM lookup failed." }, { status: 502 });
   }
 }

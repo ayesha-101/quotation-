@@ -5,7 +5,7 @@ import { generateResetToken } from "@/lib/reset-token";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { appendChainEvent } from "@/lib/security-chain";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_RE = /^[^\s@<>"'`]+@[^\s@<>"'`]+\.[^\s@<>"'`]+$/;
 
 export interface ForgotPasswordState {
   error?: string;

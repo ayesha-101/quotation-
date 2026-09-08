@@ -67,6 +67,7 @@ export default async function QuotationPrintPage({
     include: { lines: { orderBy: { position: "asc" } }, createdBy: true },
   });
   if (!q) notFound();
+  if (!user.role.isAdmin && q.departmentId !== user.departmentId) notFound();
 
   const dateStr = q.createdAt
     .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })

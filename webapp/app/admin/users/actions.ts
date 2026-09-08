@@ -8,7 +8,11 @@ import { appendChainEvent } from "@/lib/security-chain";
 import { sendWelcomeEmail } from "@/lib/email";
 import type { Prisma } from "@prisma/client";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Excludes HTML-special characters (not just whitespace/@) — this email is
+// later reflected verbatim into the welcome email's HTML body, so a value
+// like `<img src=x onerror=...>@x.com` must be rejected here, not escaped
+// downstream where it's easy to forget.
+const EMAIL_RE = /^[^\s@<>"'`]+@[^\s@<>"'`]+\.[^\s@<>"'`]+$/;
 
 export interface CreateUserState {
   error?: string;

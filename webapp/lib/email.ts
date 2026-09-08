@@ -111,10 +111,10 @@ export async function sendWelcomeEmail(to: string, name: string, tempPassword: s
     to,
     subject: "Your BMTC Quotation & LPO Control account",
     html: wrapper(`
-      <h1 style="font-size:18px;margin:0 0 12px">Welcome, ${name}</h1>
+      <h1 style="font-size:18px;margin:0 0 12px">Welcome, ${escapeHtml(name)}</h1>
       <p style="font-size:13.5px;line-height:1.6">An account was created for you on BMTC Quotation &amp; LPO Control. Sign in with the temporary password below — you'll be asked to set your own right away.</p>
       <table style="width:100%;margin:20px 0;border-collapse:collapse">
-        <tr><td style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#7c8ba0;padding:6px 0">Email</td><td style="font-size:13.5px;padding:6px 0">${to}</td></tr>
+        <tr><td style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#7c8ba0;padding:6px 0">Email</td><td style="font-size:13.5px;padding:6px 0">${escapeHtml(to)}</td></tr>
         <tr><td style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#7c8ba0;padding:6px 0">Temporary password</td><td style="font-size:13.5px;padding:6px 0;font-family:monospace">${tempPassword}</td></tr>
       </table>
       <p style="margin:24px 0"><a href="${loginUrl}" style="background:#2569c2;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;font-size:13.5px;font-weight:600;display:inline-block">Sign in</a></p>
