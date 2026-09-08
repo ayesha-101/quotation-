@@ -76,6 +76,12 @@ export default async function SubmittalPrintPage({ params }: { params: Promise<{
       `}</style>
       <div className="sub-page-wrap" style={{ background: "#f0f2f5", minHeight: "100vh", padding: "24px 0" }}>
         <div className="no-print" style={{ maxWidth: "210mm", margin: "0 auto 16px" }}>
+          <Link
+            href="/submittals"
+            style={{ fontSize: 12, color: "var(--ink-faint)", display: "inline-block", marginBottom: 12 }}
+          >
+            ← Submittal Tracker
+          </Link>
           <PrintActions
             submittalRef={s.ref}
             projectName={s.projectName}

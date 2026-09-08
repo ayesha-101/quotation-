@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export interface ActivityEntry {
   id: string;
-  quotationId: string;
+  href: string;
   ref: string;
   who: string;
   action: string;
@@ -21,8 +21,9 @@ function timeAgo(iso: string): string {
 }
 
 // A cross-quotation feed of the same QuotationAuditEntry rows already shown
-// per-quotation — just the newest across the whole (department-scoped)
-// tracker, so "what happened recently" doesn't require opening each one.
+// per-quotation, merged with recently-created submittals — just the newest
+// across the whole (department-scoped) tracker, so "what happened recently"
+// doesn't require opening each one.
 export default function RecentActivity({ entries }: { entries: ActivityEntry[] }) {
   if (entries.length === 0) return null;
   return (
@@ -35,7 +36,7 @@ export default function RecentActivity({ entries }: { entries: ActivityEntry[] }
               {timeAgo(e.at)}
             </span>{" "}
             — <b>{e.who}</b>: {e.action} on{" "}
-            <Link href={`/quotations/${e.quotationId}`} className="mono">
+            <Link href={e.href} className="mono">
               {e.ref}
             </Link>
           </div>

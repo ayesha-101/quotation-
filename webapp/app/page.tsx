@@ -30,26 +30,62 @@ export default async function DashboardPage() {
   // Fetched separately from the core dashboard queries above, and never
   // allowed to fail the whole page — "recent activity" is a nice-to-have,
   // not something worth a blank dashboard over.
-  const recentAuditRows = await prisma.quotationAuditEntry
-    .findMany({
-      where: { quotation: departmentScope(user) },
-      include: { quotation: true },
-      orderBy: { at: "desc" },
-      take: 15,
-    })
-    .catch((err) => {
-      console.error("Recent activity query failed:", err);
-      return [];
-    });
+  const [recentAuditRows, recentSubmittalRows] = await Promise.all([
+    prisma.quotationAuditEntry
+      .findMany({
+        where: { quotation: departmentScope(user) },
+        include: { quotation: true },
+        orderBy: { at: "desc" },
+        take: 15,
+      })
+      .catch((err) => {
+        console.error("Recent activity query failed:", err);
+        return [];
+      }),
+    // Submittals have no per-action audit log of their own (see
+    // QuotationAuditEntry above) — surfacing at least the creation event
+    // here, keyed off createdAt/createdBy, is what makes "I just built a
+    // submittal" show up on the dashboard at all.
+    prisma.submittal
+      .findMany({
+        where: departmentScope(user),
+        select: {
+          id: true,
+          ref: true,
+          materialName: true,
+          brandName: true,
+          createdAt: true,
+          createdBy: { select: { name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 15,
+      })
+      .catch((err) => {
+        console.error("Recent submittal activity query failed:", err);
+        return [];
+      }),
+  ]);
 
-  const recentActivity = recentAuditRows.map((a) => ({
-    id: a.id,
-    quotationId: a.quotationId,
-    ref: formatQuoteRef(a.quotation),
-    who: a.who,
-    action: a.action,
-    at: a.at.toISOString(),
-  }));
+  const recentActivity = [
+    ...recentAuditRows.map((a) => ({
+      id: `q-${a.id}`,
+      ref: formatQuoteRef(a.quotation),
+      href: `/quotations/${a.quotationId}`,
+      who: a.who,
+      action: a.action,
+      at: a.at.toISOString(),
+    })),
+    ...recentSubmittalRows.map((s) => ({
+      id: `s-${s.id}`,
+      ref: s.ref,
+      href: `/submittals/${s.id}/print`,
+      who: s.createdBy.name,
+      action: `Submittal created — ${s.materialName} (${s.brandName})`,
+      at: s.createdAt.toISOString(),
+    })),
+  ]
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, 15);
 
   const quotations: DashboardQuotation[] = quotationRows.map((q) => ({
     id: q.id,
